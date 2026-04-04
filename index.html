@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Kaunas Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg:#0e0c09;--surf:#1a1710;--surf2:#242018;--surf3:#2c2820;
+  --bdr:#2e2a20;--gold:#c9a84c;--gl:#e8c878;--gd:#7a6530;
+  --txt:#e8e0d0;--td:#8a8070;--tm:#4a4538;
+  --green:#4a8c5c;--red:#8c4a4a;--blue:#4a6fa5;
+  --sh:rgba(0,0,0,.55);--r:10px;
+  --t1:#c9a84c;--t2:#7a9cc9;--t3:#b07aaa;
+  --t1d:#7a6530;--t2d:#4a6fa5;--t3d:#7a4a9a;
+  --drawer:300px;
+}
+.light{
+  --bg:#f2ede3;--surf:#fff;--surf2:#f0ebe0;--surf3:#e8e0d0;
+  --bdr:#ddd5c0;--gold:#a07828;--gl:#c9a84c;--gd:#c9a84c;
+  --txt:#1a1710;--td:#5a5040;--tm:#9a9080;
+  --green:#3a7a4a;--red:#7a3a3a;--blue:#3a5f95;
+  --sh:rgba(0,0,0,.13);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);transition:background .3s,color .3s}
+
+/* MAP */
+#map{position:fixed;inset:0;z-index:0}
+
+/* ── TOPBAR ── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;pointer-events:none}
+.tb-left{display:flex;align-items:center;gap:8px;pointer-events:all}
+.tb-right{display:flex;gap:7px;pointer-events:all}
+.ib{background:var(--surf);border:1px solid var(--bdr);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;box-shadow:0 2px 12px var(--sh);color:var(--td);transition:all .2s;-webkit-user-select:none;user-select:none;flex-shrink:0}
+.ib:active{transform:scale(.92)}
+.ib.on{border-color:var(--gold);color:var(--gold)}
+.logo-pill{background:var(--surf);border:1px solid var(--bdr);border-radius:24px;padding:6px 14px;box-shadow:0 2px 12px var(--sh);cursor:pointer}
+.logo-text{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--gold);line-height:1}
+.logo-sub{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--td);margin-top:1px}
+
+/* ── WEATHER ── */
+.wx-bubble{position:fixed;top:62px;left:12px;z-index:190;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);box-shadow:0 2px 12px var(--sh);cursor:pointer;display:flex;align-items:center;gap:6px;-webkit-user-select:none;user-select:none;transition:opacity .3s}
+.wx-expanded{position:fixed;top:62px;left:12px;z-index:191;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px var(--sh);min-width:180px;display:none}
+.wx-expanded.open{display:block}
+.we-temp{font-family:'Playfair Display',serif;font-size:2rem;color:var(--txt);line-height:1}
+.we-desc{font-size:.75rem;color:var(--td);margin-top:2px;text-transform:capitalize}
+.we-row{display:flex;gap:12px;margin-top:10px}
+.we-item{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--tm);display:flex;flex-direction:column;gap:2px}
+.we-item span:first-child{color:var(--td);font-size:.72rem}
+
+/* ── GPS ── */
+.gps-pill{position:fixed;top:62px;right:12px;z-index:190;background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);display:flex;align-items:center;gap:5px;box-shadow:0 2px 8px var(--sh)}
+.gd{width:6px;height:6px;border-radius:50%;background:var(--tm);flex-shrink:0}
+.gd.on{background:#4a8c5c;box-shadow:0 0 5px #4a8c5c;animation:gp 2s infinite}
+@keyframes gp{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── TIER UNLOCK OVERLAY ── */
+.unlock-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.unlock-overlay.show{display:flex;animation:fadeIn .4s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.unlock-icon{font-size:64px;animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.unlock-title{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--gold);text-align:center}
+.unlock-sub{font-size:.9rem;color:var(--td);text-align:center;max-width:260px;line-height:1.6}
+.unlock-stars{display:flex;gap:8px;font-size:28px}
+.unlock-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.95rem;cursor:pointer;margin-top:8px}
+
+/* ── DRAWER ── */
+.drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:299;pointer-events:none;transition:background .3s}
+.drawer-backdrop.open{background:rgba(0,0,0,.45);pointer-events:all}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:var(--drawer);z-index:300;background:var(--surf);border-right:1px solid var(--bdr);transform:translateX(-100%);transition:transform .32s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:4px 0 30px var(--sh)}
+.drawer.open{transform:translateX(0)}
+.drawer-header{padding:18px 16px 14px;border-bottom:1px solid var(--bdr);background:var(--surf2);flex-shrink:0;padding-top:calc(18px + env(safe-area-inset-top))}
+.drawer-logo{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold);margin-bottom:4px}
+.drawer-sub{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);line-height:1.5}
+
+/* TIER PROGRESS IN DRAWER */
+.tier-progress{padding:12px 14px;border-bottom:1px solid var(--bdr);display:flex;flex-direction:column;gap:10px}
+.tier-row{display:flex;align-items:flex-start;gap:10px}
+.tier-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.tier-info{flex:1;min-width:0}
+.tier-name{font-size:.82rem;font-weight:600;color:var(--txt);margin-bottom:3px}
+.tier-count{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-bottom:3px}
+.tier-bar{height:4px;background:var(--bdr);border-radius:2px;overflow:hidden;margin-top:3px}
+.tier-fill{height:100%;border-radius:2px;transition:width .5s}
+.tier-lock{font-size:.7rem;color:var(--tm);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px}
+/* Unlock hint banner */
+.unlock-hint-banner{margin-top:6px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:7px 10px;font-size:.7rem;color:var(--gold);font-family:'DM Mono',monospace;line-height:1.5}
+
+/* DRAWER NAV */
+.drawer-nav{display:flex;flex-direction:column;gap:2px;padding:8px 8px;border-bottom:1px solid var(--bdr)}
+.dnav-item{display:flex;align-items:center;gap:12px;padding:12px 10px;border-radius:10px;cursor:pointer;transition:background .15s;-webkit-user-select:none;user-select:none;color:var(--td)}
+.dnav-item:active{background:var(--surf2)}
+.dnav-item.on{background:var(--surf2);color:var(--gold)}
+.dnav-item span:first-child{font-size:20px;width:26px;text-align:center}
+.dnav-item span:last-child{font-size:.92rem;font-weight:500}
+.dnav-badge{background:var(--gold);color:#0e0c09;border-radius:10px;padding:2px 7px;font-size:.62rem;font-weight:700;font-family:'DM Mono',monospace;margin-left:auto}
+
+/* DRAWER BODY */
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* DRAWER BOTTOM */
+.drawer-bottom{padding:12px 16px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
+.dbot-btn{flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:9px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;-webkit-user-select:none;user-select:none}
+.dbot-btn:active{background:var(--surf3)}
+.dbot-btn.pri{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
+
+/* ── DAILY QUEST CARD ── */
+.quest-card{margin:10px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:13px 14px;position:relative;overflow:hidden}
+.quest-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.06),transparent);pointer-events:none}
+.quest-card.done{border-color:var(--green);background:rgba(74,140,92,.07)}
+.quest-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.quest-icon{font-size:20px}
+.quest-label{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--gd);text-transform:uppercase;letter-spacing:.08em}
+.quest-title{font-size:.88rem;font-weight:600;color:var(--txt);margin-bottom:4px}
+.quest-reward{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);margin-bottom:8px}
+.quest-pbar{height:3px;background:var(--bdr);border-radius:2px;overflow:hidden}
+.quest-pfill{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;transition:width .5s}
+.quest-status{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-top:5px}
+.quest-done-badge{position:absolute;top:10px;right:12px;background:var(--green);color:#fff;border-radius:10px;padding:2px 8px;font-size:.62rem;font-family:'DM Mono',monospace}
+
+/* ── FILTER BAR ── */
+.filter-bar{position:fixed;top:62px;left:0;right:0;z-index:189;display:flex;gap:6px;padding:6px 12px;overflow-x:auto;scrollbar-width:none;pointer-events:none;opacity:0;transform:translateY(-6px);transition:all .3s}
+.filter-bar.visible{opacity:1;transform:translateY(0);pointer-events:all}
+.filter-bar::-webkit-scrollbar{display:none}
+.fcap{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px;font-size:.7rem;font-family:'DM Mono',monospace;color:var(--td);white-space:nowrap;cursor:pointer;box-shadow:0 2px 8px var(--sh);transition:all .2s;flex-shrink:0;-webkit-user-select:none;user-select:none}
+.fcap.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
+.fcap:active{transform:scale(.95)}
+
+/* ── BOTTOM SHEET ── */
+.sback{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:199;pointer-events:none;transition:background .3s}
+.sback.open{background:rgba(0,0,0,.4);pointer-events:all}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:200;background:var(--surf);border-radius:20px 20px 0 0;border-top:1px solid var(--bdr);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:82vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -8px 40px var(--sh)}
+.sheet.open{transform:translateY(0)}
+.shandle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+.sscroll{overflow-y:auto;flex:1;padding:14px 18px 100px;-webkit-overflow-scrolling:touch}
+
+/* TIER BADGE IN SHEET */
+.tier-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:.68rem;font-weight:500;margin-bottom:10px;border:1px solid}
+.tier-badge.t1{background:rgba(201,168,76,.12);color:var(--t1);border-color:var(--t1d)}
+.tier-badge.t2{background:rgba(122,156,201,.12);color:var(--t2);border-color:var(--t2d)}
+.tier-badge.t3{background:rgba(176,122,170,.12);color:var(--t3);border-color:var(--t3d)}
+
+/* LOCKED SHEET */
+.locked-sheet{text-align:center;padding:30px 20px}
+.locked-icon{font-size:48px;margin-bottom:12px}
+.locked-title{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--txt);margin-bottom:8px}
+.locked-desc{font-size:.85rem;color:var(--td);line-height:1.6;margin-bottom:16px}
+.locked-progress{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;text-align:left}
+.lp-label{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-bottom:6px}
+.lp-bar{height:4px;background:var(--bdr);border-radius:2px;overflow:hidden}
+.lp-fill{height:100%;border-radius:2px;transition:width .5s}
+/* Locked marker inline hint */
+.locked-hint-box{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:10px 14px;margin:12px 0;text-align:left}
+.lhb-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.lhb-icon{font-size:18px}
+.lhb-title{font-size:.8rem;font-weight:600;color:var(--gold)}
+.lhb-text{font-size:.75rem;color:var(--td);line-height:1.5;font-family:'DM Mono',monospace}
+
+.scat{font-family:'DM Mono',monospace;font-size:.63rem;color:var(--gd);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.stitle{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--txt);margin-bottom:8px;line-height:1.2}
+.schips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:4px 10px;font-size:.7rem;color:var(--td);font-family:'DM Mono',monospace;white-space:nowrap}
+.chip.hi{border-color:var(--gd);color:var(--gold)}
+.sinfo{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px}
+.ic{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 8px;text-align:center}
+.ic .ii{font-size:17px;margin-bottom:3px}
+.ic .iv{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--gold);font-weight:500;margin-bottom:1px}
+.ic .il{font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.05em}
+.shist{font-size:.85rem;color:var(--td);line-height:1.72;margin-bottom:12px}
+.bring-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:11px 13px;margin-bottom:12px}
+.bring-t{font-size:.67rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace;margin-bottom:7px}
+.bring-items{display:flex;flex-wrap:wrap;gap:5px}
+.bitem{font-size:.78rem;color:var(--td)}
+.note-box{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:11px 13px;margin-bottom:12px}
+.note-t{font-size:.67rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace;margin-bottom:7px}
+.note-area{width:100%;background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.82rem;resize:none;min-height:60px;line-height:1.5;outline:none;transition:border-color .2s}
+.note-area:focus{border-color:var(--gd)}
+.note-save{margin-top:6px;background:none;border:1px solid var(--bdr);color:var(--td);border-radius:6px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer}
+.crow{display:flex;gap:9px;align-items:center;margin-bottom:8px}
+.dbadge{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 11px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);text-align:center;white-space:nowrap;flex-shrink:0;min-width:72px;line-height:1.4}
+.dbadge.near{border-color:var(--green);color:var(--green)}
+.cbtn{flex:1;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:14px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.93rem;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
+.cbtn:active{transform:scale(.97)}
+.cbtn.done{background:var(--surf2);border:1px solid var(--green);color:var(--green);cursor:default}
+.cbtn.done:active{transform:none}
+.editbtn{background:var(--surf2);border:1px solid var(--bdr);color:var(--td);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;flex-shrink:0}
+/* Area radius hint in sheet */
+.area-hint{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);display:flex;align-items:center;gap:4px;margin-top:4px;margin-bottom:8px}
+
+/* ── PANELS (in drawer) ── */
+.panel-section{display:none}
+.panel-section.active{display:block}
+
+/* Progress header */
+.prog-h{padding:14px 16px;background:var(--surf2);border-bottom:1px solid var(--bdr)}
+.prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.prog-cnt{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--gold)}
+.streak-t{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);display:flex;align-items:center;gap:3px}
+.pbar{height:4px;background:var(--bdr);border-radius:2px;overflow:hidden}
+.pbf{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;transition:width .6s}
+
+/* Spot list */
+.sh{padding:10px 14px 4px;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em}
+.sr{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .15s;-webkit-user-select:none;user-select:none}
+.sr:active{background:var(--surf2)}
+.sri{width:38px;height:38px;border-radius:50%;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sr.col .sri{background:var(--gd);border-color:var(--gold)}
+.sr.locked-row .sri{opacity:.4}
+.srn{font-size:.9rem;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.sr.col .srn{color:var(--td)}
+.sr.locked-row .srn{color:var(--tm)}
+.srm{font-size:.7rem;color:var(--tm);font-family:'DM Mono',monospace}
+.srr{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--tm);flex-shrink:0}
+.sr.col .srr{color:var(--gold)}
+
+/* Badges */
+.bgr{padding:14px 14px 8px}
+.bgt{font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt);margin-bottom:3px}
+.bgs{font-size:.72rem;color:var(--td);margin-bottom:10px}
+.bgcards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.bc{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:13px 8px;text-align:center}
+.bc.e{border-color:var(--gd);background:var(--surf)}
+.bi{font-size:26px;margin-bottom:5px}
+.bc:not(.e) .bi{filter:grayscale(1) opacity(.22)}
+.bn{font-size:.78rem;font-weight:600;color:var(--txt);margin-bottom:3px}
+.bc.e .bn{color:var(--gl)}
+.bd{font-size:.67rem;color:var(--td);line-height:1.4}
+.bprog{height:2px;background:var(--bdr);border-radius:1px;margin-top:6px;overflow:hidden}
+.bpf{height:100%;background:var(--gold);border-radius:1px}
+
+/* Routes */
+.route-card{margin:10px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
+.route-card:active{transform:scale(.98)}
+.rc-head{padding:12px 14px 8px}
+.rc-emoji{font-size:20px;margin-bottom:4px}
+.rc-name{font-family:'Playfair Display',serif;font-size:.92rem;color:var(--txt);margin-bottom:2px}
+.rc-desc{font-size:.72rem;color:var(--td);line-height:1.5;margin-bottom:7px}
+.rc-meta{display:flex;gap:6px;flex-wrap:wrap}
+.rc-chip{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:2px 8px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)}
+.rc-stops{padding:8px 14px}
+.rc-stop{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:.75rem;color:var(--td)}
+.rc-stop-dot{width:7px;height:7px;border-radius:50%;background:var(--bdr);flex-shrink:0}
+.rc-stop.done .rc-stop-dot{background:var(--gold)}
+.rc-stop.locked-stop{color:var(--tm)}
+.rc-prog{height:2px;background:var(--bdr);border-radius:1px;margin:6px 0 0;overflow:hidden}
+.rc-pf{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:1px;transition:width .5s}
+.start-route-btn{width:calc(100% - 28px);margin:0 14px 12px;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.83rem;cursor:pointer}
+.start-route-btn:active{transform:scale(.98)}
+
+/* Route bar */
+.route-bar{position:fixed;bottom:0;left:0;right:0;z-index:195;background:var(--surf);border-top:1px solid var(--gold);padding:10px 16px;display:none;align-items:center;gap:10px;box-shadow:0 -4px 20px var(--sh)}
+.route-bar.active{display:flex}
+.rb-info{flex:1}
+.rb-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gd);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.rb-name{font-size:.85rem;font-weight:600;color:var(--txt)}
+.rb-stop{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td)}
+.rb-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer}
+.rb-end{background:none;border:1px solid var(--bdr);color:var(--td);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer}
+
+/* ── SOCIAL PANEL ── */
+.social-section{padding:14px}
+.social-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--txt);margin-bottom:4px}
+.social-sub{font-size:.78rem;color:var(--td);margin-bottom:14px;line-height:1.6}
+.social-btn{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--txt);cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all .2s;-webkit-user-select:none;user-select:none;text-align:left}
+.social-btn:active{background:var(--surf3)}
+.social-btn .sb-icon{font-size:22px;flex-shrink:0}
+.social-btn .sb-text{flex:1;min-width:0}
+.social-btn .sb-label{font-size:.88rem;font-weight:600;color:var(--txt);margin-bottom:2px}
+.social-btn .sb-sub{font-size:.7rem;color:var(--td);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.social-btn.pri-btn{background:var(--gold);border-color:var(--gold)}
+.social-btn.pri-btn .sb-label,.social-btn.pri-btn .sb-icon{color:#0e0c09}
+.social-btn.pri-btn .sb-sub{color:rgba(0,0,0,.55)}
+/* My stats card */
+.my-stats-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:14px}
+.msc-title{font-size:.65rem;font-family:'DM Mono',monospace;color:var(--td);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+.msc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.msc-cell{text-align:center;background:var(--surf3);border-radius:8px;padding:10px 6px}
+.msc-val{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:600;color:var(--gold);margin-bottom:2px}
+.msc-lbl{font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.04em}
+/* Name input row */
+.name-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.name-row .fi{flex:1;font-size:.88rem;padding:11px 12px}
+.name-row .name-save-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px;font-size:.88rem;cursor:pointer;color:var(--td);flex-shrink:0;-webkit-user-select:none;user-select:none}
+.name-row .name-save-btn:active{background:var(--surf3)}
+.section-label{font-size:.8rem;font-weight:600;color:var(--txt);margin:14px 0 8px}
+
+/* ── EDITOR MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--surf);border-radius:20px 20px 0 0;border-top:1px solid var(--bdr);width:100%;max-height:92vh;overflow-y:auto;padding:20px 18px 50px;-webkit-overflow-scrolling:touch}
+.modal-handle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);margin-bottom:14px}
+.fg{margin-bottom:11px}
+.fl{display:block;font-size:.65rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace;margin-bottom:4px}
+.fi,.fs,.fa{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;transition:border-color .2s}
+.fi:focus,.fs:focus,.fa:focus{border-color:var(--gd)}
+.fs option{background:var(--surf2)}
+.fa{resize:vertical;min-height:70px;line-height:1.5}
+.frow{display:flex;gap:9px}
+.frow .fg{flex:1}
+.hint{font-size:.65rem;color:var(--tm);font-family:'DM Mono',monospace;margin-top:3px}
+.mact{display:flex;gap:9px;margin-top:14px}
+.mbtn{flex:1;border-radius:10px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;border:none}
+.mbtn.pri{background:var(--gold);color:#0e0c09}
+.mbtn.sec{background:var(--surf2);border:1px solid var(--bdr);color:var(--td)}
+.mbtn.dan{background:var(--red);color:#fff}
+.mbtn:active{transform:scale(.97)}
+
+/* ── TOASTS ── */
+.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%));z-index:999;display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none;width:90%;max-width:320px}
+.toast{background:var(--surf);border:1px solid var(--bdr);border-radius:24px;padding:10px 18px;font-size:.82rem;color:var(--txt);box-shadow:0 4px 20px var(--sh);opacity:0;transform:translateY(10px) scale(.95);transition:opacity .25s,transform .25s;white-space:nowrap;max-width:100%;overflow:hidden;display:flex;align-items:center;gap:7px}
+.toast.show{opacity:1;transform:translateY(0) scale(1)}
+.toast.success{border-color:var(--green);color:var(--green)}
+.toast.gold{border-color:var(--gd);color:var(--gold)}
+.toast.info{border-color:var(--blue);color:var(--blue)}
+.toast.egg{border-color:#b07aaa;color:#b07aaa;animation:eggGlow 1s infinite alternate}
+@keyframes eggGlow{from{box-shadow:0 4px 20px var(--sh)}to{box-shadow:0 4px 30px rgba(176,122,170,.5)}}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:20px;right:16px;z-index:95;width:44px;height:44px;border-radius:50%;background:var(--gold);color:#0e0c09;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:300;line-height:1;cursor:pointer;box-shadow:0 3px 14px rgba(0,0,0,.4);-webkit-user-select:none;user-select:none;transition:transform .2s}
+.fab:active{transform:scale(.92)}
+
+/* unlock cat cards */
+.ucat-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
+.ucat-card:active{transform:scale(.95)}
+.ucat-card.available{border-color:var(--gd)}
+.ucat-card.already{opacity:.35;cursor:default;pointer-events:none}
+.ucat-card .uce{font-size:26px;margin-bottom:5px}
+.ucat-card .ucn{font-size:.72rem;font-weight:600;color:var(--txt)}
+.ucat-card .ucc{font-size:.6rem;font-family:'DM Mono',monospace;color:var(--td);margin-top:2px}
+.token-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold)}
+.token-dot{width:10px;height:10px;border-radius:50%;background:var(--gold)}
+.token-dot.used{background:var(--tm)}
+/* hidden spot in list */
+.sr.hidden-spot .srn{color:var(--tm);font-style:italic;letter-spacing:.04em}
+.sr.hidden-spot .sri{opacity:.3}
+
+.leaflet-control-zoom{margin-bottom:20px !important}
+.leaflet-control-zoom a{background:var(--surf) !important;color:var(--txt) !important;border-color:var(--bdr) !important}
+.leaflet-container{background:var(--bg) !important}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--bdr)}
+
+/* ── STREAK PILL on topbar ── */
+.streak-pill{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--gold);display:flex;align-items:center;gap:4px;box-shadow:0 2px 12px var(--sh);white-space:nowrap;pointer-events:none}
+.streak-pill.fire{animation:streakPulse 2s infinite}
+@keyframes streakPulse{0%,100%{box-shadow:0 2px 12px var(--sh)}50%{box-shadow:0 2px 16px rgba(201,168,76,.35)}}
+
+/* ── PROXIMITY POPUP ── */
+.prox-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);z-index:500;background:var(--surf);border:1.5px solid var(--gold);border-radius:20px;padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;gap:10px;min-width:240px;max-width:88vw;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
+.prox-popup.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:all}
+.prox-top{display:flex;align-items:center;gap:10px;width:100%}
+.prox-emoji{font-size:26px;flex-shrink:0}
+.prox-info{flex:1;min-width:0}
+.prox-name{font-size:.9rem;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prox-dist{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);margin-top:1px}
+.prox-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;transition:transform .15s}
+.prox-btn:active{transform:scale(.96)}
+.prox-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--td);font-size:18px;cursor:pointer;line-height:1}
+
+/* ── CONFETTI CANVAS ── */
+#confettiCanvas{position:fixed;inset:0;z-index:999;pointer-events:none}
+
+/* ── GPS-GATED COLLECT BTN ── */
+.cbtn.gps-wait{background:var(--surf2);border:1.5px solid var(--bdr);color:var(--td);cursor:default}
+.cbtn.gps-wait:active{transform:none}
+.cbtn.gps-close{background:linear-gradient(135deg,var(--gd),var(--gold));color:#0e0c09;animation:nearPulse 1.8s infinite}
+@keyframes nearPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0)}50%{box-shadow:0 0 0 6px rgba(201,168,76,.25)}}
+
+/* ── READ MORE ── */
+.hist-short{position:relative}
+.hist-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hist-clamp.expanded{display:block;-webkit-line-clamp:unset}
+.read-more-btn{background:none;border:none;color:var(--gold);font-size:.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;padding:2px 0;margin-top:2px;display:block}
+
+/* ── SURPRISE FAB ── */
+.surprise-fab{position:fixed;bottom:80px;right:16px;z-index:95;width:52px;height:52px;border-radius:50%;background:var(--gold);color:#0e0c09;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;box-shadow:0 4px 18px rgba(201,168,76,.5);-webkit-user-select:none;user-select:none;transition:transform .2s;animation:surpriseGlow 3s infinite}
+.surprise-fab:active{transform:scale(.9)}
+@keyframes surpriseGlow{0%,100%{box-shadow:0 4px 18px rgba(201,168,76,.4)}50%{box-shadow:0 4px 28px rgba(201,168,76,.75)}}
+
+/* ── ROUTE BAR PULSE ── */
+.rb-stop-pulse{color:var(--gold);animation:rbPulse 1.5s infinite}
+@keyframes rbPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── EASTER EGG OVERLAY ── */
+.egg-overlay{position:fixed;inset:0;z-index:1100;background:rgba(14,12,9,.95);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px}
+.egg-overlay.show{display:flex;animation:fadeIn .5s}
+.egg-glyph{font-size:72px;animation:eggPop .6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes eggPop{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0)}}
+.egg-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:#b07aaa;text-align:center;line-height:1.2}
+.egg-desc{font-size:.88rem;color:var(--td);text-align:center;max-width:280px;line-height:1.7}
+.egg-reward{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 16px}
+.egg-btn{background:#b07aaa;color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
+
+/* ── DAILY XP BURST ── */
+@keyframes xpBurst{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-60px) scale(1.3);opacity:0}}
+.xp-burst{position:fixed;left:50%;z-index:1050;font-family:'DM Mono',monospace;font-size:1.1rem;color:var(--gold);font-weight:700;pointer-events:none;animation:xpBurst .9s ease-out forwards;text-shadow:0 2px 12px rgba(201,168,76,.6)}
+
+/* ── AREA CIRCLE on map ── */
+.leaflet-area-circle{}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-left">
+    <div class="ib" onclick="openDrawer()">☰</div>
+    <div class="logo-pill" onclick="handleLogoClic()">
+      <div class="logo-text">Kaunas Explorer</div>
+      <div class="logo-sub" id="topSub">0 / 0 surinkta</div>
+    </div>
+    <div class="streak-pill" id="streakPill" style="display:none">🔥 <span id="streakNum">0</span></div>
+  </div>
+  <div class="tb-right">
+    <div class="ib" id="themeBtn" onclick="toggleTheme()">🌙</div>
+    <div class="ib" id="filterBtn" onclick="toggleFilters()">🔍</div>
+    <div class="ib" onclick="centerUser()">📍</div>
+  </div>
+</div>
+
+<!-- WEATHER -->
+<div class="wx-bubble" id="wxBubble" onclick="toggleWeather()"><span id="wxIcon">🌤</span><span id="wxTemp">—°</span></div>
+<div class="wx-expanded" id="wxExpanded">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div><div class="we-temp" id="weTemp">—°C</div><div class="we-desc" id="weDesc">Kraunama...</div></div>
+    <div style="font-size:26px" id="weIcon">🌤</div>
+  </div>
+  <div class="we-row">
+    <div class="we-item"><span id="weWind">—</span><span>Vėjas</span></div>
+    <div class="we-item"><span id="weHum">—</span><span>Drėgmė</span></div>
+    <div class="we-item"><span id="weFeels">—</span><span>Jaučiasi</span></div>
+  </div>
+</div>
+
+<!-- GPS -->
+<div class="gps-pill"><div class="gd" id="gpsDot"></div><span id="gpsLbl">GPS...</span></div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar" id="filterBar">
+  <div class="fcap on" data-cat="all" onclick="setFilter('all')">Visos</div>
+  <div class="fcap" data-cat="fort" onclick="setFilter('fort')">🏰 Fortai</div>
+  <div class="fcap" data-cat="church" onclick="setFilter('church')">⛪ Bažnyčios</div>
+  <div class="fcap" data-cat="museum" onclick="setFilter('museum')">🏛 Muziejai</div>
+  <div class="fcap" data-cat="soviet" onclick="setFilter('soviet')">⭐ Sovietika</div>
+  <div class="fcap" data-cat="modern" onclick="setFilter('modern')">🏗 Modernizmas</div>
+  <div class="fcap" data-cat="nature" onclick="setFilter('nature')">🌿 Gamta</div>
+  <div class="fcap" data-cat="history" onclick="setFilter('history')">⚔ Istorija</div>
+</div>
+
+<!-- SHEET BACKDROP -->
+<div class="sback" id="sback" onclick="closeSheet()"></div>
+
+<!-- BOTTOM SHEET -->
+<div class="sheet" id="sheet">
+  <div class="shandle"></div>
+  <div class="sscroll" id="sheetContent"></div>
+</div>
+
+<!-- ROUTE BAR -->
+<div class="route-bar" id="routeBar">
+  <div class="rb-info">
+    <div class="rb-label">Aktyvus maršrutas</div>
+    <div class="rb-name" id="rbName">—</div>
+    <div class="rb-stop" id="rbStop">—</div>
+  </div>
+  <button class="rb-btn" onclick="nextRouteStop()">Kitas →</button>
+  <button class="rb-end" onclick="endRoute()">✕</button>
+</div>
+
+<!-- DRAWER BACKDROP -->
+<div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+
+<!-- DRAWER -->
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <div class="drawer-logo">Kaunas Explorer</div>
+    <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
+    <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+  </div>
+
+  <!-- TIER PROGRESS -->
+  <div class="tier-progress" id="tierProgress"></div>
+
+  <!-- NAV -->
+  <div class="drawer-nav">
+    <div class="dnav-item on" id="dnav-vietos" onclick="switchDrawerPanel('vietos')"><span>📋</span><span>Vietos</span></div>
+    <div class="dnav-item" id="dnav-marsrutai" onclick="switchDrawerPanel('marsrutai')"><span>🧭</span><span>Maršrutai</span></div>
+    <div class="dnav-item" id="dnav-zenklai" onclick="switchDrawerPanel('zenklai')"><span>🏅</span><span>Ženkleliai</span></div>
+    <div class="dnav-item" id="dnav-social" onclick="switchDrawerPanel('social')"><span>👥</span><span>Draugai</span><span class="dnav-badge" id="socialBadge" style="display:none">!</span></div>
+  </div>
+
+  <!-- PANEL CONTENT -->
+  <div class="drawer-body">
+    <div class="panel-section active" id="panel-vietos"></div>
+    <div class="panel-section" id="panel-marsrutai"></div>
+    <div class="panel-section" id="panel-zenklai"></div>
+    <div class="panel-section" id="panel-social"></div>
+  </div>
+
+  <!-- DRAWER BOTTOM -->
+  <div class="drawer-bottom">
+    <div class="dbot-btn pri" onclick="closeDrawer();openEditor(null)">+ Nauja vieta</div>
+  </div>
+</div>
+
+<!-- EDITOR MODAL -->
+<div class="modal-bg" id="editorModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="editorTitle">Nauja vieta</div>
+    <input type="hidden" id="eId">
+    <div class="fg"><label class="fl">Pavadinimas</label><input class="fi" id="eName"></div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">Kategorija</label>
+        <select class="fs" id="eCat">
+          <option value="fort">🏰 Fortas</option>
+          <option value="church">⛪ Bažnyčia</option>
+          <option value="museum">🏛 Muziejus</option>
+          <option value="soviet">⭐ Sovietika</option>
+          <option value="modern">🏗 Modernizmas</option>
+          <option value="nature">🌿 Gamta</option>
+          <option value="history">⚔ Istorija</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Lygis (Tier)</label>
+        <select class="fs" id="eTier">
+          <option value="1">T1 — Žinomosios</option>
+          <option value="2">T2 — Paslėptos</option>
+          <option value="3">T3 — Legendos</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Istorinis aprašymas</label><textarea class="fa" id="eHist"></textarea></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Laikas</label><input class="fi" id="eTime" placeholder="1.5 val."></div>
+      <div class="fg"><label class="fl">Kaina</label><input class="fi" id="ePrice" placeholder="3 €"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Metai</label><input class="fi" id="eYear" placeholder="1930"></div>
+      <div class="fg"><label class="fl">Zona (m)</label><input class="fi" id="eRadius" type="number" placeholder="80" min="30" max="500"></div>
+    </div>
+    <div class="fg"><label class="fl">Žyma</label><input class="fi" id="eTag" placeholder="Modernizmas"></div>
+    <div class="fg"><label class="fl">Ką pasiimti (per kablelį)</label><input class="fi" id="eBring" placeholder="Kamerą, Vandenį"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Platuma (lat)</label><input class="fi" id="eLat" type="number" step="any"></div>
+      <div class="fg"><label class="fl">Ilguma (lng)</label><input class="fi" id="eLng" type="number" step="any"></div>
+    </div>
+    <div class="hint" id="edHint">💡 Uždark modalą ir spustelėk žemėlapyje – koordinatės užsipildys</div>
+    <div class="mact">
+      <button class="mbtn sec" onclick="closeEditor()">Atšaukti</button>
+      <button class="mbtn dan" id="edDelBtn" onclick="deleteSpot()" style="display:none">🗑</button>
+      <button class="mbtn pri" onclick="saveSpot()">Išsaugoti</button>
+    </div>
+  </div>
+</div>
+
+<!-- UNLOCK OVERLAY — category picker -->
+<div class="unlock-overlay" id="unlockOverlay">
+  <div class="unlock-stars" id="unlockStars"></div>
+  <div class="unlock-icon" id="unlockIcon"></div>
+  <div class="unlock-title" id="unlockTitle"></div>
+  <div class="unlock-sub" id="unlockSub"></div>
+  <div id="unlockPicker" style="display:none;width:100%;max-width:320px;padding:0 16px">
+    <div id="unlockCatGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"></div>
+  </div>
+  <button class="unlock-btn" id="unlockCloseBtn" onclick="closeUnlock()" style="display:none">Puiku! 🎉</button>
+</div>
+
+<!-- EASTER EGG OVERLAY -->
+<div class="egg-overlay" id="eggOverlay">
+  <div class="egg-glyph" id="eggGlyph">🥚</div>
+  <div class="egg-title" id="eggTitle">Slaptoji vieta!</div>
+  <div class="egg-desc" id="eggDesc">Kažką radai...</div>
+  <div class="egg-reward" id="eggReward">+50 XP</div>
+  <button class="egg-btn" onclick="closeEgg()">Fantastiška! ✨</button>
+</div>
+
+<!-- CONFETTI -->
+<canvas id="confettiCanvas"></canvas>
+
+<!-- PROXIMITY POPUP -->
+<div class="prox-popup" id="proxPopup">
+  <button class="prox-close" onclick="dismissProx()">✕</button>
+  <div class="prox-top">
+    <div class="prox-emoji" id="proxEmoji">🏰</div>
+    <div class="prox-info">
+      <div class="prox-name" id="proxName">—</div>
+      <div class="prox-dist" id="proxDist">📍 Tu čia!</div>
+    </div>
+  </div>
+  <button class="prox-btn" id="proxBtn" onclick="collectFromProx()">⭐ Surinkti vietą!</button>
+</div>
+
+<!-- FAB (add spot) -->
+<div class="fab" onclick="openEditor(null)" style="bottom:140px">+</div>
+
+<!-- SURPRISE FAB -->
+<div class="surprise-fab" onclick="surpriseMe()" title="Staigmena!">🎲</div>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ═══════════ CONSTANTS ═══════════
+
+const CATS={
+  fort:{label:'Fortas',emoji:'🏰',color:'#8B4513'},
+  church:{label:'Bažnyčia',emoji:'⛪',color:'#4a6fa5'},
+  museum:{label:'Muziejus',emoji:'🏛',color:'#5a7a5a'},
+  soviet:{label:'Sovietika',emoji:'⭐',color:'#8B0000'},
+  modern:{label:'Modernizmas',emoji:'🏗',color:'#6a5acd'},
+  nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
+  history:{label:'Istorija',emoji:'⚔',color:'#7a5c00'},
+};
+
+const TIER_CONFIG={
+  1:{label:'T1 — Žinomosios',color:'#c9a84c',unlockAt:0,icon:'🥉',desc:'Klasikinės Kauno vietos'},
+  2:{label:'T2 — Paslėptos',color:'#7a9cc9',unlockAt:5,icon:'🥈',desc:'Atrakinama surinkus 5 T1 vietas'},
+  3:{label:'T3 — Legendos',color:'#b07aaa',unlockAt:10,icon:'🥇',desc:'Atrakinama surinkus 10 T2 vietų'},
+};
+
+// Default collection radius per spot in metres (can be overridden per spot)
+const DEFAULT_RADIUS=80;
+
+const DEFAULT_SPOTS=[
+  // T1
+  {id:1,name:'IX Fortas',cat:'fort',tier:1,year:'1902',time:'2 val.',price:'5 €',radius:120,bring:['Šiltus drabužius','Pagarbą'],history:'Caro laikų fortifikacijos kompleksas, tapęs vienu iš skaudžiausių Holokausto vietų Lietuvoje. 1941–1943 m. čia žuvo apie 30 000 žmonių. Šiandien – memorialas ir muziejus.',lat:54.9214,lng:23.8601,tag:'Memorialas'},
+  {id:2,name:'Kauno Soboras',cat:'church',tier:1,year:'1891',time:'30 min.',price:'Nemokama',radius:100,bring:['Pagarbą'],history:'Šv. Mykolo Arkangelo bažnyčia – ryškiausias neoviizantinis statinys Lietuvoje. Carizmo laikais – cerkvė, vėliau – katalikų bažnyčia. Mozaikiniai langai dominuoja Laisvės alėjos gale.',lat:54.8985,lng:23.9036,tag:'Neoviizantinis'},
+  {id:3,name:'Rotušės aikštė',cat:'history',tier:1,year:'1542',time:'30 min.',price:'Nemokama',radius:150,bring:[],history:'Kauno senamiesčio širdis – ovali aikštė su Baltąja Gulbe centre. Rotušė buvo net Napoleono štabas 1812 m.',lat:54.8974,lng:23.9156,tag:'Renesansas'},
+  {id:4,name:'Kauno Pilis',cat:'museum',tier:1,year:'~1360',time:'1 val.',price:'3 €',radius:100,bring:[],history:'Seniausia mūrinė pilis Lietuvoje. XIV a. atlaikė kryžiuočius ir totorius. Šiandien – muziejus su interaktyviais eksponatais apie viduramžių Kauną.',lat:54.8984,lng:23.9175,tag:'Viduramžiai'},
+  {id:5,name:'Laisvės Alėja',cat:'modern',tier:1,year:'1861',time:'1 val.',price:'Nemokama',radius:200,bring:['Gerą orą'],history:'1.7 km pėsčiųjų bulvaras – vienas ilgiausių Europoje. Tarpukariu čia koncentravosi Kauno gyvenimas. Kiekvienas pastatas – modernistinis manifestas.',lat:54.8976,lng:23.9210,tag:'Tarpukaris'},
+  {id:6,name:'Ąžuolynas',cat:'nature',tier:1,year:'~1880',time:'1-2 val.',price:'Nemokama',radius:200,bring:['Batelius'],history:'100 hektarų ąžuolų parkas – vienas didžiausių tokio tipo parkų Europoje. Kai kuriems ąžuolams – per 200 metų.',lat:54.9075,lng:23.9312,tag:'Gamtos paveldas'},
+  {id:7,name:'Vytauto Didžiojo Karo Muziejus',cat:'museum',tier:1,year:'1921',time:'2 val.',price:'4 €',radius:80,bring:['Smalsumą'],history:'Vienas pirmųjų tokio pobūdžio muziejų Baltijos šalyse. Kieme – Dariaus ir Girėno lėktuvo liekanos. Fasadas – modernistinis šedevras.',lat:54.8979,lng:23.9230,tag:'Karinis paveldas'},
+  {id:8,name:'Kauno Santaka',cat:'nature',tier:1,year:'—',time:'20 min.',price:'Nemokama',radius:150,bring:['Kamerą'],history:'Nemuno ir Neries santaka – geografinė Kauno širdis. Pilis čia pastatyta neatsitiktinai. Puikus vaizdas į abi upes vienu metu.',lat:54.8967,lng:23.9107,tag:'Geografija'},
+  // T2
+  {id:9,name:'VII Fortas',cat:'fort',tier:2,year:'1889',time:'1 val.',price:'Nemokama',radius:120,bring:['Tvirčius batus'],history:'Vienas iš devynių Kauno fortų žiedo. Šiandien iš dalies apaugęs mišku – beveik paslaptinga vieta. Reikia žinoti kur ieškoti.',lat:54.9302,lng:23.8750,tag:'Fortų žiedas'},
+  {id:10,name:'Šv. Gertrūdos bažnyčia',cat:'church',tier:2,year:'1503',time:'20 min.',price:'Nemokama',radius:60,bring:['Tylą'],history:'Viena seniausių bažnyčių Kaune – vėlyvosios gotikos perlas senamiestyje. Mažytė, tamsi, autentiška. Dauguma turistų praeina pro šalį.',lat:54.8978,lng:23.9142,tag:'Gotika'},
+  {id:11,name:'Žaliakalnio funikulierius',cat:'modern',tier:2,year:'1931',time:'20 min.',price:'1 €',radius:80,bring:[],history:'Vienas seniausių funikulierių Baltijos šalyse. Jungia senamiesčio slėnį su Žaliakalnio rajonu. Veikia iki šiol.',lat:54.9011,lng:23.9215,tag:'Inžinerinis paveldas'},
+  {id:12,name:'Stalino skulptūros pjedestalas',cat:'soviet',tier:2,year:'1950',time:'10 min.',price:'Nemokama',radius:80,bring:['Istorinį kontekstą'],history:'Tai kas liko nuo didžiulės Stalino skulptūros, nuverstos 1956 m. Pjedestalas stovi kaip nebylus liudytojas. Sovietinės istorijos artefaktas.',lat:54.9021,lng:23.9341,tag:'Destalinizacija'},
+  {id:13,name:'Aleksoto panorama',cat:'nature',tier:2,year:'—',time:'20 min.',price:'Nemokama',radius:100,bring:['Kamerą'],history:'Vienas geriausių vaizdų į Kauną – senamiesčio siluetas, upių santaka, pilies bokštas. Aleksotas – vienas seniausių rajonų.',lat:54.8941,lng:23.9091,tag:'Panorama'},
+  {id:14,name:'M. K. Čiurlionio dailės muziejus',cat:'museum',tier:2,year:'1925',time:'1.5 val.',price:'5 €',radius:80,bring:['Kantrybę menui'],history:'Didžiausias dailės muziejus Lietuvoje. Čiurlionis – unikalus reiškinys: kompozitorius ir dailininkas tuo pačiu. Kolekcija – pasaulinio lygio.',lat:54.9003,lng:23.9255,tag:'Dailė'},
+  {id:15,name:'Kristaus Prisikėlimo bazilika',cat:'church',tier:2,year:'1934',time:'40 min.',price:'2 €',radius:100,bring:['Kamerą'],history:'Didžiausia tarpukario bažnyčia Lietuvoje. Sovietmečiu paversta sporto sale. Atstatyta 2004 m. Iš viršaus – nuostabus vaizdas į Kauną.',lat:54.9021,lng:23.9241,tag:'Modernizmas'},
+  {id:16,name:'Lietūkio garažas',cat:'soviet',tier:2,year:'1941',time:'15 min.',price:'Nemokama',radius:60,bring:['Pagarbą'],history:'Vieta kur 1941 m. birželio 27 d. įvyko vienas iš siaubingiausių pogromos epizodų. Nedidelė atminimo lenta – vienintelis ženklas.',lat:54.8958,lng:23.9189,tag:'Skaudus paveldas'},
+  // T3
+  {id:17,name:'IV Fortas',cat:'fort',tier:3,year:'1890',time:'45 min.',price:'Nemokama',radius:150,bring:['Žibintuvėlį','Tvirčius batus'],history:'Vienas geriau išlikusių fortų. Požeminiai koridoriai iš dalies prieinami. Vietiniai mėgsta čia vaikščioti vasarą – bet reikia žinoti kelią.',lat:54.9401,lng:23.9112,tag:'Fortų žiedas'},
+  {id:18,name:'Pažaislio vienuolynas',cat:'history',tier:3,year:'1662',time:'1.5 val.',price:'3 €',radius:120,bring:['Ramybę'],history:'Vienas gražiausių baroko ansamblių Rytų Europoje. Kamaldulų vienuoliai čia gyveno šimtmečius. Marmuriniai interjerai ir freskos – kvapą gniaužianti vieta.',lat:54.8721,lng:24.0012,tag:'Barokas'},
+  {id:19,name:'Petrašiūnų karjeras',cat:'nature',tier:3,year:'—',time:'1 val.',price:'Nemokama',radius:200,bring:['Maudymosi kostiumą'],history:'Buvęs smėlio karjeras, tapęs maudymosi vieta. Švaraus vandens ežeras miesto pakraštyje. Vasarą – vietinių maudymosi mekka, turistų dar neatrastas.',lat:54.8812,lng:23.9678,tag:'Paslėptas'},
+  {id:20,name:'Lietuvos medicinos muziejus',cat:'museum',tier:3,year:'1936',time:'1 val.',price:'3 €',radius:80,bring:['Atvirą protą'],history:'Keistai užburiantis muziejus – seni medicinos instrumentai, istorinės vaistinės, anatomijos preparatai. Ne visiems, bet tiems kurie ateina – nepamirštama.',lat:54.8991,lng:23.9198,tag:'Neįprastas'},
+];
+
+const ROUTES=[
+  {id:'senamiestis',name:'Senamiesčio legenda',emoji:'🏙',desc:'Klasikinis Kauno senamiesčio maršrutas.',time:'~2 val.',dist:'~3 km',stops:[3,4,10,2,7]},
+  {id:'modernizmas',name:'Modernizmo kelias',emoji:'🏗',desc:'Tarpukario architektūros šedevrai.',time:'~1.5 val.',dist:'~2 km',stops:[5,11,15]},
+  {id:'fortai',name:'Fortų žiedas',emoji:'🏰',desc:'Kauno gynybinio žiedo fortai.',time:'~3 val.',dist:'~15 km',stops:[1,9,17]},
+  {id:'gamta',name:'Žaliasis Kaunas',emoji:'🌿',desc:'Parkai, panoramos ir upių santaka.',time:'~2 val.',dist:'~5 km',stops:[6,8,13,19]},
+];
+
+const BADGE_GROUPS=[
+  {id:'forts',title:'Fortų kolekcininkas',icon:'🏰',cat:'fort',sub:true,badges:[
+    {id:'f1',name:'Pirmasis fortas',desc:'1 fortas',icon:'🏰',need:1},
+    {id:'f2',name:'Fortų sargas',desc:'2 fortai',icon:'🛡',need:2},
+    {id:'f3',name:'Fortų valdovas',desc:'Visi fortai',icon:'👑',need:3},
+  ]},
+  {id:'churches',title:'Bažnyčių piligirmas',icon:'⛪',cat:'church',sub:true,badges:[
+    {id:'c1',name:'Piligirmas',desc:'1 bažnyčia',icon:'⛪',need:1},
+    {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Visos bažnyčios',icon:'✝',need:2},
+  ]},
+  {id:'museums',title:'Muziejų kuratorius',icon:'🏛',cat:'museum',sub:true,badges:[
+    {id:'m1',name:'Lankytojas',desc:'1 muziejus',icon:'🎟',need:1},
+    {id:'m2',name:'Kuratorius',desc:'3 muziejai',icon:'🏛',need:3},
+  ]},
+  {id:'tiers',title:'Tiero pažanga',icon:'⭐',cat:null,badges:[
+    {id:'t1all',name:'T1 Čempionas',desc:'Visos T1 vietos surinktos',icon:'🥉',tierComplete:1},
+    {id:'t2all',name:'T2 Meistras',desc:'Visos T2 vietos surinktos',icon:'🥈',tierComplete:2},
+    {id:'t3all',name:'Kauno Legenda',desc:'Visos T3 vietos surinktos',icon:'🥇',tierComplete:3},
+  ]},
+  {id:'general',title:'Bendra pažanga',icon:'🗺',cat:null,badges:[
+    {id:'g1',name:'Pirmasis žingsnis',desc:'1 vieta surinkta',icon:'🗺',need:1,all:true},
+    {id:'g2',name:'Žvalgybininkas',desc:'10 vietų surinkta',icon:'🔭',need:10,all:true},
+    {id:'st3',name:'3 dienų serija',desc:'3 dienos iš eilės',icon:'🔥',streak:3},
+    {id:'st7',name:'Savaitinis tyrinėtojas',desc:'7 dienos iš eilės',icon:'⚡',streak:7},
+  ]},
+];
+
+// ═══════════ EASTER EGGS ═══════════
+// Each egg: id, trigger type, condition fn (called with context), title, desc, reward(XP), glyph
+const EASTER_EGGS=[
+  {
+    id:'egg_midnight',
+    title:'Nakties klajoklis',
+    desc:'Tu tyrinėji Kauną vidurnaktį. Miestas tavo.',
+    glyph:'🌙',
+    reward:75,
+    rewardText:'+75 XP — Nakties ženklelis',
+    check:()=>{const h=new Date().getHours();return h>=0&&h<4;}
+  },
+  {
+    id:'egg_dawn',
+    title:'Aušros sargybinis',
+    desc:'Anksčiausias paukštis gauna kirmėlę. O tu – slaptą ženklelį.',
+    glyph:'🌅',
+    reward:60,
+    rewardText:'+60 XP — Aušros ženklelis',
+    check:()=>{const h=new Date().getHours();return h>=5&&h<=7;}
+  },
+  {
+    id:'egg_fort_first',
+    title:'Fortų paslaptis',
+    desc:'Pirmą kartą žengei į fortą. Čia buvo kariauta, kenčiama ir laukta. Atsimink.',
+    glyph:'🏰',
+    reward:50,
+    rewardText:'+50 XP — Fortų iniciacijos ženklelis',
+    check:(spot)=>spot&&spot.cat==='fort'&&[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.cat==='fort')).length===1
+  },
+  {
+    id:'egg_five_streak',
+    title:'Nesustojamas',
+    desc:'5 dienos iš eilės! Tu ne turistas – tu tyrinėtojas.',
+    glyph:'🔥',
+    reward:100,
+    rewardText:'+100 XP — Ugningas ženklelis',
+    check:()=>streak===5
+  },
+  {
+    id:'egg_logo_secret',
+    title:'Smalsus kaip katė',
+    desc:'Kas čia spaustų logotipą 7 kartus? Tu, pasirodo.',
+    glyph:'🐱',
+    reward:30,
+    rewardText:'+30 XP — Slaptasis ženklelis',
+    check:()=>logoClickCount>=7
+  },
+  {
+    id:'egg_all_t1',
+    title:'T1 Meistras',
+    desc:'Visas T1 surinktas! Kaunas tau atsivėrė. Dabar gilyn.',
+    glyph:'🏆',
+    reward:150,
+    rewardText:'+150 XP — Aukso ženklelis',
+    check:()=>SPOTS.filter(s=>s.tier===1).every(s=>found.has(s.id))
+  },
+];
+
+// ═══════════ STATE ═══════════
+
+let SPOTS=[...DEFAULT_SPOTS];
+let found=new Set(),streak=0,lastDate=null,notes={},earnedBadges=new Set();
+let unlockedCats=new Set();
+let selectedSpot=null,userLat=null,userLng=null;
+let isDark=true,activeFilter='all',filterVisible=false;
+let map,userMarker,markers={},tileLayer,areaCircles={};
+let activeRoute=null,routeStopIdx=0;
+let pickingForEditor=false,wxOpen=false,wxLoaded=false;
+let proxSpotId=null,proxDismissedIds=new Set();
+// Easter egg state
+let triggeredEggs=new Set();
+let logoClickCount=0;
+let logoClickTimer=null;
+// Daily quest state
+let dailyQuestDone=false;
+let dailyQuestDate=null;
+// XP system
+let totalXP=0;
+// Player name
+let playerName='Tu';
+
+// ═══════════ TIER UNLOCK ═══════════
+
+function t1Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===1)).length;}
+function t2Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===2)).length;}
+function t3Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===3)).length;}
+
+function tokensSpent(tier){return[...unlockedCats].filter(k=>k.startsWith(tier+':')).length;}
+function tokensEarned(tier){
+  if(tier===2) return Math.floor(t1Collected()/TIER_CONFIG[2].unlockAt);
+  if(tier===3) return Math.floor(t2Collected()/TIER_CONFIG[3].unlockAt);
+  return 999;
+}
+function tokensAvailable(tier){return Math.max(0,tokensEarned(tier)-tokensSpent(tier));}
+
+function isTierUnlocked(tier,cat){
+  if(tier===1) return true;
+  return unlockedCats.has(tier+':'+(cat||''));
+}
+function isSpotUnlocked(spot){return isTierUnlocked(spot.tier||1,spot.cat);}
+
+function catsForTier(tier){
+  const cats=new Set(SPOTS.filter(s=>s.tier===tier).map(s=>s.cat));
+  return [...cats];
+}
+
+// Spot collection radius
+function spotRadius(spot){return spot.radius||DEFAULT_RADIUS;}
+
+// ═══════════ PERSIST ═══════════
+
+function save(){
+  localStorage.setItem('ke7_spots',JSON.stringify(SPOTS));
+  localStorage.setItem('ke7_found',JSON.stringify([...found]));
+  localStorage.setItem('ke7_streak',streak);
+  localStorage.setItem('ke7_lastDate',lastDate||'');
+  localStorage.setItem('ke7_notes',JSON.stringify(notes));
+  localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
+  localStorage.setItem('ke7_theme',isDark?'dark':'light');
+  localStorage.setItem('ke7_ucats',JSON.stringify([...unlockedCats]));
+  localStorage.setItem('ke7_eggs',JSON.stringify([...triggeredEggs]));
+  localStorage.setItem('ke7_xp',totalXP);
+  localStorage.setItem('ke7_name',playerName);
+  localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
+  localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
+}
+
+function load(){
+  const s=localStorage.getItem('ke7_spots');SPOTS=s?JSON.parse(s):[...DEFAULT_SPOTS];
+  // Ensure all spots have radius
+  SPOTS=SPOTS.map(sp=>({radius:DEFAULT_RADIUS,...sp}));
+  const f=localStorage.getItem('ke7_found');found=f?new Set(JSON.parse(f)):new Set();
+  streak=parseInt(localStorage.getItem('ke7_streak')||'0');
+  lastDate=localStorage.getItem('ke7_lastDate')||null;
+  const n=localStorage.getItem('ke7_notes');notes=n?JSON.parse(n):{};
+  const b=localStorage.getItem('ke7_badges');earnedBadges=b?new Set(JSON.parse(b)):new Set();
+  isDark=localStorage.getItem('ke7_theme')!=='light';
+  const uc=localStorage.getItem('ke7_ucats');unlockedCats=uc?new Set(JSON.parse(uc)):new Set();
+  const eg=localStorage.getItem('ke7_eggs');triggeredEggs=eg?new Set(JSON.parse(eg)):new Set();
+  totalXP=parseInt(localStorage.getItem('ke7_xp')||'0');
+  playerName=localStorage.getItem('ke7_name')||'Tu';
+  dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
+  dailyQuestDone=localStorage.getItem('ke7_dqdone')==='1';
+  // Reset daily quest if new day
+  const today=new Date().toDateString();
+  if(dailyQuestDate!==today){dailyQuestDone=false;dailyQuestDate=today;}
+}
+
+// ═══════════ THEME ═══════════
+
+function applyTheme(){
+  document.body.classList.toggle('light',!isDark);
+  document.getElementById('themeBtn').textContent=isDark?'🌙':'☀️';
+  if(tileLayer) map.removeLayer(tileLayer);
+  tileLayer=L.tileLayer(isDark
+    ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    {attribution:'© OpenStreetMap © CARTO',maxZoom:19});
+  tileLayer.addTo(map);tileLayer.bringToBack();
+  refreshMarkers();
+}
+function toggleTheme(){isDark=!isDark;applyTheme();save();}
+
+// ═══════════ MAP ═══════════
+
+function initMap(){
+  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([54.8985,23.917],14);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  applyTheme();
+  SPOTS.forEach(s=>addMarker(s));
+  map.on('click',e=>{
+    if(pickingForEditor){
+      document.getElementById('eLat').value=e.latlng.lat.toFixed(6);
+      document.getElementById('eLng').value=e.latlng.lng.toFixed(6);
+      document.getElementById('edHint').textContent=`✅ ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+    }
+  });
+}
+
+function makeIcon(spot){
+  const cat=CATS[spot.cat]||CATS.history;
+  const show=activeFilter==='all'||activeFilter===spot.cat;
+  if(!show) return L.divIcon({className:'',html:'',iconSize:[0,0]});
+  const locked=!isSpotUnlocked(spot);
+  const isF=found.has(spot.id);
+  const tc=TIER_CONFIG[spot.tier||1];
+
+  if(locked){
+    const bg=isDark?'#1a1710':'#f0ebe0';
+    const t1need=TIER_CONFIG[spot.tier].unlockAt;
+    const prevC=spot.tier===2?t1Collected():t2Collected();
+    const need=Math.max(0,t1need-prevC);
+    const tokAvail=tokensAvailable(spot.tier);
+    const hintHtml=tokAvail>0
+      ?`<div style="font-size:9px;color:#c9a84c;margin-top:3px;text-align:center;white-space:nowrap">🔓 Žetonas!</div>`
+      :(need>0?`<div style="font-size:9px;color:#8a8070;margin-top:3px;text-align:center;white-space:nowrap">+${need} T${spot.tier-1}</div>`:'');
+    return L.divIcon({
+      className:'',
+      html:`<div style="display:flex;flex-direction:column;align-items:center">
+        <div style="width:34px;height:34px;border-radius:50%;background:${bg};border:2px dashed ${isDark?'#2e2a20':'#ccc'};display:flex;align-items:center;justify-content:center;font-size:14px;opacity:.6">🔒</div>
+        ${hintHtml}
+      </div>`,
+      iconSize:[34,50],iconAnchor:[17,17],
+    });
+  }
+
+  const bg=isF?cat.color:(isDark?'#1a1710':'#fff');
+  const bd=isF?cat.color:(isDark?tc.color:'#bbb');
+  const ring=`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${tc.color},0 3px 10px rgba(0,0,0,.4)`;
+
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;${ring}">${cat.emoji}</div>`,
+    iconSize:[36,36],iconAnchor:[18,18],
+  });
+}
+
+function addMarker(spot){
+  const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
+  m._isMarker=true;
+  m.on('click',()=>openSheet(spot));
+  m.addTo(map);
+  markers[spot.id]=m;
+}
+
+function refreshMarkers(){
+  SPOTS.forEach(s=>{
+    if(markers[s.id]) markers[s.id].setIcon(makeIcon(s));
+    else addMarker(s);
+  });
+  Object.keys(markers).forEach(id=>{
+    if(!SPOTS.find(s=>s.id==id)){map.removeLayer(markers[id]);delete markers[id];}
+  });
+}
+
+function centerUser(){
+  if(userLat!==null) map.setView([userLat,userLng],16);
+  else toast('📍 GPS dar neveikia','info');
+}
+
+// ═══════════ FILTER ═══════════
+
+function toggleFilters(){
+  filterVisible=!filterVisible;
+  document.getElementById('filterBar').classList.toggle('visible',filterVisible);
+  document.getElementById('filterBtn').classList.toggle('on',filterVisible);
+}
+function setFilter(cat){
+  activeFilter=cat;
+  document.querySelectorAll('.fcap').forEach(el=>el.classList.toggle('on',el.dataset.cat===cat));
+  refreshMarkers();
+}
+
+// ═══════════ GPS ═══════════
+
+function startGPS(){
+  if(!navigator.geolocation){document.getElementById('gpsLbl').textContent='GPS nėra';return;}
+  navigator.geolocation.watchPosition(pos=>{
+    userLat=pos.coords.latitude;userLng=pos.coords.longitude;
+    document.getElementById('gpsDot').className='gd on';
+    document.getElementById('gpsLbl').textContent='GPS aktyvus';
+    if(!userMarker){
+      userMarker=L.circleMarker([userLat,userLng],{radius:9,fillColor:'#c9a84c',color:'#e8c878',weight:2,fillOpacity:.95}).addTo(map);
+    } else userMarker.setLatLng([userLat,userLng]);
+    if(selectedSpot) updateDist(selectedSpot);
+    if(!wxLoaded) fetchWeather(userLat,userLng);
+    checkProximity();
+  },()=>{document.getElementById('gpsLbl').textContent='GPS nepasiekiamas';},{enableHighAccuracy:true,maximumAge:5000});
+}
+
+// ─── PROXIMITY ───
+const PROX_DISPLAY_RADIUS=300; // metres — when prox popup shows
+
+function checkProximity(){
+  if(userLat===null) return;
+  let best=null,bestDist=Infinity;
+  SPOTS.forEach(s=>{
+    if(found.has(s.id)) return;
+    if(!isSpotUnlocked(s)) return;
+    if(proxDismissedIds.has(s.id)) return;
+    const d=dist(userLat,userLng,s.lat,s.lng);
+    if(d<=PROX_DISPLAY_RADIUS&&d<bestDist){bestDist=d;best=s;}
+  });
+  if(best){
+    if(proxSpotId===best.id) return;
+    proxSpotId=best.id;
+    const cat=CATS[best.cat]||CATS.history;
+    const r=spotRadius(best);
+    document.getElementById('proxEmoji').textContent=cat.emoji;
+    document.getElementById('proxName').textContent=best.name;
+    const inZone=bestDist<=r;
+    document.getElementById('proxDist').textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
+    document.getElementById('proxPopup').classList.add('show');
+  } else {
+    if(proxSpotId!==null){
+      const cur=SPOTS.find(s=>s.id===proxSpotId);
+      if(cur){const d=dist(userLat,userLng,cur.lat,cur.lng);if(d>PROX_DISPLAY_RADIUS){hideProxPopup();}}
+    }
+  }
+  if(selectedSpot) updateCollectBtn(selectedSpot);
+}
+
+function hideProxPopup(){proxSpotId=null;document.getElementById('proxPopup').classList.remove('show');}
+function dismissProx(){if(proxSpotId!==null) proxDismissedIds.add(proxSpotId);hideProxPopup();}
+
+function collectFromProx(){
+  const s=SPOTS.find(x=>x.id===proxSpotId);
+  if(!s) return;
+  hideProxPopup();
+  selectedSpot=s;
+  collectCurrent();
+  setTimeout(()=>openSheet(s),600);
+}
+
+function dist(a,b,c,d){
+  const R=6371000,dl=(c-a)*Math.PI/180,dn=(d-b)*Math.PI/180;
+  const x=Math.sin(dl/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dn/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function walkMin(m){return Math.round(m/80);}
+
+function updateDist(spot){
+  const el=document.getElementById('distBadge');
+  if(!el) return;
+  if(userLat===null){el.textContent='GPS nėra';el.className='dbadge';return;}
+  const d=dist(userLat,userLng,spot.lat,spot.lng);
+  const r=spotRadius(spot);
+  if(d<=r){el.innerHTML='📍 Tu zonoje!';el.className='dbadge near';}
+  else{
+    const lbl=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
+    el.innerHTML=`${lbl}<br><span style="font-size:.6rem;color:var(--tm)">~${walkMin(d)} min.</span>`;
+    el.className='dbadge';
+  }
+}
+
+// ═══════════ WEATHER ═══════════
+
+function fetchWeather(lat,lng){
+  wxLoaded=true;
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&wind_speed_unit=kmh`)
+    .then(r=>r.json()).then(d=>{
+      const c=d.current;
+      const temp=Math.round(c.temperature_2m);
+      const icon=wxIcon(c.weather_code);
+      document.getElementById('wxIcon').textContent=icon;
+      document.getElementById('wxTemp').textContent=`${temp}°`;
+      document.getElementById('weTemp').textContent=`${temp}°C`;
+      document.getElementById('weIcon').textContent=icon;
+      document.getElementById('weDesc').textContent=wxDesc(c.weather_code);
+      document.getElementById('weWind').textContent=`${Math.round(c.wind_speed_10m)} km/h`;
+      document.getElementById('weHum').textContent=`${c.relative_humidity_2m}%`;
+      document.getElementById('weFeels').textContent=`${Math.round(c.apparent_temperature)}°C`;
+    }).catch(()=>{});
+}
+function wxIcon(c){if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';if(c<=48)return'🌫';if(c<=57)return'🌦';if(c<=67)return'🌧';if(c<=77)return'🌨';if(c<=82)return'🌧';return'⛈';}
+function wxDesc(c){if(c===0)return'Giedra';if(c<=2)return'Iš dalies debesuota';if(c<=3)return'Debesuota';if(c<=48)return'Rūkas';if(c<=57)return'Šlapdriba';if(c<=67)return'Lietus';if(c<=77)return'Sniegas';if(c<=82)return'Liūtys';return'Perkūnija';}
+function toggleWeather(){
+  wxOpen=!wxOpen;
+  document.getElementById('wxExpanded').classList.toggle('open',wxOpen);
+  document.getElementById('wxBubble').style.opacity=wxOpen?'0':'1';
+  if(wxOpen) setTimeout(()=>document.addEventListener('click',closeWxOut,true),50);
+}
+function closeWxOut(e){
+  if(!document.getElementById('wxExpanded').contains(e.target)){
+    wxOpen=false;
+    document.getElementById('wxExpanded').classList.remove('open');
+    document.getElementById('wxBubble').style.opacity='1';
+    document.removeEventListener('click',closeWxOut,true);
+  }
+}
+
+// ═══════════ DRAWER ═══════════
+
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerBackdrop').classList.add('open');
+  renderDrawerTierProgress();
+  renderCurrentPanel();
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerBackdrop').classList.remove('open');
+}
+function switchDrawerPanel(name){
+  ['vietos','marsrutai','zenklai','social'].forEach(p=>{
+    document.getElementById('panel-'+p).classList.toggle('active',p===name);
+    document.getElementById('dnav-'+p).classList.toggle('on',p===name);
+  });
+  renderCurrentPanel(name);
+}
+function renderCurrentPanel(name){
+  const active=name||document.querySelector('.dnav-item.on')?.id?.replace('dnav-','');
+  if(active==='vietos') renderList();
+  if(active==='marsrutai') renderRoutes();
+  if(active==='zenklai') renderBadges();
+  if(active==='social') renderSocial();
+}
+
+function renderDrawerTierProgress(){
+  const tp=document.getElementById('tierProgress');
+  const t1tot=SPOTS.filter(s=>s.tier===1).length;
+  const t2tot=SPOTS.filter(s=>s.tier===2).length;
+  const t3tot=SPOTS.filter(s=>s.tier===3).length;
+  const t1c=t1Collected(),t2c=t2Collected(),t3c=t3Collected();
+
+  function tierRow(tier,color,label,collected,total){
+    const tok=tokensAvailable(tier);
+    const earned=tokensEarned(tier);
+    const unlockedCount=[...unlockedCats].filter(k=>k.startsWith(tier+':')).length;
+    const totalCats=catsForTier(tier).length;
+
+    if(tier===1){
+      const need2=TIER_CONFIG[2].unlockAt;
+      const leftFor2=Math.max(0,need2-t1c);
+      const hint=leftFor2>0
+        ?`<div class="unlock-hint-banner">🔓 Surink dar ${leftFor2} T1 viet${leftFor2===1?'ą':'as'} → gausi T2 žetoną</div>`
+        :'';
+      return`<div class="tier-row">
+        <div class="tier-dot" style="background:${color}"></div>
+        <div class="tier-info">
+          <div class="tier-name">${label}</div>
+          <div class="tier-count">${collected} / ${total} surinkta</div>
+          <div class="tier-bar"><div class="tier-fill" style="background:${color};width:${total?collected/total*100:0}%"></div></div>
+          ${hint}
+        </div>
+      </div>`;
+    }
+
+    // Compute next token threshold hint
+    const prevC=tier===2?t1c:t2c;
+    const unlockAt=TIER_CONFIG[tier].unlockAt;
+    const nextToken=(earned+1)*unlockAt;
+    const leftForNext=Math.max(0,nextToken-prevC);
+    const hintText=leftForNext>0&&leftForNext<=5
+      ?`<div class="unlock-hint-banner">🔓 Dar ${leftForNext} T${tier-1} → kitas T${tier} žetonas</div>`:'';
+
+    return`<div class="tier-row">
+      <div class="tier-dot" style="background:${unlockedCount>0?color:'var(--tm)'}"></div>
+      <div class="tier-info">
+        <div class="tier-name">${label} ${tok>0?`<span style="color:var(--gold);font-size:.65rem">🔓 ×${tok}</span>`:''}</div>
+        ${unlockedCount>0
+          ?`<div class="tier-count">${collected} / ${total} · ${unlockedCount}/${totalCats} kat. atrakintos</div>
+            <div class="tier-bar"><div class="tier-fill" style="background:${color};width:${total?collected/total*100:0}%"></div></div>`
+          :`<div class="tier-lock">🔒 Surink ${TIER_CONFIG[tier].unlockAt} T${tier-1} – gauk žetoną</div>`}
+        ${hintText}
+        ${tok>0?`<div style="margin-top:6px"><button onclick="showUnlockPicker(${tier})" style="background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;width:100%">🔓 Atrakkink kategoriją →</button></div>`:''}
+      </div>
+    </div>`;
+  }
+
+  tp.innerHTML=
+    tierRow(1,'#c9a84c','T1 — Žinomosios',t1c,t1tot)+
+    tierRow(2,'#7a9cc9','T2 — Paslėptos',t2c,t2tot)+
+    tierRow(3,'#b07aaa','T3 — Legendos',t3c,t3tot);
+
+  document.getElementById('drawerSub').textContent=`${found.size} / ${SPOTS.length} surinkta · ⭐ ${totalXP} XP`;
+  // Update streak separately if shown
+  const streakEl=document.getElementById('drawerStreak');
+  if(streakEl) streakEl.textContent=streak>0?`🔥 ${streak} d. serija`:'Pradėk seriją!';
+}
+
+// ═══════════ DAILY QUEST ═══════════
+
+function getDailyQuestTarget(){
+  // Target: visit 1 place today (collected today counts via date tracking)
+  return 1;
+}
+
+function getDailyQuestProgress(){
+  // Count spots collected today
+  const collected=parseInt(localStorage.getItem('ke7_collected_today')||'0');
+  return collected;
+}
+
+function incrementDailyCollect(){
+  const today=new Date().toDateString();
+  const key='ke7_collect_date';
+  const countKey='ke7_collected_today';
+  if(localStorage.getItem(key)!==today){
+    localStorage.setItem(key,today);
+    localStorage.setItem(countKey,'0');
+  }
+  const cur=parseInt(localStorage.getItem(countKey)||'0');
+  localStorage.setItem(countKey,cur+1);
+
+  // Check if quest completed
+  if(!dailyQuestDone&&cur+1>=getDailyQuestTarget()){
+    dailyQuestDone=true;
+    save();
+    setTimeout(()=>awardDailyQuest(),500);
+  }
+}
+
+function awardDailyQuest(){
+  const bonusXP=50;
+  addXP(bonusXP);
+  toast('🎯 Dienos užduotis atlikta! +50 XP','gold');
+  showXPBurst(bonusXP);
+  document.getElementById('socialBadge').style.display='';
+}
+
+function renderQuestCard(){
+  const target=getDailyQuestTarget();
+  const prog=Math.min(getDailyQuestProgress(),target);
+  const done=dailyQuestDone||prog>=target;
+  const pct=Math.round(prog/target*100);
+  return`<div class="quest-card ${done?'done':''}">
+    ${done?'<div class="quest-done-badge">✓ Atlikta</div>':''}
+    <div class="quest-header">
+      <div class="quest-icon">🎯</div>
+      <div>
+        <div class="quest-label">Dienos užduotis</div>
+        <div class="quest-title">Aplankyk ${target} viet${target===1?'ą':'as'} šiandien</div>
+      </div>
+    </div>
+    <div class="quest-reward">🌟 Atlygis: +50 XP</div>
+    <div class="quest-pbar"><div class="quest-pfill" style="width:${done?100:pct}%"></div></div>
+    <div class="quest-status">${done?'Nuostabu! Grįžk rytoj.':`${prog} / ${target} surinkta šiandien`}</div>
+  </div>`;
+}
+
+// ═══════════ XP SYSTEM ═══════════
+
+function addXP(amount){
+  totalXP+=amount;
+  save();
+  updateAll();
+}
+
+function showXPBurst(amount){
+  const el=document.createElement('div');
+  el.className='xp-burst';
+  el.textContent=`+${amount} XP`;
+  el.style.top=(window.innerHeight/2-60)+'px';
+  el.style.transform='translateX(-50%)';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),950);
+}
+
+// ═══════════ SHEET ═══════════
+
+function openSheet(spot){
+  selectedSpot=spot;
+  const locked=!isSpotUnlocked(spot);
+  const cat=CATS[spot.cat]||CATS.history;
+  const isF=found.has(spot.id);
+  const tc=TIER_CONFIG[spot.tier||1];
+  const content=document.getElementById('sheetContent');
+  const r=spotRadius(spot);
+
+  if(locked){
+    const tier=spot.tier||1;
+    const avail=tokensAvailable(tier);
+    const prevTier=tier-1;
+    const prevC=prevTier===1?t1Collected():t2Collected();
+    const prevLabel=`T${prevTier}`;
+    const needMore=Math.max(0,TIER_CONFIG[tier].unlockAt-prevC);
+    const totalCatsInTier=catsForTier(tier).length;
+    const unlockedInTier=[...unlockedCats].filter(k=>k.startsWith(tier+':')).length;
+
+    // Smart hint message
+    let hintMsg='';
+    if(avail>0){
+      hintMsg=`Turi <strong style="color:var(--gold)">${avail} atrakinimo žeton${avail===1?'ą':'ų'}</strong>! Atrakink šio lygio kategorijas.`;
+    } else if(needMore>0){
+      hintMsg=`Surink dar <strong style="color:var(--gold)">${needMore} ${prevLabel}</strong> viet${needMore===1?'ą':'as'} → gauk žetoną → atrakink T${tier} kategoriją.`;
+    } else {
+      hintMsg=`Šios kategorijos vietos dar paslėptos.`;
+    }
+
+    content.innerHTML=`
+      <div class="locked-sheet">
+        <div class="locked-icon">🔒</div>
+        <div class="locked-title">??? — Nežinoma vieta</div>
+        <div class="tier-badge t${spot.tier}" style="margin:8px auto 14px;justify-content:center">${tc.icon} ${tc.label}</div>
+        <div class="locked-hint-box">
+          <div class="lhb-row"><span class="lhb-icon">💡</span><span class="lhb-title">Kaip atrakinti?</span></div>
+          <div class="lhb-text">${hintMsg}</div>
+        </div>
+        <div class="locked-progress">
+          <div class="lp-label">${prevLabel} surinkta: ${prevC} / ${TIER_CONFIG[tier].unlockAt} · Žetonai: ${tokensAvailable(tier)} / ${tokensEarned(tier)}</div>
+          <div class="lp-bar"><div class="lp-fill" style="background:${tc.color};width:${Math.min(100,prevC/TIER_CONFIG[tier].unlockAt*100)}%"></div></div>
+        </div>
+        ${avail>0?`<button class="unlock-btn" style="margin-top:0;width:100%" onclick="closeSheet();showUnlockPicker(${tier})">🔓 Atrakkink kategoriją</button>`:''}
+      </div>`;
+  } else {
+    const bItems=(spot.bring||[]).filter(b=>b&&b.trim());
+    const histFull=spot.history||'';
+    const histShort=histFull.length>180;
+    const histHtml=histShort
+      ?`<div class="hist-short"><div class="hist-clamp shist" id="histText">${histFull}</div><button class="read-more-btn" id="readMoreBtn" onclick="toggleReadMore()">Skaityti daugiau ↓</button></div>`
+      :`<div class="shist">${histFull}</div>`;
+
+    content.innerHTML=`
+      <div class="scat">${cat.label.toUpperCase()}</div>
+      <div class="stitle">${spot.name}</div>
+      <div class="tier-badge t${spot.tier||1}">${tc.icon} ${tc.label}</div>
+      <div class="schips">
+        ${spot.year&&spot.year!=='—'?`<span class="chip">📅 ${spot.year}</span>`:''}
+        ${spot.tag?`<span class="chip hi">${spot.tag}</span>`:''}
+      </div>
+      <div class="sinfo">
+        <div class="ic"><div class="ii">⏱</div><div class="iv">${spot.time||'—'}</div><div class="il">Laikas</div></div>
+        <div class="ic"><div class="ii">💶</div><div class="iv">${spot.price||'—'}</div><div class="il">Kaina</div></div>
+        <div class="ic"><div class="ii">${cat.emoji}</div><div class="iv">${cat.label}</div><div class="il">Tipas</div></div>
+      </div>
+      ${histHtml}
+      ${bItems.length?`<div class="bring-box"><div class="bring-t">🎒 Ką pasiimti</div><div class="bring-items">${bItems.map(b=>`<span class="bitem">• ${b}</span>`).join('')}</div></div>`:''}
+      ${isF?`<div class="note-box"><div class="note-t">📝 Mano pastaba</div><textarea class="note-area" id="noteArea" placeholder="Pridėk savo įspūdžius...">${notes[spot.id]||''}</textarea><button class="note-save" onclick="saveNote()">Išsaugoti</button></div>`:''}
+      <div class="area-hint">📡 Surinkimo zona: ${r}m spinduliu nuo vietos</div>
+      <div class="crow">
+        <div class="dbadge" id="distBadge">—</div>
+        <button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button>
+        <button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>
+      </div>
+    `;
+  }
+
+  updateDist(spot);
+  updateCollectBtn(spot);
+  map.panTo([spot.lat,spot.lng]);
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sback').classList.add('open');
+}
+
+function toggleReadMore(){
+  const el=document.getElementById('histText');
+  const btn=document.getElementById('readMoreBtn');
+  if(!el||!btn) return;
+  el.classList.toggle('expanded');
+  btn.textContent=el.classList.contains('expanded')?'Rodyti mažiau ↑':'Skaityti daugiau ↓';
+}
+
+function updateCollectBtn(spot){
+  const btn=document.getElementById('collectBtn');
+  if(!btn) return;
+  if(found.has(spot.id)){btn.textContent='✓ Surinkta';btn.className='cbtn done';return;}
+  if(userLat===null){btn.textContent='⌛ GPS nėra';btn.className='cbtn gps-wait';return;}
+  const d=dist(userLat,userLng,spot.lat,spot.lng);
+  const r=spotRadius(spot);
+  if(d<=r){
+    btn.textContent='⭐ Surinkti!';btn.className='cbtn gps-close';
+  } else {
+    const lbl=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
+    btn.textContent=`📍 Prieik arčiau (zona: ${r}m)`;btn.className='cbtn gps-wait';
+  }
+}
+
+function closeSheet(){
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('sback').classList.remove('open');
+  selectedSpot=null;
+}
+
+function saveNote(){
+  if(!selectedSpot) return;
+  notes[selectedSpot.id]=document.getElementById('noteArea').value;
+  save();toast('📝 Pastaba išsaugota','success');
+}
+
+// ═══════════ COLLECT ═══════════
+
+function collectCurrent(){
+  if(!selectedSpot||found.has(selectedSpot.id)) return;
+  if(userLat!==null){
+    const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
+    const r=spotRadius(selectedSpot);
+    if(d>r){
+      const lbl=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
+      toast(`📍 Per toli! Zona: ${r}m (tu: ${lbl})`,'info');
+      return;
+    }
+  }
+  const wasT1=t1Collected();const wasT2=t2Collected();
+  found.add(selectedSpot.id);
+  updateStreak();
+  // XP for collecting
+  const xpGain=selectedSpot.tier===3?30:selectedSpot.tier===2?20:10;
+  addXP(xpGain);
+  showXPBurst(xpGain);
+  incrementDailyCollect();
+  save();refreshMarkers();updateAll();
+
+  proxDismissedIds.delete(selectedSpot.id);
+  hideProxPopup();
+
+  const btn=document.getElementById('collectBtn');
+  if(btn){btn.textContent='✓ Surinkta';btn.className='cbtn done';}
+  toast(`🏅 Surinkta: ${selectedSpot.name}`,'success');
+  launchConfetti();
+
+  // Check easter eggs after collect
+  setTimeout(()=>checkEasterEggs(selectedSpot),300);
+
+  const newT1=t1Collected();const newT2=t2Collected();
+  const prevT2tokens=Math.floor(wasT1/TIER_CONFIG[2].unlockAt);
+  const newT2tokens=Math.floor(newT1/TIER_CONFIG[2].unlockAt);
+  const prevT3tokens=Math.floor(wasT2/TIER_CONFIG[3].unlockAt);
+  const newT3tokens=Math.floor(newT2/TIER_CONFIG[3].unlockAt);
+
+  if(newT2tokens>prevT2tokens){
+    setTimeout(()=>showUnlockPicker(2,true),700);
+  } else if(newT3tokens>prevT3tokens){
+    setTimeout(()=>showUnlockPicker(3,true),700);
+  } else {
+    setTimeout(checkBadges,400);
+  }
+
+  if(activeRoute){
+    const route=ROUTES.find(r=>r.id===activeRoute);
+    if(route&&route.stops.includes(selectedSpot.id)) advanceRouteIfNeeded();
+  }
+}
+
+function updateStreak(){
+  const today=new Date().toDateString();
+  if(lastDate===today) return;
+  const yest=new Date(Date.now()-86400000).toDateString();
+  streak=(lastDate===yest)?streak+1:1;
+  lastDate=today;
+}
+
+// ═══════════ EASTER EGGS ═══════════
+
+function checkEasterEggs(collectSpot){
+  EASTER_EGGS.forEach(egg=>{
+    if(triggeredEggs.has(egg.id)) return;
+    let ok=false;
+    try{ok=egg.check(collectSpot);}catch(e){}
+    if(ok) triggerEgg(egg);
+  });
+}
+
+function checkEasterEggsPassive(){
+  EASTER_EGGS.forEach(egg=>{
+    if(triggeredEggs.has(egg.id)) return;
+    if(egg.id==='egg_logo_secret'||egg.id==='egg_fort_first') return; // need spot arg
+    let ok=false;
+    try{ok=egg.check(null);}catch(e){}
+    if(ok) triggerEgg(egg);
+  });
+}
+
+function triggerEgg(egg){
+  triggeredEggs.add(egg.id);
+  addXP(egg.reward);
+  save();
+  document.getElementById('eggGlyph').textContent=egg.glyph;
+  document.getElementById('eggTitle').textContent=egg.title;
+  document.getElementById('eggDesc').textContent=egg.desc;
+  document.getElementById('eggReward').textContent=egg.rewardText;
+  document.getElementById('eggOverlay').classList.add('show');
+  launchConfetti();
+}
+function closeEgg(){document.getElementById('eggOverlay').classList.remove('show');}
+
+// Logo click easter egg
+function handleLogoClic(){
+  logoClickCount++;
+  clearTimeout(logoClickTimer);
+  logoClickTimer=setTimeout(()=>{logoClickCount=0;},2000);
+  if(logoClickCount>=7) checkEasterEggsPassive();
+}
+
+// ═══════════ UNLOCK PICKER ═══════════
+
+let _pendingUnlockTier=null;
+
+function showUnlockPicker(tier,isNew=false){
+  _pendingUnlockTier=tier;
+  const tc=TIER_CONFIG[tier];
+  const avail=tokensAvailable(tier);
+  const cats=catsForTier(tier);
+
+  document.getElementById('unlockStars').textContent=tier===2?'🥉 → 🥈':'🥈 → 🥇';
+  document.getElementById('unlockIcon').textContent=tc.icon;
+  document.getElementById('unlockTitle').textContent=isNew?`Žetonas atrakintas!`:`Atrakkink kategoriją`;
+  document.getElementById('unlockSub').textContent=`${avail} žetonas: pasirink kurią ${tc.label} kategoriją atverti`;
+
+  const earned=tokensEarned(tier);
+  const spent=tokensSpent(tier);
+  let dots='<div class="token-bar">';
+  for(let i=0;i<earned;i++) dots+=`<div class="token-dot${i<spent?' used':''}"></div>`;
+  dots+='</div>';
+
+  document.getElementById('unlockPicker').innerHTML=dots+`<div id="unlockCatGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">`+cats.map(cat=>{
+    const c=CATS[cat]||CATS.history;
+    const alreadyUnlocked=unlockedCats.has(tier+':'+cat);
+    const count=SPOTS.filter(s=>s.tier===tier&&s.cat===cat).length;
+    return`<div class="ucat-card ${alreadyUnlocked?'already':'available'}" onclick="spendToken(${tier},'${cat}')">
+      <div class="uce">${c.emoji}</div>
+      <div class="ucn">${c.label}</div>
+      <div class="ucc">${count} viet${count===1?'a':'os'}${alreadyUnlocked?' ✓ atrakinta':''}</div>
+    </div>`;
+  }).join('')+`</div>`;
+
+  document.getElementById('unlockPicker').style.display='block';
+  document.getElementById('unlockCloseBtn').style.display='block';
+  document.getElementById('unlockOverlay').classList.add('show');
+}
+
+function spendToken(tier,cat){
+  if(tokensAvailable(tier)<=0) return;
+  if(unlockedCats.has(tier+':'+cat)){toast('Ši kategorija jau atrakinta','info');return;}
+  unlockedCats.add(tier+':'+cat);
+  save();
+  const c=CATS[cat]||CATS.history;
+  refreshMarkers();
+  closeUnlock();
+  toast(`🔓 Atrakinta: ${c.emoji} ${c.label} (T${tier})`,'gold');
+  setTimeout(checkBadges,400);
+  if(tokensAvailable(tier)>0) setTimeout(()=>showUnlockPicker(tier),600);
+}
+function closeUnlock(){
+  document.getElementById('unlockOverlay').classList.remove('show');
+  document.getElementById('unlockPicker').style.display='none';
+  document.getElementById('unlockCloseBtn').style.display='none';
+  _pendingUnlockTier=null;
+}
+
+// ═══════════ SURPRISE ═══════════
+
+function surpriseMe(){
+  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotUnlocked(s));
+  if(!unfound.length){toast('🎉 Viskas surinkta! Tu legenda!','gold');return;}
+  let cands=unfound;
+  if(userLat!==null) cands=unfound.sort((a,b)=>dist(userLat,userLng,a.lat,a.lng)-dist(userLat,userLng,b.lat,b.lng)).slice(0,6);
+  const pick=cands[Math.floor(Math.random()*cands.length)];
+  map.setView([pick.lat,pick.lng],16);
+  setTimeout(()=>openSheet(pick),300);
+  toast(`🎲 Stebėk: ${pick.name}`,'info');
+}
+
+// ═══════════ ROUTES ═══════════
+
+function renderRoutes(){
+  const body=document.getElementById('panel-marsrutai');
+  body.innerHTML='';
+  ROUTES.forEach(route=>{
+    const total=route.stops.length;
+    const done=route.stops.filter(id=>found.has(id)).length;
+    const pct=Math.round(done/total*100);
+    const div=document.createElement('div');
+    div.className='route-card';
+    div.innerHTML=`
+      <div class="rc-head">
+        <div class="rc-emoji">${route.emoji}</div>
+        <div class="rc-name">${route.name}</div>
+        <div class="rc-desc">${route.desc}</div>
+        <div class="rc-meta">
+          <span class="rc-chip">⏱ ${route.time}</span>
+          <span class="rc-chip">📍 ${route.dist}</span>
+          <span class="rc-chip">${done}/${total}</span>
+        </div>
+        <div class="rc-prog"><div class="rc-pf" style="width:${pct}%"></div></div>
+      </div>
+      <div class="rc-stops">${route.stops.map(id=>{
+        const sp=SPOTS.find(s=>s.id===id);
+        if(!sp) return '';
+        const locked=!isSpotUnlocked(sp);
+        const d=found.has(id);
+        return `<div class="rc-stop ${d?'done':''} ${locked?'locked-stop':''}">
+          <div class="rc-stop-dot"></div>${locked?'🔒 ???':sp.name}
+        </div>`;
+      }).join('')}</div>
+    `;
+    body.appendChild(div);
+    const btn=document.createElement('button');
+    btn.className='start-route-btn';
+    btn.textContent=activeRoute===route.id?'⏹ Sustabdyti':'▶ Pradėti maršrutą';
+    btn.onclick=()=>toggleRoute(route.id);
+    body.appendChild(btn);
+  });
+}
+
+function toggleRoute(id){
+  if(activeRoute===id){endRoute();return;}
+  activeRoute=id;routeStopIdx=0;
+  const route=ROUTES.find(r=>r.id===id);
+  routeStopIdx=route.stops.findIndex(sid=>!found.has(sid));
+  if(routeStopIdx===-1) routeStopIdx=0;
+  updateRouteBar();
+  document.getElementById('routeBar').classList.add('active');
+  closeDrawer();
+  toast(`🧭 Maršrutas: ${route.name}`,'info');
+}
+function updateRouteBar(){
+  const route=ROUTES.find(r=>r.id===activeRoute);if(!route)return;
+  document.getElementById('rbName').textContent=route.name;
+  const sid=route.stops[routeStopIdx];
+  const sp=SPOTS.find(s=>s.id===sid);
+  const stopEl=document.getElementById('rbStop');
+  if(sp){
+    stopEl.innerHTML=`<span class="rb-stop-pulse">▶</span> ${routeStopIdx+1}/${route.stops.length}: ${sp.name}`;
+    map.setView([sp.lat,sp.lng],15);
+  } else {stopEl.textContent='Baigta!';}
+}
+function nextRouteStop(){
+  const route=ROUTES.find(r=>r.id===activeRoute);if(!route)return;
+  routeStopIdx=Math.min(routeStopIdx+1,route.stops.length-1);
+  updateRouteBar();
+  const sp=SPOTS.find(s=>s.id===route.stops[routeStopIdx]);
+  if(sp) openSheet(sp);
+}
+function advanceRouteIfNeeded(){
+  const route=ROUTES.find(r=>r.id===activeRoute);if(!route)return;
+  const rem=route.stops.slice(routeStopIdx+1).findIndex(id=>!found.has(id));
+  if(rem===-1){toast('🎉 Maršrutas užbaigtas!','gold');endRoute();return;}
+  routeStopIdx=routeStopIdx+1+rem;updateRouteBar();
+}
+function endRoute(){activeRoute=null;routeStopIdx=0;document.getElementById('routeBar').classList.remove('active');}
+
+// ═══════════ BADGES ═══════════
+
+function gprog(g){if(!g.cat) return found.size;return SPOTS.filter(s=>s.cat===g.cat&&found.has(s.id)).length;}
+function gtot(g){if(!g.cat) return SPOTS.length;return SPOTS.filter(s=>s.cat===g.cat).length;}
+function tierAllDone(tier){return SPOTS.filter(s=>s.tier===tier).every(s=>found.has(s.id));}
+
+function checkBadges(){
+  let newOnes=[];
+  BADGE_GROUPS.forEach(g=>{
+    const prog=gprog(g);
+    g.badges.forEach(b=>{
+      if(earnedBadges.has(b.id)) return;
+      let e=false;
+      if(b.tierComplete) e=tierAllDone(b.tierComplete);
+      else if(b.streak) e=streak>=b.streak;
+      else if(b.all) e=found.size>=b.need;
+      else e=prog>=b.need;
+      if(e){earnedBadges.add(b.id);newOnes.push(b);}
+    });
+  });
+  if(newOnes.length){save();setTimeout(()=>toast(`🎖 Naujas ženklelis: ${newOnes[0].icon} ${newOnes[0].name}`,'gold'),500);}
+}
+
+function renderBadges(){
+  const body=document.getElementById('panel-zenklai');
+  body.innerHTML='';
+  BADGE_GROUPS.forEach(g=>{
+    const prog=gprog(g);const tot=gtot(g);
+    const div=document.createElement('div');div.className='bgr';
+    div.innerHTML=`<div class="bgt">${g.icon} ${g.title}</div>
+    ${g.sub?`<div class="bgs">${prog} / ${tot}</div>`:''}
+    <div class="bgcards">${g.badges.map(b=>{
+      let e=earnedBadges.has(b.id);
+      if(!e){if(b.tierComplete)e=tierAllDone(b.tierComplete);else if(b.streak)e=streak>=b.streak;else if(b.all)e=found.size>=b.need;else e=prog>=b.need;}
+      const pct=b.tierComplete?0:b.streak?Math.min(100,streak/b.streak*100):b.all?Math.min(100,found.size/b.need*100):Math.min(100,prog/(b.need||1)*100);
+      return`<div class="bc ${e?'e':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div>${!e?`<div class="bprog"><div class="bpf" style="width:${pct}%"></div></div>`:''}</div>`;
+    }).join('')}</div>`;
+    body.appendChild(div);
+  });
+}
+
+// ═══════════ LIST ═══════════
+
+function renderList(){
+  const body=document.getElementById('panel-vietos');
+  const pct=SPOTS.length?Math.round(found.size/SPOTS.length*100):0;
+  let h=`${renderQuestCard()}
+  <div class="prog-h">
+    <div class="prog-row"><div class="prog-cnt">${found.size} / ${SPOTS.length} surinkta</div><div class="streak-t">🔥 ${streak} d. · ⭐ ${totalXP} XP</div></div>
+    <div class="pbar"><div class="pbf" style="width:${pct}%"></div></div>
+  </div>`;
+
+  [1,2,3].forEach(tier=>{
+    const tc=TIER_CONFIG[tier];
+    const tierSpots=SPOTS.filter(s=>s.tier===tier);
+    const anyUnlocked=tier===1||catsForTier(tier).some(c=>unlockedCats.has(tier+':'+c));
+    const tokens=tokensAvailable(tier);
+    h+=`<div class="sh" style="color:${anyUnlocked?tc.color:'var(--tm)'}">${tc.icon} ${tc.label}${tokens>0?` <span style="color:var(--gold);margin-left:4px">🔓 ×${tokens}</span>`:''}</div>`;
+    tierSpots.forEach(s=>{
+      const unlocked=isSpotUnlocked(s);
+      const isF=found.has(s.id);
+      const cat=CATS[s.cat]||CATS.history;
+      let ds='';
+      if(userLat!==null&&unlocked){const d=dist(userLat,userLng,s.lat,s.lng);ds=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;}
+      if(!unlocked){
+        const tokAvail=tokensAvailable(s.tier);
+        h+=`<div class="sr hidden-spot" onclick="closeDrawer();goToSpot(${s.id})">
+          <div class="sri">🔒</div>
+          <div style="flex:1;min-width:0"><div class="srn">??? — ${cat.label}</div><div class="srm">${tc.label}</div></div>
+          ${tokAvail>0?`<div class="srr" style="color:var(--gold)">🔓</div>`:''}
+        </div>`;
+      } else {
+        h+=`<div class="sr ${isF?'col':''}" onclick="closeDrawer();goToSpot(${s.id})">
+          <div class="sri">${isF?'✓':cat.emoji}</div>
+          <div style="flex:1;min-width:0"><div class="srn">${s.name}</div><div class="srm">${cat.label} · ${s.time||'—'}</div></div>
+          <div class="srr">${isF?'★':ds}</div>
+        </div>`;
+      }
+    });
+  });
+  body.innerHTML=h;
+}
+
+function goToSpot(id){
+  const s=SPOTS.find(x=>x.id===id);if(!s) return;
+  map.setView([s.lat,s.lng],16);
+  setTimeout(()=>openSheet(s),200);
+}
+
+// ═══════════ SOCIAL / SHARE ═══════════
+
+function generateShareCode(){
+  const data={
+    n:playerName,
+    f:[...found],
+    xp:totalXP,
+    s:streak,
+    e:[...earnedBadges],
+    eg:[...triggeredEggs],
+    v:7,
+    d:new Date().toDateString()
+  };
+  return btoa(encodeURIComponent(JSON.stringify(data)));
+}
+
+function shareProgress(){
+  const t1=t1Collected(),t2=t2Collected(),t3=t3Collected();
+  const badges=[...earnedBadges].length;
+  const text=`🗺 Kaunas Explorer — ${playerName} pažanga!\n\n📍 Surinkta: ${found.size}/${SPOTS.length} vietų\n   T1: ${t1} · T2: ${t2} · T3: ${t3}\n⭐ XP: ${totalXP}\n🔥 Serija: ${streak} dienų\n🏅 Ženkleliai: ${badges}\n🥚 Slaptosios: ${[...triggeredEggs].length}`;
+
+  if(navigator.share){
+    navigator.share({title:'Kaunas Explorer',text}).catch(()=>copyText(text));
+  } else {
+    copyText(text);
+  }
+}
+
+function copyText(text){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>toast('📋 Nukopijuota!','success')).catch(()=>fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();
+  document.execCommand('copy');document.body.removeChild(ta);
+  toast('📋 Nukopijuota!','success');
+}
+
+function renderSocial(){
+  const body=document.getElementById('panel-social');
+  const t1=t1Collected(),t2=t2Collected(),t3=t3Collected();
+  const badgeCount=[...earnedBadges].length;
+  const eggCount=[...triggeredEggs].length;
+  const pct=SPOTS.length?Math.round(found.size/SPOTS.length*100):0;
+
+  body.innerHTML=`<div class="social-section">
+    <div class="social-title">📤 Dalintis</div>
+    <div class="social-sub">Parodyk draugams kiek Kauno atradai.</div>
+
+    <div class="my-stats-card">
+      <div class="msc-title">Tavo statistika</div>
+      <div class="msc-grid">
+        <div class="msc-cell"><div class="msc-val">${found.size}</div><div class="msc-lbl">Vietos</div></div>
+        <div class="msc-cell"><div class="msc-val">${totalXP}</div><div class="msc-lbl">XP</div></div>
+        <div class="msc-cell"><div class="msc-val">${streak}</div><div class="msc-lbl">🔥 Dienos</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <div class="msc-cell"><div class="msc-val">${badgeCount}</div><div class="msc-lbl">🏅 Ženkl.</div></div>
+        <div class="msc-cell"><div class="msc-val">${eggCount}</div><div class="msc-lbl">🥚 Slaptosios</div></div>
+      </div>
+      <div style="margin-top:10px">
+        <div style="height:4px;background:var(--bdr);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;transition:width .5s"></div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:4px;text-align:right">${pct}% Kauno ištyrinėta</div>
+      </div>
+    </div>
+
+    <button class="social-btn pri-btn" onclick="shareProgress()">
+      <span class="sb-icon">📤</span>
+      <div class="sb-text">
+        <div class="sb-label">Dalintis pažanga</div>
+        <div class="sb-sub">${found.size} vietų · ${totalXP} XP · 🔥${streak}d</div>
+      </div>
+    </button>
+
+    <div class="section-label">👤 Tavo vardas</div>
+    <div class="name-row">
+      <input class="fi" id="nameInput" value="${playerName}" placeholder="Vardas">
+      <button class="name-save-btn" onclick="saveName()">✓</button>
+    </div>
+    <div style="font-size:.68rem;color:var(--tm);font-family:'DM Mono',monospace">Rodomas kai daliniesi pažanga</div>
+
+    <div class="section-label" style="margin-top:20px;color:var(--tm)">🔗 Lyderių lentelė</div>
+    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;text-align:center">
+      <div style="font-size:1.5rem;margin-bottom:6px">🚧</div>
+      <div style="font-size:.82rem;font-weight:600;color:var(--txt);margin-bottom:4px">Greitai</div>
+      <div style="font-size:.72rem;color:var(--td);line-height:1.6">Reikia serverio.<br>Sujungsime kai bus paruošta.</div>
+    </div>
+  </div>`;
+
+  document.getElementById('socialBadge').style.display='none';
+}
+
+function saveName(){
+  const inp=document.getElementById('nameInput');
+  if(!inp) return;
+  const n=inp.value.trim();
+  if(!n){toast('⚠ Įveskite vardą','info');return;}
+  playerName=n;
+  save();
+  renderSocial();
+  toast(`👤 Vardas: ${n}`,'success');
+}
+
+// ═══════════ EDITOR ═══════════
+
+function openEditor(spot){
+  const isNew=!spot;
+  document.getElementById('editorTitle').textContent=isNew?'Nauja vieta':'Redaguoti vietą';
+  document.getElementById('edDelBtn').style.display=isNew?'none':'';
+  document.getElementById('eId').value=spot?spot.id:'';
+  document.getElementById('eName').value=spot?spot.name:'';
+  document.getElementById('eCat').value=spot?spot.cat:'fort';
+  document.getElementById('eTier').value=spot?spot.tier||1:1;
+  document.getElementById('eHist').value=spot?spot.history:'';
+  document.getElementById('eTime').value=spot?spot.time:'';
+  document.getElementById('ePrice').value=spot?spot.price:'';
+  document.getElementById('eYear').value=spot?spot.year:'';
+  document.getElementById('eTag').value=spot?spot.tag:'';
+  document.getElementById('eBring').value=spot?(spot.bring||[]).join(', '):'';
+  document.getElementById('eRadius').value=spot?spot.radius||DEFAULT_RADIUS:DEFAULT_RADIUS;
+  document.getElementById('eLat').value=spot?spot.lat:'';
+  document.getElementById('eLng').value=spot?spot.lng:'';
+  document.getElementById('edHint').textContent='💡 Uždark modalą ir spustelėk žemėlapyje – koordinatės užsipildys';
+  document.getElementById('editorModal').classList.add('open');
+  pickingForEditor=true;
+  closeSheet();closeDrawer();
+}
+function closeEditor(){document.getElementById('editorModal').classList.remove('open');pickingForEditor=false;}
+function saveSpot(){
+  const name=document.getElementById('eName').value.trim();
+  const lat=parseFloat(document.getElementById('eLat').value);
+  const lng=parseFloat(document.getElementById('eLng').value);
+  if(!name||isNaN(lat)||isNaN(lng)){toast('⚠ Užpildyk pavadinimą ir koordinates','info');return;}
+  const bring=document.getElementById('eBring').value.split(',').map(b=>b.trim()).filter(Boolean);
+  const radius=parseInt(document.getElementById('eRadius').value)||DEFAULT_RADIUS;
+  const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),history:document.getElementById('eHist').value,time:document.getElementById('eTime').value,price:document.getElementById('ePrice').value,year:document.getElementById('eYear').value,tag:document.getElementById('eTag').value,bring,lat,lng,radius};
+  const id=document.getElementById('eId').value;
+  if(id){
+    const idx=SPOTS.findIndex(s=>s.id==id);
+    if(idx!==-1){SPOTS[idx]={...SPOTS[idx],...data};toast(`✅ ${name} atnaujinta`,'success');}
+  } else {
+    data.id=Date.now();SPOTS.push(data);toast(`📍 ${name} pridėta!`,'success');
+  }
+  save();refreshMarkers();updateAll();closeEditor();
+}
+function deleteSpot(){
+  const id=parseInt(document.getElementById('eId').value);if(!id)return;
+  const sp=SPOTS.find(s=>s.id===id);
+  if(!confirm(`Ištrinti "${sp?.name}"?`))return;
+  SPOTS=SPOTS.filter(s=>s.id!==id);found.delete(id);
+  save();refreshMarkers();updateAll();closeEditor();
+  toast('🗑 Vieta ištrinta','info');
+}
+
+// ═══════════ HEADER ═══════════
+
+function updateAll(){
+  document.getElementById('topSub').textContent=`${found.size} / ${SPOTS.length} surinkta`;
+  const s=streak||0;
+  document.getElementById('streakNum').textContent=s;
+  const pill=document.getElementById('streakPill');
+  pill.classList.toggle('fire',s>=2);
+  pill.style.display=s>0?'flex':'none';
+}
+
+// ═══════════ CONFETTI ═══════════
+
+function launchConfetti(){
+  const canvas=document.getElementById('confettiCanvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  const pieces=[];
+  const colors=['#c9a84c','#e8c878','#7a9cc9','#b07aaa','#4a8c5c','#fff'];
+  for(let i=0;i<90;i++){pieces.push({x:Math.random()*canvas.width,y:-10,r:Math.random()*6+3,d:Math.random()*90+90,color:colors[Math.floor(Math.random()*colors.length)],tilt:Math.random()*10-10,tiltAngle:0,tiltSpeed:Math.random()*.07+.05,speed:Math.random()*3+2,opacity:1});}
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{p.tiltAngle+=p.tiltSpeed;p.y+=p.speed;p.x+=Math.sin(p.d)*1.2;p.tilt=Math.sin(p.tiltAngle)*15;if(frame>60) p.opacity=Math.max(0,p.opacity-0.015);ctx.save();ctx.globalAlpha=p.opacity;ctx.beginPath();ctx.fillStyle=p.color;ctx.ellipse(p.x,p.y,p.r,p.r/2,p.tilt*Math.PI/180,0,Math.PI*2);ctx.fill();ctx.restore();});
+    frame++;
+    if(frame<130) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+// ═══════════ TOAST ═══════════
+
+function toast(msg,type=''){
+  const wrap=document.getElementById('toastWrap');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},3000);
+}
+
+// ═══════════ INIT ═══════════
+
+load();initMap();updateAll();startGPS();
+
+// Check time-based easter eggs on load
+setTimeout(()=>checkEasterEggsPassive(),1000);
+</script>
+</body>
+</html>
