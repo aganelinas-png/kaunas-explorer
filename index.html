@@ -604,7 +604,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
     </div>
-    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v11.1</div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v11.2</div>
   </div>
 
   <!-- SUB-PANEL: slides in from right -->
@@ -896,6 +896,31 @@ const EASTER_EGGS=[
   },
 ];
 
+// ═══════════ LEVEL SYSTEM ═══════════
+const LEVELS=[
+  {level:1,name:'Naujokas',icon:'🐣',xp:0},
+  {level:2,name:'Klajoklis',icon:'🚶',xp:50},
+  {level:3,name:'Žvalgybininkas',icon:'🔭',xp:120},
+  {level:4,name:'Tyrinėtojas',icon:'🧭',xp:220},
+  {level:5,name:'Keliauninkas',icon:'🗺',xp:350},
+  {level:6,name:'Žinovas',icon:'📚',xp:520},
+  {level:7,name:'Meistras',icon:'⚔',xp:750},
+  {level:8,name:'Kauno legenda',icon:'👑',xp:1000},
+];
+function getLevel(xp){let lv=LEVELS[0];for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].xp){lv=LEVELS[i];break;}}return lv;}
+function getNextLevel(xp){for(let i=0;i<LEVELS.length;i++){if(xp<LEVELS[i].xp) return LEVELS[i];}return null;}
+function getLevelProgress(xp){const c=getLevel(xp),n=getNextLevel(xp);if(!n)return 100;return Math.round((xp-c.xp)/(n.xp-c.xp)*100);}
+
+// ═══════════ STREAK MILESTONES ═══════════
+const STREAK_MILES=[
+  {day:3,reward:25,label:'3d.',desc:'+25 XP',icon:'⚡'},
+  {day:5,reward:50,label:'5d.',desc:'+50 XP',icon:'🔥'},
+  {day:7,reward:100,label:'7d.',desc:'+100 XP + vieta',icon:'💎',unlocksHidden:true},
+  {day:14,reward:200,label:'14d.',desc:'+200 XP',icon:'🏆'},
+  {day:30,reward:500,label:'30d.',desc:'+500 XP',icon:'👑'},
+];
+const STREAK_HIDDEN_SPOT={id:99,name:'Napoleono tiltas',cat:'history',tier:1,year:'1812',time:'20 min.',price:'Nemokama',radius:100,bring:['Smalsumą'],history:'Vieta kur 1812 m. Napoleono didžioji armija kirto Nemuną žygiuodama į Rusiją. Šiandien – tik atmintis ir vaizdas. Ši vieta atsiveria tik ištvermingiems tyrinėtojams.',lat:54.9012,lng:23.9108,tag:'Slaptoji'};
+
 // ═══════════ STATE ═══════════
 
 let SPOTS=[...DEFAULT_SPOTS];
@@ -918,6 +943,14 @@ let dailyQuestDate=null;
 let totalXP=0;
 // Player name
 let playerName='Tu';
+// Level tracking
+let prevLevel=1;
+let streakRewards=new Set();
+let hiddenSpotUnlocked=false;
+let oldStreak=0;
+// Suggest state
+let nextSuggestId=null;
+let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
 
 // ═══════════ TIER UNLOCK ═══════════
 
@@ -963,11 +996,13 @@ function save(){
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
+  localStorage.setItem('ke7_sr',JSON.stringify([...streakRewards]));
+  localStorage.setItem('ke7_hspot',hiddenSpotUnlocked?'1':'0');
+  localStorage.setItem('ke7_os',oldStreak);
 }
 
 function load(){
   // Do NOT load spots from localStorage — Firestore is the source of truth
-  // SPOTS stays as DEFAULT_SPOTS until Firestore responds (shows something instantly)
   const f=localStorage.getItem('ke7_found');found=f?new Set(JSON.parse(f)):new Set();
   streak=parseInt(localStorage.getItem('ke7_streak')||'0');
   lastDate=localStorage.getItem('ke7_lastDate')||null;
@@ -980,11 +1015,18 @@ function load(){
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
   dailyQuestDone=localStorage.getItem('ke7_dqdone')==='1';
+  const sr=localStorage.getItem('ke7_sr');streakRewards=sr?new Set(JSON.parse(sr)):new Set();
+  hiddenSpotUnlocked=localStorage.getItem('ke7_hspot')==='1';
+  oldStreak=parseInt(localStorage.getItem('ke7_os')||'0');
+  prevLevel=getLevel(totalXP).level;
   // Reset daily quest if new day
   const today=new Date().toDateString();
   if(dailyQuestDate!==today){dailyQuestDone=false;dailyQuestDate=today;}
+  // Restore hidden spot if earned
+  if(hiddenSpotUnlocked&&!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});}
   // Clear any stale spots from localStorage
   localStorage.removeItem('ke7_spots');
+  checkStreakBreakOnLoad();
 }
 
 // ═══════════ THEME ═══════════
@@ -1471,6 +1513,7 @@ function addXP(amount){
   totalXP+=amount;
   save();
   updateAll();
+  checkLevelUp();
 }
 
 function showXPBurst(amount){
@@ -1664,6 +1707,8 @@ function updateStreak(){
   const yest=new Date(Date.now()-86400000).toDateString();
   streak=(lastDate===yest)?streak+1:1;
   lastDate=today;
+  oldStreak=streak;
+  setTimeout(()=>checkStreakMilestones(),300);
 }
 
 // ═══════════ EASTER EGGS ═══════════
@@ -1903,6 +1948,8 @@ function renderList(){
   const body=document.getElementById('panel-vietos');
   const pct=SPOTS.length?Math.round(found.size/SPOTS.length*100):0;
   let h=`${renderTierProgressHTML()}
+  ${renderLevelCard()}
+  ${renderStreakCard()}
   ${renderQuestCard()}
   <div class="prog-h">
     <div class="prog-row"><div class="prog-cnt">${found.size} / ${SPOTS.length} surinkta</div><div class="streak-t">🔥 ${streak} d. · ⭐ ${totalXP} XP</div></div>
@@ -2212,6 +2259,7 @@ function updateAll(){
   const pill=document.getElementById('streakPill');
   pill.classList.toggle('fire',s>=2);
   pill.style.display=s>0?'flex':'none';
+  updateLevelPill();
   updateDrawerHeader();
 }
 
@@ -2234,6 +2282,113 @@ function launchConfetti(){
   }
   draw();
 }
+
+// ═══════════ LEVEL SYSTEM UI ═══════════
+
+function renderLevelCard(){
+  const lv=getLevel(totalXP),nxt=getNextLevel(totalXP);
+  const pct=getLevelProgress(totalXP);
+  const xpLeft=nxt?nxt.xp-totalXP:0;
+  return`<div class="level-card">
+    <div class="lc-top">
+      <div class="lc-icon">${lv.icon}</div>
+      <div class="lc-info">
+        <div class="lc-title">Lv.${lv.level} — ${lv.name}</div>
+        <div class="lc-sub">${nxt?`Kitas: Lv.${nxt.level} ${nxt.name} (${xpLeft} XP)`:'Maksimalus lygis! 👑'}</div>
+      </div>
+    </div>
+    <div class="lc-bar"><div class="lc-fill" style="width:${pct}%"></div></div>
+    <div class="lc-xp">${totalXP} XP${nxt?` / ${nxt.xp} XP`:''}</div>
+  </div>`;
+}
+
+function checkLevelUp(){
+  const newLv=getLevel(totalXP).level;
+  if(newLv>prevLevel){
+    const lv=getLevel(totalXP);prevLevel=newLv;
+    setTimeout(()=>{
+      const el=document.getElementById('levelUpOverlay');
+      if(!el) return;
+      document.getElementById('luGlyph').textContent=lv.icon;
+      document.getElementById('luLevel').textContent=`Lygis ${lv.level}`;
+      document.getElementById('luName').textContent=lv.name;
+      document.getElementById('luReward').textContent=`${lv.icon} ${lv.name} — nauja klasė!`;
+      el.classList.add('show');
+      launchConfetti();
+    },600);
+  }
+}
+function closeLevelUp(){document.getElementById('levelUpOverlay')?.classList.remove('show');}
+
+function updateLevelPill(){
+  const lv=getLevel(totalXP);
+  const lpLvl=document.getElementById('lpLvl');
+  const lpName=document.getElementById('lpName');
+  if(lpLvl) lpLvl.textContent=`Lv.${lv.level}`;
+  if(lpName) lpName.textContent=lv.name;
+}
+
+function renderStreakCard(){
+  const nextM=STREAK_MILES.find(m=>streak<m.day);
+  const daysLeft=nextM?nextM.day-streak:0;
+  const cls=streak>=2?'hot':'';
+  const miles=STREAK_MILES.map(m=>{
+    const done=streak>=m.day;
+    const isNext=nextM&&nextM.day===m.day;
+    return`<div class="sc-m ${done?'done':''} ${isNext?'next':''}">
+      <span class="sm-i">${done?'✓':m.icon}</span>
+      <span class="sm-d">${m.label}</span>
+      <span class="sm-r">${m.desc}</span>
+    </div>`;
+  }).join('');
+  return`<div class="streak-card ${cls}">
+    <div class="sc-top">
+      <div class="sc-fire">${streak>=2?'🔥':'🕯'}</div>
+      <div class="sc-info">
+        <div class="sc-title">${streak>0?`${streak} dienų serija`:'Nėra serijos'}</div>
+        <div class="sc-sub">${nextM?`Dar ${daysLeft}d. iki ${nextM.icon} ${nextM.label}`:'Visos gėrybės gautos!'}</div>
+      </div>
+    </div>
+    <div class="sc-miles">${miles}</div>
+  </div>`;
+}
+
+function checkStreakMilestones(){
+  STREAK_MILES.forEach(m=>{
+    if(streak>=m.day&&!streakRewards.has(m.day)){
+      streakRewards.add(m.day);
+      addXP(m.reward);showXPBurst(m.reward);
+      toast(`${m.icon} ${m.day}d. serija! +${m.reward} XP`,'gold');
+      if(m.unlocksHidden&&!hiddenSpotUnlocked){
+        hiddenSpotUnlocked=true;
+        if(!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});refreshMarkers();}
+        setTimeout(()=>toast('🗺 Slapta vieta atrakinta žemėlapyje!','gold'),1500);
+      }
+      save();
+    }
+  });
+}
+
+function checkStreakBreakOnLoad(){
+  if(!lastDate) return;
+  const today=new Date().toDateString();
+  if(lastDate===today) return;
+  const yest=new Date(Date.now()-86400000).toDateString();
+  if(lastDate===yest) return;
+  if(oldStreak>=2){
+    const lostStreak=oldStreak;
+    const lastSeen=lastDate?new Date(lastDate).toLocaleDateString('lt-LT',{month:'short',day:'numeric'}):'nežinoma';
+    streakRewards.clear();
+    oldStreak=0;streak=0;save();
+    setTimeout(()=>{
+      const el=document.getElementById('streakBreakOverlay');
+      if(!el) return;
+      document.getElementById('sbDesc').textContent=`Tavo ${lostStreak} dienų serija baigėsi. Paskutinį kartą lankėtės ${lastSeen} — serija prarasta.`;
+      el.classList.add('show');
+    },800);
+  }
+}
+function closeStreakBreak(){document.getElementById('streakBreakOverlay')?.classList.remove('show');}
 
 // ═══════════ TOAST ═══════════
 
