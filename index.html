@@ -67,9 +67,11 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 #map{position:fixed;inset:0;z-index:0}
 
 /* ── TOPBAR ── */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;pointer-events:none}
-.tb-left{display:flex;align-items:center;gap:8px;pointer-events:all}
-.tb-right{display:flex;gap:7px;pointer-events:all}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:8px;padding:10px 12px 10px 12px;pointer-events:none}
+.tb-left{display:flex;align-items:center;gap:8px;pointer-events:all;flex-shrink:0}
+.tb-filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;pointer-events:all;flex:1;-webkit-overflow-scrolling:touch}
+.tb-filters::-webkit-scrollbar{display:none}
+.tb-right{display:flex;gap:7px;pointer-events:all;flex-shrink:0}
 .ib{background:var(--surf);border:1px solid var(--bdr);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;box-shadow:0 2px 12px var(--sh);color:var(--td);transition:all .2s;-webkit-user-select:none;user-select:none;flex-shrink:0}
 .ib:active{transform:scale(.92)}
 .ib.on{border-color:var(--gold);color:var(--gold)}
@@ -87,7 +89,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .we-item span:first-child{color:var(--td);font-size:.72rem}
 
 /* ── GPS ── */
-.gps-pill{position:fixed;top:62px;right:12px;z-index:190;background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);display:flex;align-items:center;gap:5px;box-shadow:0 2px 8px var(--sh)}
+.gps-pill{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);display:flex;align-items:center;gap:5px;box-shadow:0 2px 8px var(--sh)}
 .gps-refresh{cursor:pointer;font-size:14px;color:var(--td);transition:transform .3s,color .2s;display:inline-block;line-height:1;-webkit-user-select:none;user-select:none}
 .gps-refresh:active{color:var(--gold)}
 .gps-refresh.spinning{animation:gpsRefreshSpin .8s ease}
@@ -182,8 +184,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .quest-done-badge{position:absolute;top:10px;right:12px;background:var(--green);color:#fff;border-radius:10px;padding:2px 8px;font-size:.62rem;font-family:'DM Mono',monospace}
 
 /* ── FILTER BAR ── */
-.filter-bar{position:fixed;top:108px;left:0;right:0;z-index:189;display:flex;gap:6px;padding:0 12px 4px;overflow-x:auto;scrollbar-width:none}
-.filter-bar::-webkit-scrollbar{display:none}
 .fcap{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px;font-size:.7rem;font-family:'DM Mono',monospace;color:var(--td);white-space:nowrap;cursor:pointer;box-shadow:0 2px 8px var(--sh);transition:all .2s;flex-shrink:0;-webkit-user-select:none;user-select:none}
 .fcap.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
 .fcap:active{transform:scale(.95)}
@@ -250,10 +250,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .editbtn{background:var(--surf2);border:1px solid var(--bdr);color:var(--td);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;flex-shrink:0}
 /* Area radius hint in sheet */
 .area-hint{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);display:flex;align-items:center;gap:4px;margin-top:4px;margin-bottom:8px}
-
-/* ── PANELS (in drawer) ── */
-.panel-section{display:none}
-.panel-section.active{display:block}
 
 /* Progress header */
 .prog-h{padding:14px 16px;background:var(--surf2);border-bottom:1px solid var(--bdr)}
@@ -462,7 +458,53 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 /* ── AREA CIRCLE on map ── */
 .leaflet-area-circle{}
-/* ── FIREBASE AUTH UI ── */
+/* ── LEVEL PILL ── */
+.level-pill{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);display:flex;align-items:center;gap:4px;box-shadow:0 2px 12px var(--sh);white-space:nowrap;pointer-events:all;cursor:pointer}
+.level-pill .lp-lvl{color:var(--gold);font-weight:600}
+/* ── LEVEL CARD ── */
+.level-card{margin:10px 14px 6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden}
+.level-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.04),transparent);pointer-events:none}
+.lc-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.lc-icon{font-size:28px}
+.lc-info{flex:1;min-width:0}
+.lc-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);line-height:1.2}
+.lc-sub{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:2px}
+.lc-bar{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.lc-fill{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:3px;transition:width .6s}
+.lc-xp{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);margin-top:4px;text-align:right}
+/* ── STREAK CARD ── */
+.streak-card{margin:0 14px 6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px}
+.streak-card.hot{border-color:rgba(201,168,76,.4);box-shadow:inset 0 0 20px rgba(201,168,76,.04)}
+.sc-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sc-fire{font-size:22px}
+.sc-info{flex:1;min-width:0}
+.sc-title{font-size:.85rem;font-weight:600;color:var(--txt)}
+.sc-sub{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:1px}
+.sc-miles{display:flex;gap:6px;flex-wrap:wrap}
+.sc-m{background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-align:center;flex:1;min-width:52px}
+.sc-m.done{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+.sc-m.next{border-color:var(--gd);color:var(--gd);border-style:dashed}
+.sc-m .sm-i{font-size:15px;display:block;margin-bottom:2px}
+.sc-m .sm-d{font-weight:600;font-size:.68rem}
+.sc-m .sm-r{font-size:.52rem;color:var(--tm);margin-top:1px}
+.sc-m.done .sm-r{color:var(--gold)}
+/* ── LEVEL UP OVERLAY ── */
+.levelup-overlay{position:fixed;inset:0;z-index:1100;background:rgba(14,12,9,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px}
+.levelup-overlay.show{display:flex;animation:fadeIn .5s}
+.lu-glyph{font-size:72px;animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
+.lu-title{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);text-transform:uppercase;letter-spacing:.15em}
+.lu-level{font-family:'Playfair Display',serif;font-size:2.5rem;color:var(--gold);line-height:1}
+.lu-name{font-size:1.1rem;font-weight:600;color:var(--txt);text-align:center}
+.lu-reward{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 16px}
+.lu-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
+/* ── STREAK BREAK OVERLAY ── */
+.streak-break-overlay{position:fixed;inset:0;z-index:1100;background:rgba(14,12,9,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px}
+.streak-break-overlay.show{display:flex;animation:fadeIn .5s}
+.sb-glyph{font-size:72px}
+.sb-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--red);text-align:center}
+.sb-desc{font-size:.88rem;color:var(--td);text-align:center;max-width:280px;line-height:1.7}
+.sb-tip{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 16px;text-align:center}
+.sb-btn{background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
 .auth-bar{position:fixed;bottom:0;left:0;right:0;z-index:190;background:var(--surf);border-top:1px solid var(--bdr);padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 20px var(--sh)}
 .auth-bar.hidden{display:none}
 .auth-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold);object-fit:cover;flex-shrink:0}
@@ -516,14 +558,26 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     </div>
     <div class="streak-pill" id="streakPill" style="display:none">🔥 <span id="streakNum">0</span></div>
   </div>
+  <!-- FILTERS inline in topbar -->
+  <div class="tb-filters" id="filterBar">
+    <div class="fcap on" data-cat="all" onclick="setFilter('all')">Visos</div>
+    <div class="fcap" data-cat="fort" onclick="setFilter('fort')">🏰 Fortai</div>
+    <div class="fcap" data-cat="church" onclick="setFilter('church')">⛪ Bažnyčios</div>
+    <div class="fcap" data-cat="museum" onclick="setFilter('museum')">🏛 Muziejai</div>
+    <div class="fcap" data-cat="soviet" onclick="setFilter('soviet')">⭐ Sovietika</div>
+    <div class="fcap" data-cat="modern" onclick="setFilter('modern')">🏗 Modernizmas</div>
+    <div class="fcap" data-cat="nature" onclick="setFilter('nature')">🌿 Gamta</div>
+    <div class="fcap" data-cat="history" onclick="setFilter('history')">⚔ Istorija</div>
+  </div>
   <div class="tb-right">
     <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
-    <div class="ib" id="themeBtn" onclick="toggleTheme()">🌙</div>
+    <div class="ib" id="themeBtn" onclick="toggleTheme()" title="Dienos/nakties režimas">☀️</div>
     <div class="ib" onclick="centerUser()">📍</div>
+    <div class="gps-pill"><div class="gd" id="gpsDot"></div><span class="gps-refresh" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS">↻</span></div>
   </div>
 </div>
 
-<!-- WEATHER EXPANDED (drops from topbar weather button) -->
+<!-- WEATHER EXPANDED -->
 <div class="wx-expanded" id="wxExpanded">
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div><div class="we-temp" id="weTemp">—°C</div><div class="we-desc" id="weDesc">Kraunama...</div></div>
@@ -534,21 +588,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="we-item"><span id="weHum">—</span><span>Drėgmė</span></div>
     <div class="we-item"><span id="weFeels">—</span><span>Jaučiasi</span></div>
   </div>
-</div>
-
-<!-- GPS -->
-<div class="gps-pill"><div class="gd" id="gpsDot"></div><span class="gps-refresh" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS">↻</span></div>
-
-<!-- FILTER BAR -->
-<div class="filter-bar" id="filterBar">
-  <div class="fcap on" data-cat="all" onclick="setFilter('all')">Visos</div>
-  <div class="fcap" data-cat="fort" onclick="setFilter('fort')">🏰 Fortai</div>
-  <div class="fcap" data-cat="church" onclick="setFilter('church')">⛪ Bažnyčios</div>
-  <div class="fcap" data-cat="museum" onclick="setFilter('museum')">🏛 Muziejai</div>
-  <div class="fcap" data-cat="soviet" onclick="setFilter('soviet')">⭐ Sovietika</div>
-  <div class="fcap" data-cat="modern" onclick="setFilter('modern')">🏗 Modernizmas</div>
-  <div class="fcap" data-cat="nature" onclick="setFilter('nature')">🌿 Gamta</div>
-  <div class="fcap" data-cat="history" onclick="setFilter('history')">⚔ Istorija</div>
 </div>
 
 <!-- SHEET BACKDROP -->
@@ -604,7 +643,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
     </div>
-    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v11.2</div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v12.0</div>
   </div>
 
   <!-- SUB-PANEL: slides in from right -->
@@ -614,10 +653,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="drawer-sub-title" id="drawerSubTitle"></div>
     </div>
     <div class="drawer-sub-body" id="drawerSubBody">
-      <div id="panel-vietos"></div>
-      <div id="panel-marsrutai"></div>
-      <div id="panel-zenklai"></div>
-      <div id="panel-social"></div>
+      <div class="panel-section" id="panel-vietos"></div>
+      <div class="panel-section" id="panel-marsrutai"></div>
+      <div class="panel-section" id="panel-zenklai"></div>
+      <div class="panel-section" id="panel-social"></div>
     </div>
   </div>
 
@@ -927,7 +966,7 @@ let SPOTS=[...DEFAULT_SPOTS];
 let found=new Set(),streak=0,lastDate=null,notes={},earnedBadges=new Set();
 let unlockedCats=new Set();
 let selectedSpot=null,userLat=null,userLng=null;
-let isDark=true,activeFilter='all';
+let isDark=false,activeFilter='all';
 let map,userMarker,markers={},tileLayer,areaCircles={};
 let activeRoute=null,routeStopIdx=0;
 let pickingForEditor=false,wxOpen=false,wxLoaded=false;
@@ -1033,8 +1072,7 @@ function load(){
 
 function applyTheme(){
   document.body.classList.toggle('light',!isDark);
-  document.getElementById('themeBtn').textContent=isDark?'🌙':'☀️';
-  if(tileLayer) map.removeLayer(tileLayer);
+  document.getElementById('themeBtn').textContent=isDark?'🌙':'☀️';  if(tileLayer) map.removeLayer(tileLayer);
   tileLayer=L.tileLayer(isDark
     ?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
