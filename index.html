@@ -557,7 +557,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
   <!-- DRAWER BOTTOM -->
   <div class="drawer-bottom" style="flex-shrink:0">
-    <div class="dbot-btn pri" onclick="closeDrawer();openEditor(null)">+ Nauja vieta</div>
+    <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
   </div>
 </div>
 
@@ -673,8 +673,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <button class="prox-btn" id="proxBtn" onclick="collectFromProx()">⭐ Surinkti vietą!</button>
 </div>
 
-<!-- FAB (add spot) -->
-<div class="fab" onclick="openEditor(null)" style="bottom:140px">+</div>
+<!-- FAB (add spot) — admin only -->
+<div class="fab" id="adminFab" onclick="openEditor(null)" style="bottom:140px;display:none">+</div>
 
 <!-- SURPRISE FAB -->
 <div class="surprise-fab" onclick="surpriseMe()" title="Staigmena!">🎲</div>
@@ -1477,7 +1477,7 @@ function openSheet(spot){
       <div class="crow">
         <div class="dbadge" id="distBadge">—</div>
         <button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button>
-        <button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>
+        ${(window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1')?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
       </div>
     `;
   }
@@ -2120,13 +2120,16 @@ setTimeout(()=>checkEasterEggsPassive(),1000);
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=function(user){
   document.getElementById('authBar').classList.remove('hidden');
+  const isAdmin=user&&user.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
+  // Show admin-only UI
+  document.getElementById('adminFab').style.display=isAdmin?'flex':'none';
+  document.getElementById('drawerAddBtn').style.display=isAdmin?'':'none';
   if(user){
     updateAuthUI(user);
     fbLoadSpots();
     fbLoadUserProgress(user.uid);
   } else {
     updateAuthUI(null);
-    // Still load shared spots anonymously
     fbLoadSpots();
   }
 };
@@ -2197,19 +2200,22 @@ async function fbLoadSpots(){
   if(!db) return;
   setSyncDot('syncing');
   try{
-    // Real-time listener — updates map whenever spots change in Firestore
     onSnapshot(collection(db,'spots'),snapshot=>{
       if(snapshot.empty){
-        // First run — push default spots to Firestore
-        fbPushDefaultSpots();
+        // First run — only push if logged in as admin
+        if(window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
+          fbPushDefaultSpots();
+        }
         return;
       }
       const firestoreSpots=[];
-      snapshot.forEach(doc=>{
-        firestoreSpots.push({...doc.data(),_fid:doc.id});
+      snapshot.forEach(d=>{
+        firestoreSpots.push({...d.data(),_fid:d.id,id:d.id});
       });
-      // Merge: keep user-added local spots not yet in Firestore, replace rest
+      // Firestore is the single source of truth — completely replace local SPOTS
       SPOTS=firestoreSpots.map(s=>({radius:DEFAULT_RADIUS,...s}));
+      // Clear any stale localStorage spots so they never re-merge
+      localStorage.removeItem('ke7_spots');
       refreshMarkers();
       updateAll();
       setSyncDot('synced');
@@ -2328,14 +2334,29 @@ async function fbSaveUserProgress(){
 
 const _localSave=save;
 save=function(){
-  _localSave();
-  fbSaveUserProgress(); // fire-and-forget
+  // Save everything EXCEPT spots (Firestore owns spots now)
+  localStorage.setItem('ke7_found',JSON.stringify([...found]));
+  localStorage.setItem('ke7_streak',streak);
+  localStorage.setItem('ke7_lastDate',lastDate||'');
+  localStorage.setItem('ke7_notes',JSON.stringify(notes));
+  localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
+  localStorage.setItem('ke7_theme',isDark?'dark':'light');
+  localStorage.setItem('ke7_ucats',JSON.stringify([...unlockedCats]));
+  localStorage.setItem('ke7_eggs',JSON.stringify([...triggeredEggs]));
+  localStorage.setItem('ke7_xp',totalXP);
+  localStorage.setItem('ke7_name',playerName);
+  localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
+  localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
+  fbSaveUserProgress(); // sync progress to Firestore if logged in
 };
 
 // ═══════════ OVERRIDE saveSpot() TO USE FIRESTORE ═══════════
 
 const _origSaveSpot=saveSpot;
 saveSpot=async function(){
+  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
+    toast('⚠ Tik administratorius gali pridėti vietas','info');return;
+  }
   const name=document.getElementById('eName').value.trim();
   const lat=parseFloat(document.getElementById('eLat').value);
   const lng=parseFloat(document.getElementById('eLng').value);
@@ -2369,6 +2390,9 @@ saveSpot=async function(){
 
 const _origDeleteSpot=deleteSpot;
 deleteSpot=async function(){
+  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
+    toast('⚠ Tik administratorius gali trinti vietas','info');return;
+  }
   const id=document.getElementById('eId').value;if(!id)return;
   const sp=SPOTS.find(s=>s.id==id||s._fid==id);
   if(!confirm(`Ištrinti "${sp?.name}"?`))return;
