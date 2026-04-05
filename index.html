@@ -1040,8 +1040,9 @@ function initMap(){
   L.control.zoom({position:'bottomright'}).addTo(map);
   clusterGroup=L.markerClusterGroup({maxClusterRadius:40,spiderfyOnMaxZoom:true,showCoverageOnHover:false,disableClusteringAtZoom:15});
   map.addLayer(clusterGroup);
-  applyTheme();
-  SPOTS.forEach(s=>addMarker(s));
+  applyTheme(); // applyTheme→refreshMarkers already adds every marker; no second loop needed
+  setTimeout(()=>map.invalidateSize(),300); // fixes blank map on mobile after browser chrome settles
+  window.addEventListener('resize',()=>map.invalidateSize());
   map.on('click',e=>{
     if(pickingForEditor){
       document.getElementById('eLat').value=e.latlng.lat.toFixed(6);
