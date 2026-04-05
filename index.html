@@ -8,6 +8,39 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Firebase -->
+<script type="module">
+// ═══════════ FIREBASE SETUP ═══════════
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+const firebaseConfig={
+  apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
+  authDomain:"kaunas-explorer.firebaseapp.com",
+  projectId:"kaunas-explorer",
+  storageBucket:"kaunas-explorer.firebasestorage.app",
+  messagingSenderId:"241890115444",
+  appId:"1:241890115444:web:7d9fa68c8a15e07a20b621"
+};
+
+const fbApp=initializeApp(firebaseConfig);
+const db=getFirestore(fbApp);
+const auth=getAuth(fbApp);
+const gProvider=new GoogleAuthProvider();
+
+// Expose to global scope so non-module code can use them
+window._fb={db,auth,gProvider,
+  doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp,
+  signInWithPopup,signOut,onAuthStateChanged
+};
+
+// Auth state listener — runs as soon as Firebase initialises
+onAuthStateChanged(auth,user=>{
+  window._fbUser=user||null;
+  if(typeof window.onFbAuthReady==='function') window.onFbAuthReady(user);
+});
+</script>
 <style>
 :root{
   --bg:#0e0c09;--surf:#1a1710;--surf2:#242018;--surf3:#2c2820;
@@ -408,6 +441,20 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 /* ── AREA CIRCLE on map ── */
 .leaflet-area-circle{}
+/* ── FIREBASE AUTH UI ── */
+.auth-bar{position:fixed;bottom:0;left:0;right:0;z-index:190;background:var(--surf);border-top:1px solid var(--bdr);padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 20px var(--sh)}
+.auth-bar.hidden{display:none}
+.auth-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold);object-fit:cover;flex-shrink:0}
+.auth-avatar-placeholder{width:32px;height:32px;border-radius:50%;background:var(--surf2);border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.auth-info{flex:1;min-width:0}
+.auth-name{font-size:.82rem;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auth-sub{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td)}
+.auth-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:9px 14px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.82rem;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.auth-btn.out{background:var(--surf2);border:1px solid var(--bdr);color:var(--td)}
+.auth-btn:active{transform:scale(.96)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--tm);flex-shrink:0}
+.sync-dot.synced{background:var(--green);box-shadow:0 0 5px var(--green)}
+.sync-dot.syncing{background:var(--gold);animation:gp 1s infinite}
 </style>
 </head>
 <body>
@@ -519,6 +566,15 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <div class="modal-box">
     <div class="modal-handle"></div>
     <div class="modal-title" id="editorTitle">Nauja vieta</div>
+    <!-- OSM SEARCH -->
+    <div class="fg" style="position:relative">
+      <label class="fl">🔍 Ieškoti vietos</label>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="osmSearch" placeholder="pvz. Kauno pilis..." style="flex:1" oninput="osmSearchDebounce()">
+        <button onclick="doOsmSearch()" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:0 12px;color:var(--td);cursor:pointer;font-size:.85rem;white-space:nowrap">Ieškoti</button>
+      </div>
+      <div id="osmResults" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:10;background:var(--surf);border:1px solid var(--bdr);border-radius:8px;margin-top:3px;max-height:180px;overflow-y:auto;box-shadow:0 4px 16px var(--sh)"></div>
+    </div>
     <input type="hidden" id="eId">
     <div class="fg"><label class="fl">Pavadinimas</label><input class="fi" id="eName"></div>
     <div class="frow">
@@ -622,6 +678,17 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 <!-- SURPRISE FAB -->
 <div class="surprise-fab" onclick="surpriseMe()" title="Staigmena!">🎲</div>
+
+<!-- AUTH BAR -->
+<div class="auth-bar hidden" id="authBar">
+  <div class="sync-dot" id="syncDot"></div>
+  <div class="auth-avatar-placeholder" id="authAvatar">👤</div>
+  <div class="auth-info">
+    <div class="auth-name" id="authName">Neprisijungęs</div>
+    <div class="auth-sub" id="authSub">Prisijunk norėdamas sinchronizuoti</div>
+  </div>
+  <button class="auth-btn" id="authBtn" onclick="fbLogin()">Google</button>
+</div>
 
 <!-- TOASTS -->
 <div class="toast-wrap" id="toastWrap"></div>
@@ -2000,12 +2067,317 @@ function toast(msg,type=''){
   setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},3000);
 }
 
+// ═══════════ OSM SEARCH ═══════════
+
+let _osmTimer=null;
+function osmSearchDebounce(){
+  clearTimeout(_osmTimer);
+  _osmTimer=setTimeout(doOsmSearch,600);
+}
+
+async function doOsmSearch(){
+  const q=document.getElementById('osmSearch').value.trim();
+  const box=document.getElementById('osmResults');
+  if(q.length<2){box.style.display='none';return;}
+  box.style.display='block';
+  box.innerHTML=`<div style="padding:10px;font-size:.78rem;color:var(--td);font-family:'DM Mono',monospace">Ieškoma...</div>`;
+  try{
+    const url=`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q+' Lietuva')}&format=json&limit=5&accept-language=lt`;
+    const res=await fetch(url,{headers:{'Accept-Language':'lt'}});
+    const data=await res.json();
+    if(!data.length){
+      box.innerHTML=`<div style="padding:10px;font-size:.78rem;color:var(--td);font-family:'DM Mono',monospace">Nieko nerasta</div>`;
+      return;
+    }
+    box.innerHTML=data.map((r,i)=>`
+      <div onclick="osmPick(${r.lat},${r.lon},'${r.display_name.replace(/'/g,"\\'").split(',')[0]}')"
+        style="padding:10px 12px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .15s"
+        onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
+        <div style="font-size:.82rem;font-weight:500;color:var(--txt)">${r.display_name.split(',').slice(0,2).join(',')}</div>
+        <div style="font-size:.65rem;color:var(--tm);font-family:'DM Mono',monospace;margin-top:2px">${parseFloat(r.lat).toFixed(5)}, ${parseFloat(r.lon).toFixed(5)}</div>
+      </div>`).join('');
+  } catch(e){
+    box.innerHTML=`<div style="padding:10px;font-size:.78rem;color:var(--td)">Klaida, bandykite vėliau</div>`;
+  }
+}
+
+function osmPick(lat,lng,name){
+  document.getElementById('eLat').value=parseFloat(lat).toFixed(6);
+  document.getElementById('eLng').value=parseFloat(lng).toFixed(6);
+  if(!document.getElementById('eName').value) document.getElementById('eName').value=name;
+  document.getElementById('osmResults').style.display='none';
+  document.getElementById('osmSearch').value='';
+  document.getElementById('edHint').textContent=`✅ ${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`;
+  map.setView([lat,lng],17);
+  toast('📍 Vieta parinkta','success');
+}
+
 // ═══════════ INIT ═══════════
 
 load();initMap();updateAll();startGPS();
-
-// Check time-based easter eggs on load
 setTimeout(()=>checkEasterEggsPassive(),1000);
+
+// Show auth bar once Firebase module is ready
+window.onFbAuthReady=function(user){
+  document.getElementById('authBar').classList.remove('hidden');
+  if(user){
+    updateAuthUI(user);
+    fbLoadSpots();
+    fbLoadUserProgress(user.uid);
+  } else {
+    updateAuthUI(null);
+    // Still load shared spots anonymously
+    fbLoadSpots();
+  }
+};
+
+// ═══════════ FIREBASE AUTH ═══════════
+
+function updateAuthUI(user){
+  const bar=document.getElementById('authBar');
+  const nameEl=document.getElementById('authName');
+  const subEl=document.getElementById('authSub');
+  const btn=document.getElementById('authBtn');
+  const avatar=document.getElementById('authAvatar');
+
+  if(user){
+    nameEl.textContent=user.displayName||user.email||'Vartotojas';
+    subEl.textContent='Sinchronizuota ✓';
+    btn.textContent='Atsijungti';
+    btn.className='auth-btn out';
+    btn.onclick=fbLogout;
+    if(user.photoURL){
+      avatar.innerHTML=`<img class="auth-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`;
+    } else {
+      avatar.textContent='👤';
+    }
+  } else {
+    nameEl.textContent='Neprisijungęs';
+    subEl.textContent='Prisijunk norėdamas sinchronizuoti';
+    btn.textContent='Prisijungti su Google';
+    btn.className='auth-btn';
+    btn.onclick=fbLogin;
+    avatar.innerHTML='👤';
+  }
+}
+
+function fbLogin(){
+  const{auth,gProvider,signInWithPopup}=window._fb||{};
+  if(!auth){toast('Firebase dar kraunasi...','info');return;}
+  signInWithPopup(auth,gProvider)
+    .then(result=>{
+      toast(`👋 Sveiki, ${result.user.displayName||''}!`,'success');
+    })
+    .catch(e=>{
+      console.error(e);
+      toast('Prisijungimas nepavyko','info');
+    });
+}
+
+function fbLogout(){
+  const{auth,signOut}=window._fb||{};
+  if(!auth) return;
+  signOut(auth).then(()=>{
+    toast('Atsijungta','info');
+    updateAuthUI(null);
+  });
+}
+
+// ═══════════ FIREBASE SPOTS SYNC ═══════════
+
+function setSyncDot(state){
+  const d=document.getElementById('syncDot');
+  if(!d) return;
+  d.className='sync-dot'+(state==='synced'?' synced':state==='syncing'?' syncing':'');
+}
+
+// Load shared spots from Firestore (replaces/merges with defaults)
+async function fbLoadSpots(){
+  const{db,collection,onSnapshot}=window._fb||{};
+  if(!db) return;
+  setSyncDot('syncing');
+  try{
+    // Real-time listener — updates map whenever spots change in Firestore
+    onSnapshot(collection(db,'spots'),snapshot=>{
+      if(snapshot.empty){
+        // First run — push default spots to Firestore
+        fbPushDefaultSpots();
+        return;
+      }
+      const firestoreSpots=[];
+      snapshot.forEach(doc=>{
+        firestoreSpots.push({...doc.data(),_fid:doc.id});
+      });
+      // Merge: keep user-added local spots not yet in Firestore, replace rest
+      SPOTS=firestoreSpots.map(s=>({radius:DEFAULT_RADIUS,...s}));
+      refreshMarkers();
+      updateAll();
+      setSyncDot('synced');
+      document.getElementById('authSub').textContent=`${SPOTS.length} vietos sinchronizuotos`;
+    });
+  } catch(e){
+    console.error('fbLoadSpots',e);
+    setSyncDot('');
+    toast('Nepavyko prisijungti prie DB','info');
+  }
+}
+
+// Push all DEFAULT_SPOTS to Firestore on first run
+async function fbPushDefaultSpots(){
+  const{db,collection,addDoc}=window._fb||{};
+  if(!db) return;
+  setSyncDot('syncing');
+  try{
+    for(const spot of DEFAULT_SPOTS){
+      const{id,...data}=spot; // don't store local numeric id
+      await addDoc(collection(db,'spots'),{...data,createdAt:window._fb.serverTimestamp()});
+    }
+    setSyncDot('synced');
+    toast('📍 Bazinės vietos įkeltos į duomenų bazę','success');
+  } catch(e){
+    console.error('fbPushDefaultSpots',e);
+  }
+}
+
+// Save a single spot to Firestore (called from saveSpot)
+async function fbSaveSpot(spotData){
+  const{db,collection,addDoc,doc,updateDoc,serverTimestamp}=window._fb||{};
+  if(!db) return null;
+  setSyncDot('syncing');
+  try{
+    if(spotData._fid){
+      // Update existing
+      const{_fid,id,...data}=spotData;
+      await updateDoc(doc(db,'spots',_fid),{...data,updatedAt:serverTimestamp()});
+      setSyncDot('synced');
+      return spotData._fid;
+    } else {
+      // New spot
+      const{id,...data}=spotData;
+      const ref=await addDoc(collection(db,'spots'),{...data,createdAt:serverTimestamp()});
+      setSyncDot('synced');
+      return ref.id;
+    }
+  } catch(e){
+    console.error('fbSaveSpot',e);
+    setSyncDot('');
+    toast('Nepavyko išsaugoti vietos','info');
+    return null;
+  }
+}
+
+// Delete a spot from Firestore
+async function fbDeleteSpot(fid){
+  const{db,doc,deleteDoc}=window._fb||{};
+  if(!db||!fid) return;
+  try{
+    await deleteDoc(doc(db,'spots',fid));
+    setSyncDot('synced');
+  } catch(e){
+    console.error('fbDeleteSpot',e);
+  }
+}
+
+// ═══════════ FIREBASE USER PROGRESS ═══════════
+
+async function fbLoadUserProgress(uid){
+  const{db,doc,getDoc}=window._fb||{};
+  if(!db||!uid) return;
+  try{
+    const snap=await getDoc(doc(db,'users',uid));
+    if(snap.exists()){
+      const d=snap.data();
+      if(d.found) found=new Set(d.found);
+      if(d.streak!==undefined) streak=d.streak;
+      if(d.lastDate) lastDate=d.lastDate;
+      if(d.totalXP!==undefined) totalXP=d.totalXP;
+      if(d.notes) notes=d.notes;
+      if(d.earnedBadges) earnedBadges=new Set(d.earnedBadges);
+      if(d.triggeredEggs) triggeredEggs=new Set(d.triggeredEggs);
+      if(d.unlockedCats) unlockedCats=new Set(d.unlockedCats);
+      if(d.playerName) playerName=d.playerName;
+      prevLevel=getLevel(totalXP).level;
+      updateAll();refreshMarkers();
+      toast('☁️ Pažanga sinchronizuota','success');
+    }
+  } catch(e){
+    console.error('fbLoadUserProgress',e);
+  }
+}
+
+async function fbSaveUserProgress(){
+  const{db,doc,setDoc,serverTimestamp}=window._fb||{};
+  const user=window._fbUser;
+  if(!db||!user) return; // not logged in — only local save
+  try{
+    await setDoc(doc(db,'users',user.uid),{
+      found:[...found],
+      streak,lastDate,totalXP,notes,
+      earnedBadges:[...earnedBadges],
+      triggeredEggs:[...triggeredEggs],
+      unlockedCats:[...unlockedCats],
+      playerName,
+      updatedAt:serverTimestamp()
+    });
+  } catch(e){
+    console.error('fbSaveUserProgress',e);
+  }
+}
+
+// ═══════════ OVERRIDE save() TO ALSO SYNC ═══════════
+
+const _localSave=save;
+save=function(){
+  _localSave();
+  fbSaveUserProgress(); // fire-and-forget
+};
+
+// ═══════════ OVERRIDE saveSpot() TO USE FIRESTORE ═══════════
+
+const _origSaveSpot=saveSpot;
+saveSpot=async function(){
+  const name=document.getElementById('eName').value.trim();
+  const lat=parseFloat(document.getElementById('eLat').value);
+  const lng=parseFloat(document.getElementById('eLng').value);
+  if(!name||isNaN(lat)||isNaN(lng)){toast('⚠ Užpildyk pavadinimą ir koordinates','info');return;}
+  const bring=document.getElementById('eBring').value.split(',').map(b=>b.trim()).filter(Boolean);
+  const radius=parseInt(document.getElementById('eRadius').value)||DEFAULT_RADIUS;
+  const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),
+    history:document.getElementById('eHist').value,time:document.getElementById('eTime').value,
+    price:document.getElementById('ePrice').value,year:document.getElementById('eYear').value,
+    tag:document.getElementById('eTag').value,bring,lat,lng,radius};
+  const id=document.getElementById('eId').value;
+
+  if(id){
+    const idx=SPOTS.findIndex(s=>s.id==id||s._fid==id);
+    if(idx!==-1){
+      SPOTS[idx]={...SPOTS[idx],...data};
+      await fbSaveSpot(SPOTS[idx]);
+      toast(`✅ ${name} atnaujinta`,'success');
+    }
+  } else {
+    data.id=Date.now();
+    const fid=await fbSaveSpot(data);
+    if(fid) data._fid=fid;
+    SPOTS.push(data);
+    toast(`📍 ${name} pridėta!`,'success');
+  }
+  save();refreshMarkers();updateAll();closeEditor();
+};
+
+// ═══════════ OVERRIDE deleteSpot() TO USE FIRESTORE ═══════════
+
+const _origDeleteSpot=deleteSpot;
+deleteSpot=async function(){
+  const id=document.getElementById('eId').value;if(!id)return;
+  const sp=SPOTS.find(s=>s.id==id||s._fid==id);
+  if(!confirm(`Ištrinti "${sp?.name}"?`))return;
+  if(sp?._fid) await fbDeleteSpot(sp._fid);
+  SPOTS=SPOTS.filter(s=>s.id!=id&&s._fid!=id);
+  found.delete(parseInt(id));
+  save();refreshMarkers();updateAll();closeEditor();
+  toast('🗑 Vieta ištrinta','info');
+};
 </script>
 </body>
 </html>
