@@ -604,6 +604,14 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .mob-nav-icon{font-size:20px;line-height:1}
 .mob-nav-label{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--td);letter-spacing:.02em}
 .mob-nav-badge{position:absolute;top:0;right:8px;background:var(--gold);color:#0e0c09;border-radius:8px;padding:1px 5px;font-size:.5rem;font-family:'DM Mono',monospace;font-weight:700;min-width:14px;text-align:center}
+/* ── MOBILE PANEL OVERLAY (replaces drawer on mobile for nav items) ── */
+.mob-panel-overlay{position:fixed;inset:0;z-index:350;display:none;flex-direction:column;background:var(--surf)}
+.mob-panel-overlay.open{display:flex;animation:slideInLeft .28s cubic-bezier(.4,0,.2,1)}
+@keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+.mob-panel-header{display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 14px 10px;border-bottom:1px solid var(--bdr);background:var(--surf2);flex-shrink:0}
+.mob-panel-close{background:none;border:none;color:var(--gold);font-size:1.4rem;cursor:pointer;padding:4px 8px 4px 0;line-height:1;-webkit-user-select:none;user-select:none}
+.mob-panel-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt);flex:1}
+.mob-panel-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
 .review-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;padding:0}
 .review-overlay.show{display:flex;animation:fadeIn .3s}
 .review-sheet{background:var(--surf);border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px var(--sh);animation:slideUp .35s cubic-bezier(.4,0,.2,1)}
@@ -953,6 +961,15 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     </div>
     <div id="mobFilterGroups"></div>
   </div>
+</div>
+
+<!-- MOBILE PANEL OVERLAY — full screen, bypasses drawer on mobile -->
+<div class="mob-panel-overlay" id="mobPanelOverlay">
+  <div class="mob-panel-header">
+    <button class="mob-panel-close" onclick="closeMobPanel()">✕</button>
+    <div class="mob-panel-title" id="mobPanelTitle"></div>
+  </div>
+  <div class="mob-panel-body" id="mobPanelBody"></div>
 </div>
 
 <!-- REVIEW MODAL -->
@@ -3315,13 +3332,82 @@ function introNext(){
   renderIntroStep();
 }
 
-// Mobile nav — opens a sub-panel in a sheet overlay instead of showing the full drawer
-// On mobile the drawer covers the map; this opens a panel then user can close to see map
+// Mobile nav — on mobile opens a dedicated full-screen overlay (not the drawer)
+// This keeps the map accessible — user taps ✕ to return to map
+const MOB_PANEL_TITLES={
+  zenklai:'🏅 Ženkleliai',
+  marsrutai:'🧭 Maršrutai',
+  favs:'♥ Mėgstamiausi',
+  vietos:'📋 Vietos',
+};
+
 function mobNavTo(panel){
-  openDrawer();
-  setTimeout(()=>{
-    openSubPanel(panel);
-  },50);
+  const isMobile=window.innerWidth<=600;
+  if(!isMobile){
+    // Desktop: use the normal drawer
+    openDrawer();
+    setTimeout(()=>openSubPanel(panel),50);
+    return;
+  }
+  // Mobile: open the overlay, render content into it
+  const overlay=document.getElementById('mobPanelOverlay');
+  const title=document.getElementById('mobPanelTitle');
+  const body=document.getElementById('mobPanelBody');
+  title.textContent=MOB_PANEL_TITLES[panel]||panel;
+  body.innerHTML='';
+
+  // Render the right content into the mobile body
+  // Temporarily redirect panel render targets to mobPanelBody
+  const origIds={};
+  const panelId='panel-'+panel;
+  const origEl=document.getElementById(panelId);
+  if(origEl){
+    // Clone the panel element approach — render then copy innerHTML
+    if(panel==='zenklai') renderBadgesInto(body);
+    else if(panel==='marsrutai') renderRoutesInto(body);
+    else if(panel==='favs') renderFavoritesInto(body);
+    else if(panel==='vietos') renderListInto(body);
+  }
+
+  overlay.classList.add('open');
+  // Invalidate map so it knows its size when overlay closes
+  map&&map.invalidateSize();
+}
+
+function closeMobPanel(){
+  document.getElementById('mobPanelOverlay').classList.remove('open');
+  setTimeout(()=>map&&map.invalidateSize(),50);
+}
+
+// Render helpers that output into a target element instead of a panel-xxx div
+function renderBadgesInto(target){
+  // Temporarily swap the target
+  const orig=document.getElementById('panel-zenklai');
+  const saved=orig.innerHTML;
+  renderBadges();
+  target.innerHTML=orig.innerHTML;
+  orig.innerHTML=saved;
+}
+function renderRoutesInto(target){
+  const orig=document.getElementById('panel-marsrutai');
+  const saved=orig.innerHTML;
+  renderRoutes();
+  target.innerHTML=orig.innerHTML;
+  orig.innerHTML=saved;
+}
+function renderFavoritesInto(target){
+  const orig=document.getElementById('panel-favs');
+  const saved=orig.innerHTML;
+  renderFavorites();
+  target.innerHTML=orig.innerHTML;
+  orig.innerHTML=saved;
+}
+function renderListInto(target){
+  const orig=document.getElementById('panel-vietos');
+  const saved=orig.innerHTML;
+  renderList();
+  target.innerHTML=orig.innerHTML;
+  orig.innerHTML=saved;
 }
 
 // ═══════════ MOBILE FILTER SHEET ═══════════
