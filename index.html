@@ -520,7 +520,44 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sb-tip{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 16px;text-align:center}
 .sb-btn{background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
 
-/* ── REVIEW MODAL ── */
+/* ── INTRO OVERLAY ── */
+.intro-overlay{position:fixed;inset:0;z-index:2000;background:rgba(14,12,9,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;animation:fadeIn .5s}
+.intro-overlay.hidden{display:none}
+.intro-glyph{font-size:64px;animation:pop .6s cubic-bezier(.34,1.56,.64,1)}
+.intro-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--gold);text-align:center;line-height:1.2}
+.intro-sub{font-size:.95rem;color:var(--td);text-align:center;max-width:280px;line-height:1.7}
+.intro-city{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--tm);text-align:center;letter-spacing:.1em;text-transform:uppercase}
+.intro-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:14px;padding:14px 36px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;margin-top:8px;transition:transform .15s}
+.intro-btn:active{transform:scale(.96)}
+.intro-dots{display:flex;gap:6px;margin-top:4px}
+.intro-dot{width:7px;height:7px;border-radius:50%;background:var(--tm)}
+.intro-dot.on{background:var(--gold)}
+
+/* ── MOBILE FILTER BUTTON + SHEET ── */
+.mob-filter-btn{display:none;position:fixed;bottom:90px;left:16px;z-index:190;background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:8px 16px;box-shadow:0 2px 16px var(--sh);cursor:pointer;font-size:.75rem;font-family:'DM Mono',monospace;color:var(--td);gap:6px;align-items:center;-webkit-user-select:none;user-select:none}
+.mob-filter-btn.active-filter{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.12)}
+.mob-filter-sheet{position:fixed;inset:0;z-index:400;display:none;align-items:flex-end}
+.mob-filter-sheet.open{display:flex;animation:fadeIn .2s}
+.mob-filter-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.mob-filter-panel{position:relative;width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 40px;max-height:80vh;overflow-y:auto}
+.mob-filter-handle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 18px}
+.mob-filter-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);margin-bottom:14px}
+.mob-filter-group-title{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 8px}
+.mob-filter-chips{display:flex;flex-wrap:wrap;gap:8px}
+.mob-filter-chip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:7px 14px;font-size:.8rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
+.mob-filter-chip.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
+.mob-filter-chip:active{transform:scale(.95)}
+
+@media(max-width:600px){
+  /* Hide desktop topbar filters on mobile */
+  .tb-filters{display:none!important}
+  .filter-sub-row{display:none!important}
+  /* Show mobile filter button */
+  .mob-filter-btn{display:flex}
+  /* Shrink right buttons */
+  .tb-right .ib{width:36px;height:36px;font-size:15px}
+  .gps-pill{display:none}
+}
 .review-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;padding:0}
 .review-overlay.show{display:flex;animation:fadeIn .3s}
 .review-sheet{background:var(--surf);border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px var(--sh);animation:slideUp .35s cubic-bezier(.4,0,.2,1)}
@@ -841,6 +878,38 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <button class="egg-btn" onclick="closeEgg()">Fantastiška! ✨</button>
 </div>
 
+<!-- INTRO OVERLAY -->
+<div class="intro-overlay hidden" id="introOverlay">
+  <div class="intro-glyph">🗺</div>
+  <div class="intro-title">Sveiki atvykę į<br>Kaunas Explorer</div>
+  <div class="intro-sub">Tyrinėk miestą, atrakinkinėk paslėptas vietas ir tapk tikru Kauno žinovu.</div>
+  <div class="intro-city">📍 Kaunas, Lietuva</div>
+  <div class="intro-dots">
+    <div class="intro-dot on" id="introD0"></div>
+    <div class="intro-dot" id="introD1"></div>
+    <div class="intro-dot" id="introD2"></div>
+  </div>
+  <button class="intro-btn" id="introBtn" onclick="introNext()">Pradėti tyrinėti →</button>
+</div>
+
+<!-- MOBILE FILTER BUTTON -->
+<div class="mob-filter-btn" id="mobFilterBtn" onclick="openMobFilterSheet()">
+  <span>🎛</span><span id="mobFilterLabel">Visos vietos</span>
+</div>
+
+<!-- MOBILE FILTER SHEET -->
+<div class="mob-filter-sheet" id="mobFilterSheet">
+  <div class="mob-filter-bg" onclick="closeMobFilterSheet()"></div>
+  <div class="mob-filter-panel">
+    <div class="mob-filter-handle"></div>
+    <div class="mob-filter-title">Filtruoti vietas</div>
+    <div class="mob-filter-chips">
+      <div class="mob-filter-chip on" data-cat="all" onclick="mobSetFilter('all')">🗺 Visos</div>
+    </div>
+    <div id="mobFilterGroups"></div>
+  </div>
+</div>
+
 <!-- REVIEW MODAL -->
 <div class="review-overlay" id="reviewOverlay">
   <div class="review-sheet">
@@ -996,50 +1065,98 @@ const ROUTES=[
 ];
 
 const BADGE_GROUPS=[
+  // ── Heritage ──
   {id:'forts',title:'Fortų kolekcininkas',icon:'🏰',cat:'fort',sub:true,badges:[
-    {id:'f1',name:'Pirmasis fortas',desc:'1 fortas',icon:'🏰',need:1},
-    {id:'f2',name:'Fortų sargas',desc:'2 fortai',icon:'🛡',need:2},
-    {id:'f3',name:'Fortų valdovas',desc:'Visi fortai',icon:'👑',need:3},
+    {id:'f1',name:'Pirmasis fortas',desc:'Aplankyk 1 fortą',icon:'🏰',need:1},
+    {id:'f2',name:'Fortų sargas',desc:'Aplankyk 3 fortus',icon:'🛡',need:3},
+    {id:'f3',name:'Fortų valdovas',desc:'Aplankyk 6 fortų',icon:'👑',need:6},
   ]},
-  {id:'churches',title:'Bažnyčių piligirmas',icon:'⛪',cat:'church',sub:true,badges:[
-    {id:'c1',name:'Piligirmas',desc:'1 bažnyčia',icon:'⛪',need:1},
-    {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Visos bažnyčios',icon:'✝',need:2},
+  {id:'churches',title:'Bažnyčių piligimas',icon:'⛪',cat:'church',sub:true,badges:[
+    {id:'c1',name:'Piligimas',desc:'Aplankyk 1 bažnyčią',icon:'⛪',need:1},
+    {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Aplankyk 5 bažnyčias',icon:'✝',need:5},
+    {id:'c3',name:'Dvasios keliautojas',desc:'Aplankyk 10 bažnyčių',icon:'🕊',need:10},
   ]},
   {id:'museums',title:'Muziejų kuratorius',icon:'🏛',cat:'museum',sub:true,badges:[
-    {id:'m1',name:'Lankytojas',desc:'1 muziejus',icon:'🎟',need:1},
-    {id:'m2',name:'Kuratorius',desc:'3 muziejai',icon:'🏛',need:3},
+    {id:'m1',name:'Lankytojas',desc:'Aplankyk 1 muziejų',icon:'🎟',need:1},
+    {id:'m2',name:'Kuratorius',desc:'Aplankyk 5 muziejus',icon:'🏛',need:5},
+    {id:'m3',name:'Kultūros sargas',desc:'Aplankyk 10 muziejų',icon:'🎭',need:10},
+  ]},
+  {id:'history',title:'Istorijos ieškotojas',icon:'⚔',cat:'history',sub:true,badges:[
+    {id:'h1',name:'Kronikininkas',desc:'Aplankyk 3 istorines vietas',icon:'⚔',need:3},
+    {id:'h2',name:'Praeities balsas',desc:'Aplankyk 10 istorinių vietų',icon:'🗞',need:10},
   ]},
   {id:'monuments',title:'Skulptūrų kolekcionierius',icon:'🗿',cat:'monument',sub:true,badges:[
-    {id:'mon1',name:'Akmeninė istorija',desc:'1 monumentas',icon:'🗿',need:1},
-    {id:'mon2',name:'Skulptūrų sargas',desc:'3 monumentai',icon:'🏛',need:3},
-  ]},
-  {id:'viewpoints',title:'Panoramų medžiotojas',icon:'🔭',cat:'viewpoint',sub:true,badges:[
-    {id:'vp1',name:'Pirmoji panorama',desc:'1 apžvalgos taškas',icon:'🔭',need:1},
-    {id:'vp2',name:'Debesų vaikščiotojas',desc:'3 apžvalgos taškai',icon:'🌄',need:3},
+    {id:'mon1',name:'Akmeninė istorija',desc:'Aplankyk 1 monumentą',icon:'🗿',need:1},
+    {id:'mon2',name:'Skulptūrų sargas',desc:'Aplankyk 5 monumentus',icon:'🏺',need:5},
+    {id:'mon3',name:'Miesto atminimas',desc:'Aplankyk 10 monumentų',icon:'🗽',need:10},
   ]},
   {id:'mounds',title:'Piliakalninkas',icon:'⛰',cat:'mound',sub:true,badges:[
-    {id:'mnd1',name:'Kalno valdovas',desc:'1 piliakalnis',icon:'⛰',need:1},
-    {id:'mnd2',name:'Senovės gynėjas',desc:'3 piliakalnis',icon:'🪖',need:3},
+    {id:'mnd1',name:'Kalno valdovas',desc:'Aplankyk 1 piliakalnis',icon:'⛰',need:1},
+    {id:'mnd2',name:'Senovės gynėjas',desc:'Aplankyk 4 piliakalnius',icon:'🪖',need:4},
+  ]},
+  {id:'cemeteries',title:'Kapinių keleivas',icon:'⚱️',cat:'cemetery',sub:true,badges:[
+    {id:'cem1',name:'Atminties sargas',desc:'Aplankyk 2 kapines',icon:'⚱️',need:2},
+    {id:'cem2',name:'Amžinojo poilsio tyrinėtojas',desc:'Aplankyk 5 kapines',icon:'🕯',need:5},
+  ]},
+  // ── Soviet ──
+  {id:'soviet',title:'Sovietikos žinovas',icon:'⭐',cat:'soviet',sub:true,badges:[
+    {id:'s1',name:'Raudonas žvaigždelė',desc:'Aplankyk 2 sovietines vietas',icon:'⭐',need:2},
+    {id:'s2',name:'Epochos liudytojas',desc:'Aplankyk 5 sovietines vietas',icon:'🔴',need:5},
   ]},
   {id:'murals',title:'Gatvės meno gerbėjas',icon:'🎨',cat:'mural',sub:true,badges:[
-    {id:'mrl1',name:'Pirmas piešinys',desc:'1 gatvės menas',icon:'🎨',need:1},
-    {id:'mrl2',name:'Miesto tapytojas',desc:'3 gatvės menas',icon:'🖌',need:3},
+    {id:'mrl1',name:'Pirmas piešinys',desc:'Aplankyk 1 gatvės meno kūrinį',icon:'🎨',need:1},
+    {id:'mrl2',name:'Miesto tapytojas',desc:'Aplankyk 5 gatvės meno kūrinius',icon:'🖌',need:5},
+    {id:'mrl3',name:'Grafičio karalius',desc:'Aplankyk 10 gatvės meno kūrinių',icon:'🎭',need:10},
   ]},
+  // ── Nature ──
   {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
-    {id:'n1',name:'Žaliasis miestas',desc:'3 gamtos vietos',icon:'🌿',need:3},
-    {id:'n2',name:'Miško dvasia',desc:'5 gamtos vietos',icon:'🌳',need:5},
+    {id:'n1',name:'Žaliasis miestas',desc:'Aplankyk 3 gamtos vietas',icon:'🌿',need:3},
+    {id:'n2',name:'Miško dvasia',desc:'Aplankyk 8 gamtos vietų',icon:'🌳',need:8},
   ]},
+  {id:'trails',title:'Takų ieškotojas',icon:'🥾',cat:'trail',sub:true,badges:[
+    {id:'tr1',name:'Pirmas takas',desc:'Aplankyk 1 taką',icon:'🥾',need:1},
+    {id:'tr2',name:'Takų veteranas',desc:'Aplankyk 4 takus',icon:'🏕',need:4},
+  ]},
+  {id:'viewpoints',title:'Panoramų medžiotojas',icon:'🔭',cat:'viewpoint',sub:true,badges:[
+    {id:'vp1',name:'Pirmoji panorama',desc:'Aplankyk 1 apžvalgos tašką',icon:'🔭',need:1},
+    {id:'vp2',name:'Debesų vaikščiotojas',desc:'Aplankyk 5 apžvalgos taškus',icon:'🌄',need:5},
+  ]},
+  {id:'cliffs',title:'Skardžių drąsuolis',icon:'🪨',cat:'cliff',sub:true,badges:[
+    {id:'cl1',name:'Uolos liudytojas',desc:'Aplankyk 2 skardžius',icon:'🪨',need:2},
+    {id:'cl2',name:'Kraštovaizdžio valdovas',desc:'Aplankyk 5 skardžius',icon:'🏔',need:5},
+  ]},
+  // ── Urban ──
+  {id:'modern',title:'Modernizmo žinovas',icon:'🏗',cat:'modern',sub:true,badges:[
+    {id:'mod1',name:'Architektas',desc:'Aplankyk 3 modernizmo vietas',icon:'🏗',need:3},
+    {id:'mod2',name:'Tarpukario dvasia',desc:'Aplankyk 7 modernizmo vietų',icon:'🏙',need:7},
+  ]},
+  {id:'watertowers',title:'Vandens bokštų medžiotojas',icon:'🗼',cat:'watertower',sub:true,badges:[
+    {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1},
+    {id:'wt2',name:'Bokštų kolekcininkas',desc:'Aplankyk 5 vandens bokštus',icon:'🏗',need:5},
+  ]},
+  {id:'industrial',title:'Industrijos tyrinėtojas',icon:'🏭',cat:'industrial',sub:true,badges:[
+    {id:'ind1',name:'Pramonės detektyvas',desc:'Aplankyk 3 pramonės objektus',icon:'🏭',need:3},
+    {id:'ind2',name:'Rūkstančių kaminų era',desc:'Aplankyk 8 pramonės objektų',icon:'🔧',need:8},
+  ]},
+  {id:'bridges',title:'Tiltų meistras',icon:'🌉',cat:'bridge',sub:true,badges:[
+    {id:'br1',name:'Pirmasis tiltas',desc:'Aplankyk 1 tiltą',icon:'🌉',need:1},
+    {id:'br2',name:'Tiltų kolekcionierius',desc:'Aplankyk 4 tiltus',icon:'⛵',need:4},
+  ]},
+  // ── Progress ──
   {id:'tiers',title:'Tiero pažanga',icon:'⭐',cat:null,badges:[
     {id:'t1all',name:'T1 Čempionas',desc:'Visos T1 vietos surinktos',icon:'🥉',tierComplete:1},
     {id:'t2all',name:'T2 Meistras',desc:'Visos T2 vietos surinktos',icon:'🥈',tierComplete:2},
-    {id:'t3all',name:'Kauno Legenda',desc:'Visos T3 vietos surinktos',icon:'🥇',tierComplete:3},
+    {id:'t3all',name:'Miesto Legenda',desc:'Visos T3 vietos surinktos',icon:'🥇',tierComplete:3},
   ]},
   {id:'general',title:'Bendra pažanga',icon:'🗺',cat:null,badges:[
     {id:'g1',name:'Pirmasis žingsnis',desc:'1 vieta surinkta',icon:'🗺',need:1,all:true},
     {id:'g2',name:'Žvalgybininkas',desc:'10 vietų surinkta',icon:'🔭',need:10,all:true},
-    {id:'g3',name:'Kauno ekspertas',desc:'25 vietos surinktos',icon:'🌟',need:25,all:true},
+    {id:'g3',name:'Rimtas tyrinėtojas',desc:'25 vietos surinktos',icon:'🌟',need:25,all:true},
+    {id:'g4',name:'Miesto ekspertas',desc:'50 vietų surinkta',icon:'🏆',need:50,all:true},
+    {id:'g5',name:'Legendinis keliautojas',desc:'100 vietų surinkta',icon:'👑',need:100,all:true},
     {id:'st3',name:'3 dienų serija',desc:'3 dienos iš eilės',icon:'🔥',streak:3},
     {id:'st7',name:'Savaitinis tyrinėtojas',desc:'7 dienos iš eilės',icon:'⚡',streak:7},
+    {id:'st30',name:'Mėnesio herojus',desc:'30 dienų iš eilės',icon:'💎',streak:30},
   ]},
 ];
 
@@ -1441,7 +1558,15 @@ function setFilter(cat){
   });
   // re-render sub-row to update active states
   renderFilterSub();
+  // sync mobile button
+  const mobLabel=document.getElementById('mobFilterLabel');
+  const mobBtn=document.getElementById('mobFilterBtn');
+  if(mobLabel&&mobBtn){
+    if(cat==='all'){mobLabel.textContent='Visos vietos';mobBtn.classList.remove('active-filter');}
+    else{const c=CATS[cat];mobLabel.textContent=c?c.emoji+' '+c.label:'Filtruota';mobBtn.classList.add('active-filter');}
+  }
   refreshMarkers();
+  applyViewportCulling();
 }
 
 // ═══════════ GPS ═══════════
@@ -3030,6 +3155,132 @@ function renderOsmImport(){
   if(_osmImportData.length) renderOsmList();
 }
 
+// ═══════════ CITY CONFIG ═══════════
+// Adding a new city: add entry here, adjust bbox lat/lng, set map center
+const CITIES={
+  kaunas:{
+    id:'kaunas',name:'Kaunas',flag:'🇱🇹',
+    center:[54.8985,23.917],zoom:14,
+    bbox:'54.82,23.82,54.99,24.02',
+    desc:'Tarpukario architektūros sostinė',
+  },
+  // vilnius:{id:'vilnius',name:'Vilnius',flag:'🇱🇹',center:[54.6872,25.2797],zoom:14,bbox:'54.65,25.22,54.73,25.33',desc:'Barokinis UNESCO miestas'},
+  // klaipeda:{id:'klaipeda',name:'Klaipėda',flag:'🇱🇹',center:[55.7033,21.1443],zoom:14,bbox:'55.67,21.10,55.74,21.18',desc:'Hanzos jūrų miestas'},
+};
+let activeCity=CITIES.kaunas;
+
+// ═══════════ INTRO ═══════════
+const INTRO_STEPS=[
+  {glyph:'🗺',title:'Sveiki į Kaunas Explorer',sub:'Tyrinėk miestą realiu laiku. Surink vietas fiziškai apsilankydamas.'},
+  {glyph:'📍',title:'Kaip surinkti vietą?',sub:'Prieik prie žymeklio žemėlapyje — sistema automatiškai aptiks tavo buvimo vietą.'},
+  {glyph:'🏅',title:'Atrakinkinėk & Kolekcionuok',sub:'Kiekviena surinkta vieta suteikia XP ir atveria naujas paslėptas vietas.'},
+];
+let _introStep=0;
+
+function showIntroIfNeeded(){
+  if(localStorage.getItem('kex_intro_done')) return;
+  _introStep=0;
+  renderIntroStep();
+  document.getElementById('introOverlay').classList.remove('hidden');
+}
+
+function renderIntroStep(){
+  const s=INTRO_STEPS[_introStep];
+  document.querySelector('.intro-glyph').textContent=s.glyph;
+  document.querySelector('.intro-title').textContent=s.title;
+  document.querySelector('.intro-sub').textContent=s.sub;
+  document.querySelectorAll('.intro-dot').forEach((d,i)=>d.classList.toggle('on',i===_introStep));
+  const btn=document.getElementById('introBtn');
+  btn.textContent=_introStep<INTRO_STEPS.length-1?'Toliau →':'🗺 Pradėti!';
+}
+
+function introNext(){
+  _introStep++;
+  if(_introStep>=INTRO_STEPS.length){
+    localStorage.setItem('kex_intro_done','1');
+    document.getElementById('introOverlay').classList.add('hidden');
+    return;
+  }
+  renderIntroStep();
+}
+
+// ═══════════ MOBILE FILTER SHEET ═══════════
+function buildMobFilterSheet(){
+  const container=document.getElementById('mobFilterGroups');
+  container.innerHTML=FILTER_GROUPS.map(grp=>`
+    <div class="mob-filter-group-title">${grp.emoji} ${grp.label}</div>
+    <div class="mob-filter-chips">
+      ${grp.cats.map(c=>{
+        const cat=CATS[c];if(!cat) return '';
+        return `<div class="mob-filter-chip" data-cat="${c}" onclick="mobSetFilter('${c}')">${cat.emoji} ${cat.label}</div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+function openMobFilterSheet(){
+  buildMobFilterSheet();
+  // Sync active state
+  document.querySelectorAll('.mob-filter-chip').forEach(el=>{
+    el.classList.toggle('on',el.dataset.cat===activeFilter);
+  });
+  document.getElementById('mobFilterSheet').classList.add('open');
+}
+
+function closeMobFilterSheet(){
+  document.getElementById('mobFilterSheet').classList.remove('open');
+}
+
+function mobSetFilter(cat){
+  setFilter(cat);
+  // Update mobile button label
+  const btn=document.getElementById('mobFilterBtn');
+  const label=document.getElementById('mobFilterLabel');
+  if(cat==='all'){
+    label.textContent='Visos vietos';
+    btn.classList.remove('active-filter');
+  } else {
+    const c=CATS[cat];
+    label.textContent=c?c.emoji+' '+c.label:'Filtruota';
+    btn.classList.add('active-filter');
+  }
+  // Update chip states
+  document.querySelectorAll('.mob-filter-chip').forEach(el=>{
+    el.classList.toggle('on',el.dataset.cat===cat);
+  });
+  closeMobFilterSheet();
+}
+
+// ═══════════ MARKER CLUSTERING (viewport-based) ═══════════
+// Instead of showing 500 dots at zoom 12, only render visible+near markers
+let _lastClusterZoom=-1;
+let _clusterTimer=null;
+
+function setupClusteringListener(){
+  map.on('zoomend moveend',()=>{
+    clearTimeout(_clusterTimer);
+    _clusterTimer=setTimeout(applyViewportCulling, 150);
+  });
+}
+
+function applyViewportCulling(){
+  const zoom=map.getZoom();
+  const bounds=map.getBounds().pad(0.3); // 30% padding outside viewport
+  SPOTS.forEach(s=>{
+    const m=markers[s.id];
+    if(!m) return;
+    const inView=bounds.contains([s.lat,s.lng]);
+    const show=activeFilter==='all'||activeFilter===s.cat;
+    // At low zoom hide markers outside viewport to keep map fast
+    if(zoom<13&&!inView){
+      m.setOpacity(0);
+      m.options.interactive=false;
+    } else {
+      m.setOpacity(show?1:0);
+      m.options.interactive=show;
+    }
+  });
+}
+
 // ═══════════ REVIEW SYSTEM ═══════════
 
 const REVIEW_TRIGGER_COUNT=3; // show after 3rd collected spot
@@ -3154,6 +3405,8 @@ async function submitReview(){
 
 load();initMap();updateAll();startGPS();
 setTimeout(()=>checkEasterEggsPassive(),1000);
+setTimeout(()=>showIntroIfNeeded(),800);
+setupClusteringListener();
 
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=function(user){
