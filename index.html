@@ -904,9 +904,8 @@ function save(){
 }
 
 function load(){
-  const s=localStorage.getItem('ke7_spots');SPOTS=s?JSON.parse(s):[...DEFAULT_SPOTS];
-  // Ensure all spots have radius
-  SPOTS=SPOTS.map(sp=>({radius:DEFAULT_RADIUS,...sp}));
+  // Do NOT load spots from localStorage — Firestore is the source of truth
+  // SPOTS stays as DEFAULT_SPOTS until Firestore responds (shows something instantly)
   const f=localStorage.getItem('ke7_found');found=f?new Set(JSON.parse(f)):new Set();
   streak=parseInt(localStorage.getItem('ke7_streak')||'0');
   lastDate=localStorage.getItem('ke7_lastDate')||null;
@@ -922,6 +921,8 @@ function load(){
   // Reset daily quest if new day
   const today=new Date().toDateString();
   if(dailyQuestDate!==today){dailyQuestDone=false;dailyQuestDate=today;}
+  // Clear any stale spots from localStorage
+  localStorage.removeItem('ke7_spots');
 }
 
 // ═══════════ THEME ═══════════
@@ -2196,30 +2197,33 @@ function setSyncDot(state){
 
 // Load shared spots from Firestore (replaces/merges with defaults)
 async function fbLoadSpots(){
-  const{db,collection,onSnapshot}=window._fb||{};
+  const{db,collection,onSnapshot,doc,getDoc,setDoc}=window._fb||{};
   if(!db) return;
   setSyncDot('syncing');
   try{
-    onSnapshot(collection(db,'spots'),snapshot=>{
+    onSnapshot(collection(db,'spots'),async snapshot=>{
       if(snapshot.empty){
-        // First run — only push if logged in as admin
-        if(window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
-          fbPushDefaultSpots();
-        }
+        const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
+        if(!isAdmin) return;
+        // Guard: only seed once ever using a _meta flag in Firestore
+        const flagRef=doc(db,'_meta','seeded');
+        const flagSnap=await getDoc(flagRef);
+        if(flagSnap.exists()) return; // already seeded, don't double-push
+        await setDoc(flagRef,{at:window._fb.serverTimestamp()});
+        fbPushDefaultSpots();
         return;
       }
       const firestoreSpots=[];
       snapshot.forEach(d=>{
-        firestoreSpots.push({...d.data(),_fid:d.id,id:d.id});
+        const data=d.data();
+        firestoreSpots.push({radius:DEFAULT_RADIUS,...data,_fid:d.id,id:d.id});
       });
-      // Firestore is the single source of truth — completely replace local SPOTS
-      SPOTS=firestoreSpots.map(s=>({radius:DEFAULT_RADIUS,...s}));
-      // Clear any stale localStorage spots so they never re-merge
-      localStorage.removeItem('ke7_spots');
+      SPOTS=firestoreSpots;
       refreshMarkers();
       updateAll();
       setSyncDot('synced');
-      document.getElementById('authSub').textContent=`${SPOTS.length} vietos sinchronizuotos`;
+      const sub=document.getElementById('authSub');
+      if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
     });
   } catch(e){
     console.error('fbLoadSpots',e);
@@ -2228,14 +2232,14 @@ async function fbLoadSpots(){
   }
 }
 
-// Push all DEFAULT_SPOTS to Firestore on first run
+// Push all DEFAULT_SPOTS to Firestore — called once on first ever load
 async function fbPushDefaultSpots(){
   const{db,collection,addDoc}=window._fb||{};
   if(!db) return;
   setSyncDot('syncing');
   try{
     for(const spot of DEFAULT_SPOTS){
-      const{id,...data}=spot; // don't store local numeric id
+      const{id,...data}=spot;
       await addDoc(collection(db,'spots'),{...data,createdAt:window._fb.serverTimestamp()});
     }
     setSyncDot('synced');
