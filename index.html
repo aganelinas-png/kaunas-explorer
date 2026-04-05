@@ -12,7 +12,7 @@
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp,query,orderBy,limit}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
@@ -32,6 +32,7 @@ const gProvider=new GoogleAuthProvider();
 // Expose to global scope so non-module code can use them
 window._fb={db,auth,gProvider,
   doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp,
+  query,orderBy,limit,
   signInWithPopup,signOut,onAuthStateChanged
 };
 
@@ -455,6 +456,30 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--tm);flex-shrink:0}
 .sync-dot.synced{background:var(--green);box-shadow:0 0 5px var(--green)}
 .sync-dot.syncing{background:var(--gold);animation:gp 1s infinite}
+/* ── LEADERBOARD ── */
+.lb-tabs{display:flex;gap:6px;margin-bottom:12px}
+.lb-tab{flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:7px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);cursor:pointer;text-align:center;-webkit-user-select:none;user-select:none;transition:all .2s}
+.lb-tab.on{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.lb-row:last-child{border-bottom:none}
+.lb-rank{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:700;color:var(--td);width:24px;text-align:center;flex-shrink:0}
+.lb-rank.gold{color:#FFD700}
+.lb-rank.silver{color:#C0C0C0}
+.lb-rank.bronze{color:#CD7F32}
+.lb-avatar{width:34px;height:34px;border-radius:50%;background:var(--surf2);border:2px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;overflow:hidden}
+.lb-avatar img{width:100%;height:100%;object-fit:cover}
+.lb-avatar.me{border-color:var(--gold)}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-size:.85rem;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-name.me{color:var(--gold)}
+.lb-meta{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);margin-top:2px}
+.lb-val{font-family:'DM Mono',monospace;font-size:.9rem;font-weight:700;color:var(--gold);flex-shrink:0}
+.lb-me-row{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:10px;margin-bottom:10px}
+.lb-loading{text-align:center;padding:24px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)}
+.lb-empty{text-align:center;padding:24px;font-size:.82rem;color:var(--td)}
+.lb-login-prompt{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px}
+.lb-login-prompt .lp-icon{font-size:2rem;margin-bottom:8px}
+.lb-login-prompt .lp-text{font-size:.82rem;color:var(--td);margin-bottom:12px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -1908,37 +1933,43 @@ function fallbackCopy(text){
   toast('📋 Nukopijuota!','success');
 }
 
+let _lbTab='xp'; // current leaderboard sort tab
+
 function renderSocial(){
   const body=document.getElementById('panel-social');
-  const t1=t1Collected(),t2=t2Collected(),t3=t3Collected();
-  const badgeCount=[...earnedBadges].length;
-  const eggCount=[...triggeredEggs].length;
   const pct=SPOTS.length?Math.round(found.size/SPOTS.length*100):0;
+  const lv=getLevel(totalXP);
+  const badgeCount=[...earnedBadges].length;
+  const user=window._fbUser;
 
   body.innerHTML=`<div class="social-section">
-    <div class="social-title">📤 Dalintis</div>
-    <div class="social-sub">Parodyk draugams kiek Kauno atradai.</div>
 
+    <!-- MY STATS -->
     <div class="my-stats-card">
-      <div class="msc-title">Tavo statistika</div>
+      <div class="msc-title">${lv.icon} Lv.${lv.level} — ${lv.name}</div>
       <div class="msc-grid">
         <div class="msc-cell"><div class="msc-val">${found.size}</div><div class="msc-lbl">Vietos</div></div>
         <div class="msc-cell"><div class="msc-val">${totalXP}</div><div class="msc-lbl">XP</div></div>
-        <div class="msc-cell"><div class="msc-val">${streak}</div><div class="msc-lbl">🔥 Dienos</div></div>
+        <div class="msc-cell"><div class="msc-val">${streak}</div><div class="msc-lbl">🔥 Serija</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-        <div class="msc-cell"><div class="msc-val">${badgeCount}</div><div class="msc-lbl">🏅 Ženkl.</div></div>
-        <div class="msc-cell"><div class="msc-val">${eggCount}</div><div class="msc-lbl">🥚 Slaptosios</div></div>
+        <div class="msc-cell"><div class="msc-val">${badgeCount}</div><div class="msc-lbl">🏅 Ženkleliai</div></div>
+        <div class="msc-cell"><div class="msc-val">${[...triggeredEggs].length}</div><div class="msc-lbl">🥚 Slaptosios</div></div>
       </div>
       <div style="margin-top:10px">
         <div style="height:4px;background:var(--bdr);border-radius:2px;overflow:hidden">
           <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;transition:width .5s"></div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:4px;text-align:right">${pct}% Kauno ištyrinėta</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:4px;text-align:right">${pct}% ištyrinėta</div>
       </div>
     </div>
 
-    <button class="social-btn pri-btn" onclick="shareProgress()">
+    <!-- NAME + SHARE -->
+    <div class="name-row" style="margin-bottom:6px">
+      <input class="fi" id="nameInput" value="${playerName}" placeholder="Tavo vardas">
+      <button class="name-save-btn" onclick="saveName()">✓</button>
+    </div>
+    <button class="social-btn pri-btn" onclick="shareProgress()" style="margin-bottom:14px">
       <span class="sb-icon">📤</span>
       <div class="sb-text">
         <div class="sb-label">Dalintis pažanga</div>
@@ -1946,22 +1977,113 @@ function renderSocial(){
       </div>
     </button>
 
-    <div class="section-label">👤 Tavo vardas</div>
-    <div class="name-row">
-      <input class="fi" id="nameInput" value="${playerName}" placeholder="Vardas">
-      <button class="name-save-btn" onclick="saveName()">✓</button>
+    <!-- LEADERBOARD -->
+    <div class="social-title" style="margin-bottom:8px">🏆 Lyderių lentelė</div>
+    ${!user?`
+      <div class="lb-login-prompt">
+        <div class="lp-icon">🔐</div>
+        <div class="lp-text">Prisijunk su Google kad matytum lyderių lentelę ir atsirastum joje.</div>
+        <button class="auth-btn" onclick="fbLogin()">Prisijungti su Google</button>
+      </div>`:''}
+    <div class="lb-tabs">
+      <div class="lb-tab ${_lbTab==='xp'?'on':''}" onclick="setLbTab('xp')">⭐ XP</div>
+      <div class="lb-tab ${_lbTab==='spots'?'on':''}" onclick="setLbTab('spots')">📍 Vietos</div>
+      <div class="lb-tab ${_lbTab==='streak'?'on':''}" onclick="setLbTab('streak')">🔥 Serija</div>
     </div>
-    <div style="font-size:.68rem;color:var(--tm);font-family:'DM Mono',monospace">Rodomas kai daliniesi pažanga</div>
-
-    <div class="section-label" style="margin-top:20px;color:var(--tm)">🔗 Lyderių lentelė</div>
-    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;text-align:center">
-      <div style="font-size:1.5rem;margin-bottom:6px">🚧</div>
-      <div style="font-size:.82rem;font-weight:600;color:var(--txt);margin-bottom:4px">Greitai</div>
-      <div style="font-size:.72rem;color:var(--td);line-height:1.6">Reikia serverio.<br>Sujungsime kai bus paruošta.</div>
-    </div>
+    <div id="lbList"><div class="lb-loading">Kraunama...</div></div>
   </div>`;
 
   document.getElementById('socialBadge').style.display='none';
+  if(user) loadLeaderboard();
+}
+
+function setLbTab(tab){
+  _lbTab=tab;
+  renderSocial();
+}
+
+async function loadLeaderboard(){
+  const{db,collection,getDocs,query,orderBy,limit}=window._fb||{};
+  if(!db) return;
+  const el=document.getElementById('lbList');
+  if(!el) return;
+
+  try{
+    // Query top 20 users sorted by selected tab
+    const field=_lbTab==='xp'?'totalXP':_lbTab==='spots'?'foundCount':'streak';
+    // Firestore needs composite index for orderBy — use getDocs with client sort as fallback
+    const snap=await getDocs(collection(db,'users'));
+    if(snap.empty){el.innerHTML='<div class="lb-empty">Dar nėra žaidėjų 👀</div>';return;}
+
+    const users=[];
+    snap.forEach(d=>{
+      const data=d.data();
+      users.push({
+        uid:d.id,
+        name:data.playerName||'Anonimas',
+        xp:data.totalXP||0,
+        spots:data.foundCount||0,
+        streak:data.streak||0,
+        photo:data.photoURL||null
+      });
+    });
+
+    // Sort by selected tab
+    const sortKey=_lbTab==='xp'?'xp':_lbTab==='spots'?'spots':'streak';
+    users.sort((a,b)=>b[sortKey]-a[sortKey]);
+    const top=users.slice(0,20);
+
+    const myUid=window._fbUser?.uid;
+    const myRank=users.findIndex(u=>u.uid===myUid)+1;
+    const myData=users.find(u=>u.uid===myUid);
+
+    const medals=['🥇','🥈','🥉'];
+    const rankClass=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'';
+
+    let html='';
+
+    // My rank card if not in top 20
+    if(myData&&myRank>20){
+      const val=_lbTab==='xp'?myData.xp:_lbTab==='spots'?myData.spots:myData.streak;
+      html+=`<div class="lb-me-row lb-row">
+        <div class="lb-rank">#${myRank}</div>
+        <div class="lb-avatar me">${myData.photo?`<img src="${myData.photo}" referrerpolicy="no-referrer">`:'👤'}</div>
+        <div class="lb-info">
+          <div class="lb-name me">${myData.name} (Tu)</div>
+          <div class="lb-meta">${lbMeta(myData)}</div>
+        </div>
+        <div class="lb-val">${val}</div>
+      </div>`;
+    }
+
+    top.forEach((u,i)=>{
+      const isMe=u.uid===myUid;
+      const val=_lbTab==='xp'?u.xp:_lbTab==='spots'?u.spots:u.streak;
+      const rank=i<3?medals[i]:`#${i+1}`;
+      html+=`<div class="lb-row${isMe?' lb-me-row':''}">
+        <div class="lb-rank ${rankClass(i)}">${rank}</div>
+        <div class="lb-avatar ${isMe?'me':''}">${u.photo?`<img src="${u.photo}" referrerpolicy="no-referrer">`:'👤'}</div>
+        <div class="lb-info">
+          <div class="lb-name ${isMe?'me':''}">${u.name}${isMe?' (Tu)':''}</div>
+          <div class="lb-meta">${lbMeta(u)}</div>
+        </div>
+        <div class="lb-val">${val}</div>
+      </div>`;
+    });
+
+    el.innerHTML=html||'<div class="lb-empty">Dar nėra žaidėjų 👀</div>';
+  }catch(e){
+    console.error('loadLeaderboard',e);
+    el.innerHTML='<div class="lb-empty">Nepavyko įkelti 😕</div>';
+  }
+}
+
+function lbMeta(u){
+  const parts=[];
+  if(_lbTab!=='xp') parts.push(`⭐ ${u.xp} XP`);
+  if(_lbTab!=='spots') parts.push(`📍 ${u.spots}`);
+  if(_lbTab!=='streak') parts.push(`🔥 ${u.streak}d`);
+  return parts.join(' · ');
 }
 
 function saveName(){
@@ -2129,6 +2251,9 @@ window.onFbAuthReady=function(user){
     updateAuthUI(user);
     fbLoadSpots();
     fbLoadUserProgress(user.uid);
+    // Re-render social panel so leaderboard shows immediately after login
+    const socialPanel=document.getElementById('panel-social');
+    if(socialPanel&&socialPanel.innerHTML) renderSocial();
   } else {
     updateAuthUI(null);
     fbLoadSpots();
@@ -2322,15 +2447,17 @@ async function fbLoadUserProgress(uid){
 async function fbSaveUserProgress(){
   const{db,doc,setDoc,serverTimestamp}=window._fb||{};
   const user=window._fbUser;
-  if(!db||!user) return; // not logged in — only local save
+  if(!db||!user) return;
   try{
     await setDoc(doc(db,'users',user.uid),{
       found:[...found],
+      foundCount:found.size,   // top-level for leaderboard sorting
       streak,lastDate,totalXP,notes,
       earnedBadges:[...earnedBadges],
       triggeredEggs:[...triggeredEggs],
       unlockedCats:[...unlockedCats],
       playerName,
+      photoURL:user.photoURL||null,
       updatedAt:serverTimestamp()
     });
   } catch(e){
