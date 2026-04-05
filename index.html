@@ -941,6 +941,27 @@ const TIER_CONFIG={
 // Default collection radius per spot in metres (can be overridden per spot)
 const DEFAULT_RADIUS=80;
 
+// Per-category sensible defaults — used when no explicit radius is set
+const CAT_DEFAULT_RADIUS={
+  viewpoint:50,    // tower/deck — you're either there or not
+  monument:55,     // small sculpture, precise point
+  mural:55,        // street corner
+  church:65,       // building entrance
+  museum:65,       // building entrance
+  watertower:70,   // specific structure
+  bridge:80,       // walk onto it
+  history:80,      // generic
+  modern:80,
+  soviet:80,
+  fort:130,        // large earthwork area
+  industrial:100,  // factory grounds
+  nature:150,      // parks are wide
+  mound:160,       // hill — need to climb it
+  trail:200,       // trailhead area
+  cliff:200,       // ridge edge, can't get too close
+  cemetery:220,    // large grounds
+};
+
 const DEFAULT_SPOTS=[
   // T1
   {id:1,name:'IX Fortas',cat:'fort',tier:1,year:'1902',time:'2 val.',price:'5 €',radius:120,bring:['Šiltus drabužius','Pagarbą'],history:'Caro laikų fortifikacijos kompleksas, tapęs vienu iš skaudžiausių Holokausto vietų Lietuvoje. 1941–1943 m. čia žuvo apie 30 000 žmonių. Šiandien – memorialas ir muziejus.',lat:54.9214,lng:23.8601,tag:'Memorialas'},
@@ -1163,7 +1184,9 @@ function catsForTier(tier){
 }
 
 // Spot collection radius
-function spotRadius(spot){return spot.radius||DEFAULT_RADIUS;}
+function spotRadius(spot){
+  return spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS;
+}
 
 // ═══════════ PERSIST ═══════════
 
@@ -2673,36 +2696,89 @@ function osmPick(lat,lng,name){
 
 // ═══════════ OSM BULK IMPORT ═══════════
 
-const OSM_CAT_MAP={
-  // places of worship
-  'place_of_worship':'church',
-  // museums & galleries
-  'museum':'museum','gallery':'museum',
-  // forts & military
-  'castle':'fort','fort':'fort','bunker':'fort',
-  // historic — generic
-  'ruins':'history','memorial':'history','archaeological_site':'history','attraction':'history',
-  // monuments & sculpture
-  'monument':'monument','wayside_shrine':'monument','stone':'monument',
-  // mounds (piliakalnis)
-  'mound':'mound',
-  // nature
-  'park':'nature','garden':'nature','nature_reserve':'nature',
-  // viewpoints
-  'viewpoint':'viewpoint',
-  // water towers
-  'water_tower':'watertower',
-  // cliffs
-  'cliff':'cliff',
-  // street art / murals
-  'artwork':'mural',
-  // cemeteries
-  'grave_yard':'cemetery','cemetery':'cemetery',
-  // industrial
-  'chimney':'industrial','works':'industrial','water_works':'industrial',
-  // bridges
-  'bridge':'bridge',
-};
+// Smart OSM category resolver — handles tag priority and Lithuanian-specific quirks
+function resolveOsmCat(t){
+  const name=(t.name||'').toLowerCase();
+
+  // ── HISTORIC namespace (most specific first) ──
+  if(t.historic){
+    const h=t.historic;
+    // Mounds: explicit tag OR archaeological_site + site_type=mound OR name contains piliakalnis
+    if(h==='mound') return 'mound';
+    if(h==='archaeological_site'&&(t.site_type==='mound'||name.includes('piliakalnis')||name.includes('pilis'))) return 'mound';
+    if(h==='castle'||h==='fort') return 'fort';
+    if(h==='bunker') return 'fort';
+    if(h==='monument'||h==='wayside_shrine'||h==='stone') return 'monument';
+    if(h==='bridge') return 'bridge';
+    if(h==='artwork') return 'mural';
+    if(h==='memorial'||h==='ruins'||h==='archaeological_site') return 'history';
+    return 'history';
+  }
+
+  // ── TOURISM namespace ──
+  if(t.tourism){
+    if(t.tourism==='museum') return 'museum';
+    if(t.tourism==='gallery') return 'museum';
+    if(t.tourism==='viewpoint') return 'viewpoint';
+    if(t.tourism==='artwork'){
+      // Try to distinguish murals from sculptures
+      const at=(t.artwork_type||'').toLowerCase();
+      if(at==='mural'||at==='graffiti'||at==='street_art') return 'mural';
+      if(at==='sculpture'||at==='statue') return 'monument';
+      return 'mural'; // artwork default → mural
+    }
+    if(t.tourism==='attraction') return 'history'; // broad fallback
+    return 'history';
+  }
+
+  // ── AMENITY namespace ──
+  if(t.amenity){
+    if(t.amenity==='place_of_worship') return 'church';
+    if(t.amenity==='grave_yard') return 'cemetery';
+    return 'history';
+  }
+
+  // ── LEISURE namespace ──
+  if(t.leisure){
+    if(t.leisure==='park'||t.leisure==='garden') return 'nature';
+    if(t.leisure==='nature_reserve') return 'nature';
+    return 'nature';
+  }
+
+  // ── MILITARY namespace ──
+  if(t.military){
+    return 'fort';
+  }
+
+  // ── MAN_MADE namespace ──
+  if(t.man_made){
+    if(t.man_made==='water_tower') return 'watertower';
+    if(t.man_made==='chimney') return 'industrial';
+    if(t.man_made==='works') return 'industrial';
+    return 'industrial';
+  }
+
+  // ── NATURAL namespace ──
+  if(t.natural){
+    if(t.natural==='cliff') return 'cliff';
+    return 'nature';
+  }
+
+  // ── LANDUSE namespace ──
+  if(t.landuse){
+    if(t.landuse==='cemetery') return 'cemetery';
+    return 'history';
+  }
+
+  // ── ROUTE namespace (hiking trails) ──
+  if(t.route==='hiking'||t.route==='foot') return 'trail';
+  if(t.highway==='trailhead') return 'trail';
+
+  // ── BRIDGE property on highway/railway ways ──
+  if(t.bridge==='yes') return 'bridge';
+
+  return 'history';
+}
 const OSM_CAT_EMOJI={
   church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',modern:'🏗',soviet:'⭐',
   monument:'🗿',mound:'⛰',viewpoint:'🔭',watertower:'🗼',cliff:'🪨',
@@ -2715,59 +2791,103 @@ let _osmFilter='all';
 let _osmTier=1;
 let _osmLoading=false;
 
+// Generate a display name for infrastructure items that OSM rarely names
+function osmGenerateName(t, cat){
+  const street=[t['addr:street'],t['addr:housenumber']].filter(Boolean).join(' ');
+  const ref=t.ref||'';
+  const district=t['addr:suburb']||t['addr:district']||'';
+  const suffix=street||district||(ref?'ref '+ref:'');
+  switch(cat){
+    case 'watertower': return 'Vandens bokštas'+(suffix?' · '+suffix:'');
+    case 'industrial':  return (t.man_made==='chimney'?'Kaminas':'Pramonės objektas')+(suffix?' · '+suffix:'');
+    case 'bridge':      return t.name||(ref?'Tiltas '+ref:'Tiltas')+(suffix?' · '+suffix:'');
+    case 'cliff':       return t.name||t['name:lt']||(suffix?'Skardis · '+suffix:'Skardis');
+    default:            return t.name||t['name:lt']||'Nežinoma';
+  }
+}
+
 async function fetchOsmData(){
   if(_osmLoading) return;
   _osmLoading=true;
   osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
+  const bbox='54.82,23.82,54.99,24.02';
   try{
-    const body=`data=[out:json][timeout:45];
+    // ── QUERY 1: Named items — categories where name is expected ──
+    const namedBody=`data=[out:json][timeout:45];
 (
-  node["amenity"="place_of_worship"]["name"](54.82,23.82,54.99,24.02);
-  way["amenity"="place_of_worship"]["name"](54.82,23.82,54.99,24.02);
-  node["tourism"="museum"]["name"](54.82,23.82,54.99,24.02);
-  way["tourism"="museum"]["name"](54.82,23.82,54.99,24.02);
-  node["tourism"="gallery"]["name"](54.82,23.82,54.99,24.02);
-  node["tourism"="attraction"]["name"](54.82,23.82,54.99,24.02);
-  way["tourism"="attraction"]["name"](54.82,23.82,54.99,24.02);
-  node["tourism"="viewpoint"]["name"](54.82,23.82,54.99,24.02);
-  way["tourism"="viewpoint"]["name"](54.82,23.82,54.99,24.02);
-  node["tourism"="artwork"]["name"](54.82,23.82,54.99,24.02);
-  node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](54.82,23.82,54.99,24.02);
-  way["historic"~"castle|monument|memorial|ruins|fort|archaeological_site"]["name"](54.82,23.82,54.99,24.02);
-  node["historic"~"mound|wayside_shrine|stone"]["name"](54.82,23.82,54.99,24.02);
-  way["historic"="mound"]["name"](54.82,23.82,54.99,24.02);
-  node["historic"="bridge"]["name"](54.82,23.82,54.99,24.02);
-  way["historic"="bridge"]["name"](54.82,23.82,54.99,24.02);
-  node["leisure"~"park|garden|nature_reserve"]["name"](54.82,23.82,54.99,24.02);
-  way["leisure"~"park|garden|nature_reserve"]["name"](54.82,23.82,54.99,24.02);
-  node["military"~"bunker|fort"]["name"](54.82,23.82,54.99,24.02);
-  way["military"~"bunker|fort"]["name"](54.82,23.82,54.99,24.02);
-  node["man_made"="water_tower"]["name"](54.82,23.82,54.99,24.02);
-  node["man_made"="chimney"]["name"](54.82,23.82,54.99,24.02);
-  node["natural"="cliff"]["name"](54.82,23.82,54.99,24.02);
-  way["natural"="cliff"]["name"](54.82,23.82,54.99,24.02);
-  node["amenity"="grave_yard"]["name"](54.82,23.82,54.99,24.02);
-  way["amenity"="grave_yard"]["name"](54.82,23.82,54.99,24.02);
-  way["landuse"="cemetery"]["name"](54.82,23.82,54.99,24.02);
+  node["amenity"="place_of_worship"]["name"](${bbox});
+  way["amenity"="place_of_worship"]["name"](${bbox});
+  node["tourism"="museum"]["name"](${bbox});
+  way["tourism"="museum"]["name"](${bbox});
+  node["tourism"="gallery"]["name"](${bbox});
+  node["tourism"="viewpoint"](${bbox});
+  way["tourism"="viewpoint"](${bbox});
+  node["tourism"="artwork"]["name"](${bbox});
+  node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](${bbox});
+  way["historic"~"castle|monument|memorial|ruins|fort|archaeological_site"]["name"](${bbox});
+  node["historic"~"mound|wayside_shrine|stone"]["name"](${bbox});
+  way["historic"="mound"]["name"](${bbox});
+  node["historic"="bridge"]["name"](${bbox});
+  way["historic"="bridge"]["name"](${bbox});
+  node["leisure"~"park|garden|nature_reserve"]["name"](${bbox});
+  way["leisure"~"park|garden|nature_reserve"]["name"](${bbox});
+  node["military"~"bunker|fort"]["name"](${bbox});
+  way["military"~"bunker|fort"]["name"](${bbox});
+  node["amenity"="grave_yard"]["name"](${bbox});
+  way["amenity"="grave_yard"]["name"](${bbox});
+  way["landuse"="cemetery"]["name"](${bbox});
+  node["highway"="trailhead"]["name"](${bbox});
+  relation["route"~"hiking|foot"]["name"](${bbox});
 );
 out center;`;
-    const res=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});
-    const data=await res.json();
-    _osmImportData=data.elements
-      .filter(e=>e.tags&&e.tags.name)
-      .map(e=>{
-        const lat=parseFloat((e.lat||(e.center&&e.center.lat)||0).toFixed(6));
-        const lng=parseFloat((e.lon||(e.center&&e.center.lon)||0).toFixed(6));
-        if(!lat||!lng) return null;
-        const t=e.tags;
-        const typeKey=t.historic||t.tourism||t.amenity||t.leisure||t.military||t.man_made||t.natural||t.landuse||'';
-        const cat=OSM_CAT_MAP[typeKey]||'history';
-        const alreadyIn=SPOTS.some(s=>Math.abs(s.lat-lat)<0.0005&&Math.abs(s.lng-lng)<0.0005);
-        return{name:t.name,nameLt:t['name:lt']||'',cat,lat,lng,typeKey,alreadyIn,tags:t};
-      })
-      .filter(Boolean)
+
+    // ── QUERY 2: Unnamed infrastructure — no name filter, we generate names ──
+    const unnamedBody=`data=[out:json][timeout:30];
+(
+  node["man_made"="water_tower"](${bbox});
+  node["man_made"="chimney"](${bbox});
+  way["bridge"="yes"]["highway"](${bbox});
+  way["bridge"="yes"]["railway"](${bbox});
+  way["natural"="cliff"](${bbox});
+  node["natural"="cliff"](${bbox});
+);
+out center;`;
+
+    osmSetStatus('⏳ 1/2 Žymimos vietos...');
+    const res1=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:namedBody});
+    const d1=await res1.json();
+
+    osmSetStatus('⏳ 2/2 Infrastruktūra...');
+    const res2=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:unnamedBody});
+    const d2=await res2.json();
+
+    // Process both result sets
+    function processElement(e, requireName){
+      const lat=parseFloat((e.lat||(e.center&&e.center.lat)||0).toFixed(6));
+      const lng=parseFloat((e.lon||(e.center&&e.center.lon)||0).toFixed(6));
+      if(!lat||!lng) return null;
+      const t=e.tags||{};
+      if(requireName&&!t.name&&!t['name:lt']) return null;
+      const cat=resolveOsmCat(t);
+      const name=t['name:lt']||t.name||osmGenerateName(t,cat);
+      if(!name||name==='Nežinoma') return null;
+      const typeKey=t.historic||t.tourism||t.amenity||t.leisure||t.military||t.man_made||t.natural||t.landuse||t.route||t.highway||t.bridge||'';
+      const alreadyIn=SPOTS.some(s=>Math.abs(s.lat-lat)<0.0005&&Math.abs(s.lng-lng)<0.0005);
+      return{name,nameLt:t['name:lt']||'',cat,lat,lng,typeKey,alreadyIn,tags:t};
+    }
+
+    const named=(d1.elements||[]).map(e=>processElement(e,true)).filter(Boolean);
+    const unnamed=(d2.elements||[]).map(e=>processElement(e,false)).filter(Boolean);
+
+    // Merge — named takes priority; skip unnamed if same position already covered
+    const namedSet=new Set(named.map(x=>`${x.lat.toFixed(4)},${x.lng.toFixed(4)}`));
+    const merged=[...named,...unnamed.filter(x=>!namedSet.has(`${x.lat.toFixed(4)},${x.lng.toFixed(4)}`))];
+
+    _osmImportData=merged
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002&&y.cat===x.cat)===i) // dedupe by position+cat
       .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
-    osmSetStatus(`✅ Rasta ${_osmImportData.length} vietų. Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+
+    osmSetStatus(`✅ Rasta ${_osmImportData.length} vietų (${named.length} vardinių + ${unnamed.filter(x=>!namedSet.has(`${x.lat.toFixed(4)},${x.lng.toFixed(4)}`)).length} infrastruktūros). Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
     renderOsmList();
   }catch(e){
     osmSetStatus('❌ Klaida: '+e.message);
@@ -2837,7 +2957,7 @@ async function osmImportSelected(){
       const spot={
         name:item.name,cat:item.cat,tier:_osmTier,
         lat:item.lat,lng:item.lng,
-        radius:DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
+        radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
         history:'',bring:[],
         createdAt:serverTimestamp()
       };
