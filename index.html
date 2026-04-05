@@ -138,8 +138,28 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .dnav-item span:last-child{font-size:.92rem;font-weight:500}
 .dnav-badge{background:var(--gold);color:#0e0c09;border-radius:10px;padding:2px 7px;font-size:.62rem;font-weight:700;font-family:'DM Mono',monospace;margin-left:auto}
 
-/* DRAWER BODY */
-.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
+/* ── DRAWER MAIN VIEW ── */
+.drawer-main{display:flex;flex-direction:column;height:100%;position:relative;z-index:1}
+.drawer-nav-main{display:flex;flex-direction:column;gap:2px;padding:8px;flex:1;overflow-y:auto}
+.dnav-main-item{display:flex;align-items:center;gap:12px;padding:16px 12px;border-radius:12px;cursor:pointer;transition:background .15s;-webkit-user-select:none;user-select:none;border:1px solid transparent}
+.dnav-main-item:active{background:var(--surf2)}
+.dnav-main-item:hover{background:var(--surf2);border-color:var(--bdr)}
+.dnmi-icon{font-size:22px;width:30px;text-align:center;flex-shrink:0}
+.dnmi-label{flex:1;font-size:.95rem;font-weight:500;color:var(--txt)}
+.dnmi-arrow{font-size:1.1rem;color:var(--tm);flex-shrink:0}
+
+/* ── DRAWER SUB-PANEL ── */
+.drawer-sub-panel{position:absolute;inset:0;z-index:2;background:var(--surf);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.drawer-sub-panel.open{transform:translateX(0)}
+.drawer-sub-header{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;border-bottom:1px solid var(--bdr);flex-shrink:0;padding-top:calc(14px + env(safe-area-inset-top))}
+.drawer-back-btn{background:none;border:none;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;padding:4px 0;flex-shrink:0;-webkit-user-select:none;user-select:none}
+.drawer-back-btn:active{opacity:.7}
+.drawer-sub-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt);flex:1}
+.drawer-sub-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
+
+/* ── PANEL SECTIONS (inside sub-panel) ── */
+.panel-section{display:none}
+.panel-section.active{display:block}
 
 /* DRAWER BOTTOM */
 .drawer-bottom{padding:12px 16px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
@@ -557,33 +577,50 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 <!-- DRAWER -->
 <div class="drawer" id="drawer">
-  <div class="drawer-header">
-    <div class="drawer-logo">Kaunas Explorer</div>
-    <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
-    <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+
+  <!-- MAIN VIEW: header + nav -->
+  <div class="drawer-main" id="drawerMain">
+    <div class="drawer-header">
+      <div class="drawer-logo">Kaunas Explorer</div>
+      <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
+      <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+    </div>
+    <div class="drawer-nav-main">
+      <div class="dnav-main-item" onclick="openSubPanel('vietos')">
+        <span class="dnmi-icon">📋</span><span class="dnmi-label">Vietos</span><span class="dnmi-arrow">›</span>
+      </div>
+      <div class="dnav-main-item" onclick="openSubPanel('marsrutai')">
+        <span class="dnmi-icon">🧭</span><span class="dnmi-label">Maršrutai</span><span class="dnmi-arrow">›</span>
+      </div>
+      <div class="dnav-main-item" onclick="openSubPanel('zenklai')">
+        <span class="dnmi-icon">🏅</span><span class="dnmi-label">Ženkleliai</span><span class="dnmi-arrow">›</span>
+      </div>
+      <div class="dnav-main-item" onclick="openSubPanel('social')">
+        <span class="dnmi-icon">👥</span><span class="dnmi-label">Draugai</span>
+        <span class="dnav-badge" id="socialBadge" style="display:none">!</span>
+        <span class="dnmi-arrow">›</span>
+      </div>
+    </div>
+    <div class="drawer-bottom" style="flex-shrink:0">
+      <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
+    </div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v11.1</div>
   </div>
 
-  <!-- NAV -->
-  <div class="drawer-nav" style="flex-shrink:0">
-    <div class="dnav-item on" id="dnav-vietos" onclick="switchDrawerPanel('vietos')"><span>📋</span><span>Vietos</span></div>
-    <div class="dnav-item" id="dnav-marsrutai" onclick="switchDrawerPanel('marsrutai')"><span>🧭</span><span>Maršrutai</span></div>
-    <div class="dnav-item" id="dnav-zenklai" onclick="switchDrawerPanel('zenklai')"><span>🏅</span><span>Ženkleliai</span></div>
-    <div class="dnav-item" id="dnav-social" onclick="switchDrawerPanel('social')"><span>👥</span><span>Draugai</span><span class="dnav-badge" id="socialBadge" style="display:none">!</span></div>
+  <!-- SUB-PANEL: slides in from right -->
+  <div class="drawer-sub-panel" id="drawerSubPanel">
+    <div class="drawer-sub-header">
+      <button class="drawer-back-btn" onclick="closeSubPanel()">← Atgal</button>
+      <div class="drawer-sub-title" id="drawerSubTitle"></div>
+    </div>
+    <div class="drawer-sub-body" id="drawerSubBody">
+      <div id="panel-vietos"></div>
+      <div id="panel-marsrutai"></div>
+      <div id="panel-zenklai"></div>
+      <div id="panel-social"></div>
+    </div>
   </div>
 
-  <!-- PANEL CONTENT (tier-progress lives here now so it scrolls) -->
-  <div class="drawer-body">
-    <div class="tier-progress" id="tierProgress"></div>
-    <div class="panel-section active" id="panel-vietos"></div>
-    <div class="panel-section" id="panel-marsrutai"></div>
-    <div class="panel-section" id="panel-zenklai"></div>
-    <div class="panel-section" id="panel-social"></div>
-  </div>
-
-  <!-- DRAWER BOTTOM -->
-  <div class="drawer-bottom" style="flex-shrink:0">
-    <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
-  </div>
 </div>
 
 <!-- EDITOR MODAL -->
@@ -1266,30 +1303,53 @@ function closeWxOut(e){
 function openDrawer(){
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawerBackdrop').classList.add('open');
-  renderDrawerTierProgress();
-  renderCurrentPanel();
+  updateDrawerHeader();
 }
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('drawerBackdrop').classList.remove('open');
-}
-function switchDrawerPanel(name){
-  ['vietos','marsrutai','zenklai','social'].forEach(p=>{
-    document.getElementById('panel-'+p).classList.toggle('active',p===name);
-    document.getElementById('dnav-'+p).classList.toggle('on',p===name);
-  });
-  renderCurrentPanel(name);
-}
-function renderCurrentPanel(name){
-  const active=name||document.querySelector('.dnav-item.on')?.id?.replace('dnav-','');
-  if(active==='vietos') renderList();
-  if(active==='marsrutai') renderRoutes();
-  if(active==='zenklai') renderBadges();
-  if(active==='social') renderSocial();
+  closeSubPanel(true); // close sub-panel without animation when drawer closes
 }
 
-function renderDrawerTierProgress(){
-  const tp=document.getElementById('tierProgress');
+const PANEL_TITLES={
+  vietos:'📋 Vietos',
+  marsrutai:'🧭 Maršrutai',
+  zenklai:'🏅 Ženkleliai',
+  social:'👥 Draugai'
+};
+
+function openSubPanel(name){
+  // Show only the right panel
+  ['vietos','marsrutai','zenklai','social'].forEach(p=>{
+    document.getElementById('panel-'+p).classList.toggle('active',p===name);
+  });
+  document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
+  document.getElementById('drawerSubPanel').classList.add('open');
+  // Render content
+  if(name==='vietos') renderList();
+  if(name==='marsrutai') renderRoutes();
+  if(name==='zenklai') renderBadges();
+  if(name==='social') renderSocial();
+}
+
+function closeSubPanel(instant){
+  const sp=document.getElementById('drawerSubPanel');
+  if(instant) sp.style.transition='none';
+  sp.classList.remove('open');
+  if(instant) setTimeout(()=>sp.style.transition='',10);
+}
+
+// Keep switchDrawerPanel as alias for compatibility
+function switchDrawerPanel(name){openSubPanel(name);}
+function renderCurrentPanel(name){if(name) openSubPanel(name);}
+
+function updateDrawerHeader(){
+  document.getElementById('drawerSub').textContent=`${found.size} / ${SPOTS.length} · ${getLevel(totalXP).icon} Lv.${getLevel(totalXP).level} · ⭐ ${totalXP} XP`;
+  const streakEl=document.getElementById('drawerStreak');
+  if(streakEl) streakEl.textContent=streak>0?`🔥 ${streak} d. serija`:'Pradėk seriją!';
+}
+
+function renderTierProgressHTML(){
   const t1tot=SPOTS.filter(s=>s.tier===1).length;
   const t2tot=SPOTS.filter(s=>s.tier===2).length;
   const t3tot=SPOTS.filter(s=>s.tier===3).length;
@@ -1317,15 +1377,12 @@ function renderDrawerTierProgress(){
         </div>
       </div>`;
     }
-
-    // Compute next token threshold hint
     const prevC=tier===2?t1c:t2c;
     const unlockAt=TIER_CONFIG[tier].unlockAt;
     const nextToken=(earned+1)*unlockAt;
     const leftForNext=Math.max(0,nextToken-prevC);
     const hintText=leftForNext>0&&leftForNext<=5
       ?`<div class="unlock-hint-banner">🔓 Dar ${leftForNext} T${tier-1} → kitas T${tier} žetonas</div>`:'';
-
     return`<div class="tier-row">
       <div class="tier-dot" style="background:${unlockedCount>0?color:'var(--tm)'}"></div>
       <div class="tier-info">
@@ -1339,17 +1396,14 @@ function renderDrawerTierProgress(){
       </div>
     </div>`;
   }
-
-  tp.innerHTML=
-    tierRow(1,'#c9a84c','T1 — Žinomosios',t1c,t1tot)+
-    tierRow(2,'#7a9cc9','T2 — Paslėptos',t2c,t2tot)+
-    tierRow(3,'#b07aaa','T3 — Legendos',t3c,t3tot);
-
-  document.getElementById('drawerSub').textContent=`${found.size} / ${SPOTS.length} surinkta · ⭐ ${totalXP} XP`;
-  // Update streak separately if shown
-  const streakEl=document.getElementById('drawerStreak');
-  if(streakEl) streakEl.textContent=streak>0?`🔥 ${streak} d. serija`:'Pradėk seriją!';
+  return`<div class="tier-progress">
+    ${tierRow(1,'#c9a84c','T1 — Žinomosios',t1c,t1tot)}
+    ${tierRow(2,'#7a9cc9','T2 — Paslėptos',t2c,t2tot)}
+    ${tierRow(3,'#b07aaa','T3 — Legendos',t3c,t3tot)}
+  </div>`;
 }
+// Keep old name as alias so any stray calls don't crash
+function renderDrawerTierProgress(){}
 
 // ═══════════ DAILY QUEST ═══════════
 
@@ -1848,7 +1902,8 @@ function renderBadges(){
 function renderList(){
   const body=document.getElementById('panel-vietos');
   const pct=SPOTS.length?Math.round(found.size/SPOTS.length*100):0;
-  let h=`${renderQuestCard()}
+  let h=`${renderTierProgressHTML()}
+  ${renderQuestCard()}
   <div class="prog-h">
     <div class="prog-row"><div class="prog-cnt">${found.size} / ${SPOTS.length} surinkta</div><div class="streak-t">🔥 ${streak} d. · ⭐ ${totalXP} XP</div></div>
     <div class="pbar"><div class="pbf" style="width:${pct}%"></div></div>
@@ -2157,6 +2212,7 @@ function updateAll(){
   const pill=document.getElementById('streakPill');
   pill.classList.toggle('fire',s>=2);
   pill.style.display=s>0?'flex':'none';
+  updateDrawerHeader();
 }
 
 // ═══════════ CONFETTI ═══════════
