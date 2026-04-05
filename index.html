@@ -188,6 +188,20 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .fcap.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
 .fcap:active{transform:scale(.95)}
 
+/* Group filter pills */
+.fgroup{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px;font-size:.7rem;font-family:'DM Mono',monospace;color:var(--td);white-space:nowrap;cursor:pointer;box-shadow:0 2px 8px var(--sh);transition:all .2s;flex-shrink:0;-webkit-user-select:none;user-select:none;display:flex;align-items:center;gap:4px}
+.fgroup.on{background:var(--surf2);border-color:var(--gold);color:var(--gold)}
+.fgroup.has-active{background:rgba(201,168,76,.15);border-color:var(--gd);color:var(--gold)}
+.fgroup:active{transform:scale(.95)}
+.fg-arr{font-size:.6rem;transition:transform .2s;display:inline-block}
+.fgroup.on .fg-arr{transform:rotate(180deg)}
+
+/* Sub-filter row */
+.filter-sub-row{position:fixed;top:calc(60px + env(safe-area-inset-top));left:0;right:0;z-index:199;display:flex;gap:6px;padding:6px 12px;overflow-x:auto;scrollbar-width:none;pointer-events:none;opacity:0;transform:translateY(-6px);transition:opacity .2s,transform .2s;-webkit-overflow-scrolling:touch}
+.filter-sub-row::-webkit-scrollbar{display:none}
+.filter-sub-row.show{opacity:1;transform:translateY(0);pointer-events:all}
+.fcap.sub{font-size:.68rem;padding:4px 10px;box-shadow:0 1px 6px var(--sh)}
+
 /* ── BOTTOM SHEET ── */
 .sback{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:199;pointer-events:none;transition:background .3s}
 .sback.open{background:rgba(0,0,0,.4);pointer-events:all}
@@ -505,6 +519,26 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sb-desc{font-size:.88rem;color:var(--td);text-align:center;max-width:280px;line-height:1.7}
 .sb-tip{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 16px;text-align:center}
 .sb-btn{background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
+
+/* ── REVIEW MODAL ── */
+.review-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;padding:0}
+.review-overlay.show{display:flex;animation:fadeIn .3s}
+.review-sheet{background:var(--surf);border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px var(--sh);animation:slideUp .35s cubic-bezier(.4,0,.2,1)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.review-handle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 20px}
+.review-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--txt);margin-bottom:6px;text-align:center}
+.review-sub{font-size:.82rem;color:var(--td);text-align:center;margin-bottom:20px;line-height:1.5}
+.review-stars{display:flex;justify-content:center;gap:10px;margin-bottom:20px}
+.review-star{font-size:2.2rem;cursor:pointer;transition:transform .15s,filter .15s;filter:grayscale(1) opacity(.3);-webkit-user-select:none;user-select:none}
+.review-star.active{filter:none;transform:scale(1.1)}
+.review-star:active{transform:scale(.95)}
+.review-textarea{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.85rem;resize:none;height:80px;outline:none;transition:border-color .2s;margin-bottom:14px;line-height:1.5}
+.review-textarea:focus{border-color:var(--gd)}
+.review-textarea::placeholder{color:var(--tm)}
+.review-actions{display:flex;gap:10px}
+.review-skip{flex:0 0 auto;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 18px;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--td);cursor:pointer}
+.review-submit{flex:1;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;transition:opacity .2s}
+.review-submit:disabled{opacity:.4;cursor:default}
 /* ── OSM IMPORT ── */
 .osm-wrap{padding:12px 14px}
 .osm-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
@@ -588,13 +622,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <!-- FILTERS inline in topbar -->
   <div class="tb-filters" id="filterBar">
     <div class="fcap on" data-cat="all" onclick="setFilter('all')">Visos</div>
-    <div class="fcap" data-cat="fort" onclick="setFilter('fort')">🏰 Fortai</div>
-    <div class="fcap" data-cat="church" onclick="setFilter('church')">⛪ Bažnyčios</div>
-    <div class="fcap" data-cat="museum" onclick="setFilter('museum')">🏛 Muziejai</div>
-    <div class="fcap" data-cat="soviet" onclick="setFilter('soviet')">⭐ Sovietika</div>
-    <div class="fcap" data-cat="modern" onclick="setFilter('modern')">🏗 Modernizmas</div>
-    <div class="fcap" data-cat="nature" onclick="setFilter('nature')">🌿 Gamta</div>
-    <div class="fcap" data-cat="history" onclick="setFilter('history')">⚔ Istorija</div>
+    <div class="fgroup" data-group="heritage" onclick="toggleFilterGroup('heritage')">🏛 Paveldas <span class="fg-arr">▾</span></div>
+    <div class="fgroup" data-group="soviet" onclick="toggleFilterGroup('soviet')">⭐ Sovietika <span class="fg-arr">▾</span></div>
+    <div class="fgroup" data-group="nature" onclick="toggleFilterGroup('nature')">🌿 Gamta <span class="fg-arr">▾</span></div>
+    <div class="fgroup" data-group="urban" onclick="toggleFilterGroup('urban')">🏙 Miestas <span class="fg-arr">▾</span></div>
   </div>
   <div class="tb-right">
     <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
@@ -603,6 +634,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="gps-pill"><div class="gd" id="gpsDot"></div><span class="gps-refresh" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS">↻</span></div>
   </div>
 </div>
+
+<!-- FILTER SUB-ROW -->
+<div class="filter-sub-row" id="filterSubRow"></div>
 
 <!-- WEATHER EXPANDED -->
 <div class="wx-expanded" id="wxExpanded">
@@ -670,8 +704,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
+      <div class="dbot-btn" id="drawerReviewsBtn" onclick="openSubPanel('reviews')" style="display:none">💬 Atsiliepimai</div>
     </div>
-    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v12.2</div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v13</div>
   </div>
 
   <!-- SUB-PANEL: slides in from right -->
@@ -686,6 +721,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="panel-section" id="panel-zenklai"></div>
       <div class="panel-section" id="panel-social"></div>
       <div class="panel-section" id="panel-osm"></div>
+      <div class="panel-section" id="panel-reviews"></div>
     </div>
   </div>
 
@@ -711,13 +747,31 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="fg">
         <label class="fl">Kategorija</label>
         <select class="fs" id="eCat">
-          <option value="fort">🏰 Fortas</option>
-          <option value="church">⛪ Bažnyčia</option>
-          <option value="museum">🏛 Muziejus</option>
-          <option value="soviet">⭐ Sovietika</option>
-          <option value="modern">🏗 Modernizmas</option>
-          <option value="nature">🌿 Gamta</option>
+          <optgroup label="— Paveldas —">
+          <option value="fort">🏰 Fortai</option>
+          <option value="church">⛪ Bažnyčios</option>
+          <option value="museum">🏛 Muziejai</option>
           <option value="history">⚔ Istorija</option>
+          <option value="monument">🗿 Monumentai</option>
+          <option value="mound">⛰ Piliakalnis</option>
+          <option value="cemetery">⚱️ Kapinės</option>
+          </optgroup>
+          <optgroup label="— Sovietika —">
+          <option value="soviet">⭐ Sovietika</option>
+          <option value="mural">🎨 Gatvės menas</option>
+          </optgroup>
+          <optgroup label="— Gamta —">
+          <option value="nature">🌿 Gamta</option>
+          <option value="trail">🥾 Takai</option>
+          <option value="cliff">🪨 Skardžiai</option>
+          <option value="viewpoint">🔭 Apžvalgos</option>
+          </optgroup>
+          <optgroup label="— Miestas —">
+          <option value="modern">🏗 Modernizmas</option>
+          <option value="watertower">🗼 Vandens bokštai</option>
+          <option value="industrial">🏭 Industrija</option>
+          <option value="bridge">🌉 Tiltai</option>
+          </optgroup>
         </select>
       </div>
       <div class="fg">
@@ -787,6 +841,27 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <button class="egg-btn" onclick="closeEgg()">Fantastiška! ✨</button>
 </div>
 
+<!-- REVIEW MODAL -->
+<div class="review-overlay" id="reviewOverlay">
+  <div class="review-sheet">
+    <div class="review-handle"></div>
+    <div class="review-title">Kaip sekasi tyrinėti? 🗺</div>
+    <div class="review-sub" id="reviewSub">Surinkti <strong id="reviewCount">3</strong> vietos — gal pasidalintum įspūdžiais?</div>
+    <div class="review-stars" id="reviewStars">
+      <span class="review-star" data-v="1" onclick="setReviewStar(1)">⭐</span>
+      <span class="review-star" data-v="2" onclick="setReviewStar(2)">⭐</span>
+      <span class="review-star" data-v="3" onclick="setReviewStar(3)">⭐</span>
+      <span class="review-star" data-v="4" onclick="setReviewStar(4)">⭐</span>
+      <span class="review-star" data-v="5" onclick="setReviewStar(5)">⭐</span>
+    </div>
+    <textarea class="review-textarea" id="reviewText" placeholder="Ką myli, ko nepatinka, ko trūksta... (nebūtina)"></textarea>
+    <div class="review-actions">
+      <button class="review-skip" onclick="closeReview(true)">Vėliau</button>
+      <button class="review-submit" id="reviewSubmit" onclick="submitReview()" disabled>Siųsti atsiliepimą</button>
+    </div>
+  </div>
+</div>
+
 <!-- CONFETTI -->
 <canvas id="confettiCanvas"></canvas>
 
@@ -827,14 +902,35 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 // ═══════════ CONSTANTS ═══════════
 
 const CATS={
-  fort:{label:'Fortas',emoji:'🏰',color:'#8B4513'},
-  church:{label:'Bažnyčia',emoji:'⛪',color:'#4a6fa5'},
-  museum:{label:'Muziejus',emoji:'🏛',color:'#5a7a5a'},
-  soviet:{label:'Sovietika',emoji:'⭐',color:'#8B0000'},
-  modern:{label:'Modernizmas',emoji:'🏗',color:'#6a5acd'},
-  nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
+  // — Heritage —
+  fort:{label:'Fortai',emoji:'🏰',color:'#8B4513'},
+  church:{label:'Bažnyčios',emoji:'⛪',color:'#4a6fa5'},
+  museum:{label:'Muziejai',emoji:'🏛',color:'#5a7a5a'},
   history:{label:'Istorija',emoji:'⚔',color:'#7a5c00'},
+  monument:{label:'Monumentai',emoji:'🗿',color:'#8B6914'},
+  mound:{label:'Piliakalnis',emoji:'⛰',color:'#5a7a3a'},
+  cemetery:{label:'Kapinės',emoji:'⚱️',color:'#5a5a6a'},
+  // — Soviet —
+  soviet:{label:'Sovietika',emoji:'⭐',color:'#8B0000'},
+  mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
+  // — Nature —
+  nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
+  trail:{label:'Takai',emoji:'🥾',color:'#3a7a5a'},
+  cliff:{label:'Skardžiai',emoji:'🪨',color:'#7a6a5a'},
+  viewpoint:{label:'Apžvalgos',emoji:'🔭',color:'#1a6b8a'},
+  // — Urban —
+  modern:{label:'Modernizmas',emoji:'🏗',color:'#6a5acd'},
+  watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
+  industrial:{label:'Industrija',emoji:'🏭',color:'#5a4a3a'},
+  bridge:{label:'Tiltai',emoji:'🌉',color:'#3a5a7a'},
 };
+
+const FILTER_GROUPS=[
+  {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['fort','church','museum','history','monument','mound','cemetery']},
+  {id:'soviet',label:'Sovietika',emoji:'⭐',cats:['soviet','mural']},
+  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','trail','cliff','viewpoint']},
+  {id:'urban',label:'Miestas',emoji:'🏙',cats:['modern','watertower','industrial','bridge']},
+];
 
 const TIER_CONFIG={
   1:{label:'T1 — Žinomosios',color:'#c9a84c',unlockAt:0,icon:'🥉',desc:'Klasikinės Kauno vietos'},
@@ -892,6 +988,26 @@ const BADGE_GROUPS=[
     {id:'m1',name:'Lankytojas',desc:'1 muziejus',icon:'🎟',need:1},
     {id:'m2',name:'Kuratorius',desc:'3 muziejai',icon:'🏛',need:3},
   ]},
+  {id:'monuments',title:'Skulptūrų kolekcionierius',icon:'🗿',cat:'monument',sub:true,badges:[
+    {id:'mon1',name:'Akmeninė istorija',desc:'1 monumentas',icon:'🗿',need:1},
+    {id:'mon2',name:'Skulptūrų sargas',desc:'3 monumentai',icon:'🏛',need:3},
+  ]},
+  {id:'viewpoints',title:'Panoramų medžiotojas',icon:'🔭',cat:'viewpoint',sub:true,badges:[
+    {id:'vp1',name:'Pirmoji panorama',desc:'1 apžvalgos taškas',icon:'🔭',need:1},
+    {id:'vp2',name:'Debesų vaikščiotojas',desc:'3 apžvalgos taškai',icon:'🌄',need:3},
+  ]},
+  {id:'mounds',title:'Piliakalninkas',icon:'⛰',cat:'mound',sub:true,badges:[
+    {id:'mnd1',name:'Kalno valdovas',desc:'1 piliakalnis',icon:'⛰',need:1},
+    {id:'mnd2',name:'Senovės gynėjas',desc:'3 piliakalnis',icon:'🪖',need:3},
+  ]},
+  {id:'murals',title:'Gatvės meno gerbėjas',icon:'🎨',cat:'mural',sub:true,badges:[
+    {id:'mrl1',name:'Pirmas piešinys',desc:'1 gatvės menas',icon:'🎨',need:1},
+    {id:'mrl2',name:'Miesto tapytojas',desc:'3 gatvės menas',icon:'🖌',need:3},
+  ]},
+  {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
+    {id:'n1',name:'Žaliasis miestas',desc:'3 gamtos vietos',icon:'🌿',need:3},
+    {id:'n2',name:'Miško dvasia',desc:'5 gamtos vietos',icon:'🌳',need:5},
+  ]},
   {id:'tiers',title:'Tiero pažanga',icon:'⭐',cat:null,badges:[
     {id:'t1all',name:'T1 Čempionas',desc:'Visos T1 vietos surinktos',icon:'🥉',tierComplete:1},
     {id:'t2all',name:'T2 Meistras',desc:'Visos T2 vietos surinktos',icon:'🥈',tierComplete:2},
@@ -900,6 +1016,7 @@ const BADGE_GROUPS=[
   {id:'general',title:'Bendra pažanga',icon:'🗺',cat:null,badges:[
     {id:'g1',name:'Pirmasis žingsnis',desc:'1 vieta surinkta',icon:'🗺',need:1,all:true},
     {id:'g2',name:'Žvalgybininkas',desc:'10 vietų surinkta',icon:'🔭',need:10,all:true},
+    {id:'g3',name:'Kauno ekspertas',desc:'25 vietos surinktos',icon:'🌟',need:25,all:true},
     {id:'st3',name:'3 dienų serija',desc:'3 dienos iš eilės',icon:'🔥',streak:3},
     {id:'st7',name:'Savaitinis tyrinėtojas',desc:'7 dienos iš eilės',icon:'⚡',streak:7},
   ]},
@@ -1263,9 +1380,44 @@ function centerUser(){
 
 // ═══════════ FILTER ═══════════
 
+let activeGroup=null;
+
+function toggleFilterGroup(gid){
+  if(activeGroup===gid){
+    activeGroup=null;
+    setFilter('all');
+  } else {
+    activeGroup=gid;
+    renderFilterSub();
+  }
+  document.querySelectorAll('.fgroup').forEach(el=>el.classList.toggle('on',el.dataset.group===activeGroup));
+}
+
+function renderFilterSub(){
+  const row=document.getElementById('filterSubRow');
+  if(!activeGroup){row.innerHTML='';row.classList.remove('show');return;}
+  const grp=FILTER_GROUPS.find(g=>g.id===activeGroup);
+  if(!grp){row.innerHTML='';row.classList.remove('show');return;}
+  row.innerHTML=grp.cats.map(c=>{
+    const cat=CATS[c];if(!cat) return '';
+    return `<div class="fcap sub ${activeFilter===c?'on':''}" data-cat="${c}" onclick="setFilter('${c}')">${cat.emoji} ${cat.label}</div>`;
+  }).join('');
+  row.classList.add('show');
+}
+
 function setFilter(cat){
   activeFilter=cat;
-  document.querySelectorAll('.fcap').forEach(el=>el.classList.toggle('on',el.dataset.cat===cat));
+  // top bar: only "Visos" lights up when all, group pills highlight if a child is active
+  document.querySelector('.fcap[data-cat="all"]')?.classList.toggle('on',cat==='all');
+  // mark group as has-active if one of its cats is selected
+  document.querySelectorAll('.fgroup').forEach(el=>{
+    const grp=FILTER_GROUPS.find(g=>g.id===el.dataset.group);
+    const childActive=grp&&grp.cats.includes(cat);
+    el.classList.toggle('has-active',childActive&&activeGroup!==el.dataset.group);
+    el.classList.toggle('on',el.dataset.group===activeGroup);
+  });
+  // re-render sub-row to update active states
+  renderFilterSub();
   refreshMarkers();
 }
 
@@ -1425,12 +1577,13 @@ const PANEL_TITLES={
   marsrutai:'🧭 Maršrutai',
   zenklai:'🏅 Ženkleliai',
   social:'👥 Draugai',
-  osm:'🗺 OSM Import'
+  osm:'🗺 OSM Import',
+  reviews:'💬 Atsiliepimai'
 };
 
 function openSubPanel(name){
   // Show only the right panel
-  ['vietos','marsrutai','zenklai','social','osm'].forEach(p=>{
+  ['vietos','marsrutai','zenklai','social','osm','reviews'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
@@ -1441,6 +1594,7 @@ function openSubPanel(name){
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
   if(name==='osm') renderOsmImport();
+  if(name==='reviews') renderReviews();
 }
 
 function closeSubPanel(instant){
@@ -1763,6 +1917,8 @@ function collectCurrent(){
   } else {
     setTimeout(checkBadges,400);
   }
+  // Review prompt — after unlock animations clear
+  setTimeout(maybeShowReview,1200);
 
   if(activeRoute){
     const route=ROUTES.find(r=>r.id===activeRoute);
@@ -2518,14 +2674,40 @@ function osmPick(lat,lng,name){
 // ═══════════ OSM BULK IMPORT ═══════════
 
 const OSM_CAT_MAP={
+  // places of worship
   'place_of_worship':'church',
-  'museum':'museum',
+  // museums & galleries
+  'museum':'museum','gallery':'museum',
+  // forts & military
   'castle':'fort','fort':'fort','bunker':'fort',
-  'ruins':'history','monument':'history','memorial':'history','archaeological_site':'history',
+  // historic — generic
+  'ruins':'history','memorial':'history','archaeological_site':'history','attraction':'history',
+  // monuments & sculpture
+  'monument':'monument','wayside_shrine':'monument','stone':'monument',
+  // mounds (piliakalnis)
+  'mound':'mound',
+  // nature
   'park':'nature','garden':'nature','nature_reserve':'nature',
-  'attraction':'history','gallery':'museum','artwork':'history',
+  // viewpoints
+  'viewpoint':'viewpoint',
+  // water towers
+  'water_tower':'watertower',
+  // cliffs
+  'cliff':'cliff',
+  // street art / murals
+  'artwork':'mural',
+  // cemeteries
+  'grave_yard':'cemetery','cemetery':'cemetery',
+  // industrial
+  'chimney':'industrial','works':'industrial','water_works':'industrial',
+  // bridges
+  'bridge':'bridge',
 };
-const OSM_CAT_EMOJI={church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',modern:'🏗',soviet:'⭐'};
+const OSM_CAT_EMOJI={
+  church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',modern:'🏗',soviet:'⭐',
+  monument:'🗿',mound:'⛰',viewpoint:'🔭',watertower:'🗼',cliff:'🪨',
+  trail:'🥾',mural:'🎨',cemetery:'⚱️',industrial:'🏭',bridge:'🌉',
+};
 
 let _osmImportData=[];
 let _osmSelected=new Set();
@@ -2538,7 +2720,7 @@ async function fetchOsmData(){
   _osmLoading=true;
   osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
   try{
-    const body=`data=[out:json][timeout:30];
+    const body=`data=[out:json][timeout:45];
 (
   node["amenity"="place_of_worship"]["name"](54.82,23.82,54.99,24.02);
   way["amenity"="place_of_worship"]["name"](54.82,23.82,54.99,24.02);
@@ -2547,12 +2729,26 @@ async function fetchOsmData(){
   node["tourism"="gallery"]["name"](54.82,23.82,54.99,24.02);
   node["tourism"="attraction"]["name"](54.82,23.82,54.99,24.02);
   way["tourism"="attraction"]["name"](54.82,23.82,54.99,24.02);
+  node["tourism"="viewpoint"]["name"](54.82,23.82,54.99,24.02);
+  way["tourism"="viewpoint"]["name"](54.82,23.82,54.99,24.02);
+  node["tourism"="artwork"]["name"](54.82,23.82,54.99,24.02);
   node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](54.82,23.82,54.99,24.02);
   way["historic"~"castle|monument|memorial|ruins|fort|archaeological_site"]["name"](54.82,23.82,54.99,24.02);
+  node["historic"~"mound|wayside_shrine|stone"]["name"](54.82,23.82,54.99,24.02);
+  way["historic"="mound"]["name"](54.82,23.82,54.99,24.02);
+  node["historic"="bridge"]["name"](54.82,23.82,54.99,24.02);
+  way["historic"="bridge"]["name"](54.82,23.82,54.99,24.02);
   node["leisure"~"park|garden|nature_reserve"]["name"](54.82,23.82,54.99,24.02);
   way["leisure"~"park|garden|nature_reserve"]["name"](54.82,23.82,54.99,24.02);
   node["military"~"bunker|fort"]["name"](54.82,23.82,54.99,24.02);
   way["military"~"bunker|fort"]["name"](54.82,23.82,54.99,24.02);
+  node["man_made"="water_tower"]["name"](54.82,23.82,54.99,24.02);
+  node["man_made"="chimney"]["name"](54.82,23.82,54.99,24.02);
+  node["natural"="cliff"]["name"](54.82,23.82,54.99,24.02);
+  way["natural"="cliff"]["name"](54.82,23.82,54.99,24.02);
+  node["amenity"="grave_yard"]["name"](54.82,23.82,54.99,24.02);
+  way["amenity"="grave_yard"]["name"](54.82,23.82,54.99,24.02);
+  way["landuse"="cemetery"]["name"](54.82,23.82,54.99,24.02);
 );
 out center;`;
     const res=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});
@@ -2564,7 +2760,7 @@ out center;`;
         const lng=parseFloat((e.lon||(e.center&&e.center.lon)||0).toFixed(6));
         if(!lat||!lng) return null;
         const t=e.tags;
-        const typeKey=t.historic||t.tourism||t.amenity||t.leisure||t.military||'';
+        const typeKey=t.historic||t.tourism||t.amenity||t.leisure||t.military||t.man_made||t.natural||t.landuse||'';
         const cat=OSM_CAT_MAP[typeKey]||'history';
         const alreadyIn=SPOTS.some(s=>Math.abs(s.lat-lat)<0.0005&&Math.abs(s.lng-lng)<0.0005);
         return{name:t.name,nameLt:t['name:lt']||'',cat,lat,lng,typeKey,alreadyIn,tags:t};
@@ -2661,7 +2857,7 @@ function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
   const cats=['all','church','museum','fort','nature','history'];
-  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija'};
+  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',cliff:'🪨 Skardžiai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės',industrial:'🏭 Industrija',bridge:'🌉 Tiltai',soviet:'⭐ Sovietika'};
   body.innerHTML=`<div class="osm-wrap">
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchOsmData()">🔄 Įkelti iš OSM</button>
@@ -2682,6 +2878,124 @@ function renderOsmImport(){
   if(_osmImportData.length) renderOsmList();
 }
 
+// ═══════════ REVIEW SYSTEM ═══════════
+
+const REVIEW_TRIGGER_COUNT=3; // show after 3rd collected spot
+let _reviewRating=0;
+let _reviewShownThisSession=false;
+
+function maybeShowReview(){
+  if(_reviewShownThisSession) return;
+  if(found.size<REVIEW_TRIGGER_COUNT) return;
+  // Only show once per day per device
+  const lastReviewKey='kex_review_shown';
+  const lastShown=localStorage.getItem(lastReviewKey)||'';
+  const today=new Date().toDateString();
+  if(lastShown===today) return;
+  _reviewShownThisSession=true;
+  setTimeout(()=>openReview(),900); // slight delay after collect animation
+}
+
+function openReview(){
+  _reviewRating=0;
+  document.getElementById('reviewText').value='';
+  document.getElementById('reviewCount').textContent=found.size;
+  document.getElementById('reviewSubmit').disabled=true;
+  renderReviewStars();
+  document.getElementById('reviewOverlay').classList.add('show');
+}
+
+function closeReview(skipOnly){
+  document.getElementById('reviewOverlay').classList.remove('show');
+  if(skipOnly){
+    // remind tomorrow
+    localStorage.setItem('kex_review_shown',new Date().toDateString());
+  }
+}
+
+function setReviewStar(v){
+  _reviewRating=v;
+  renderReviewStars();
+  document.getElementById('reviewSubmit').disabled=false;
+}
+
+function renderReviewStars(){
+  document.querySelectorAll('.review-star').forEach(el=>{
+    el.classList.toggle('active',parseInt(el.dataset.v)<=_reviewRating);
+  });
+}
+
+async function renderReviews(){
+  const body=document.getElementById('panel-reviews');
+  body.innerHTML=`<div style="padding:20px 16px;text-align:center;font-family:'DM Mono',monospace;font-size:.75rem;color:var(--td)">⏳ Kraunama...</div>`;
+  try{
+    const{db,collection,getDocs,query,orderBy,limit}=window._fb;
+    const q=query(collection(db,'reviews'),orderBy('ts','desc'),limit(50));
+    const snap=await getDocs(q);
+    const reviews=[];
+    snap.forEach(d=>reviews.push({id:d.id,...d.data()}));
+    if(!reviews.length){
+      body.innerHTML=`<div style="padding:30px 16px;text-align:center;font-family:'DM Mono',monospace;font-size:.78rem;color:var(--td)">Atsiliepimų dar nėra 🌱</div>`;
+      return;
+    }
+    const avg=(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1);
+    const stars=n=>'⭐'.repeat(n)+'☆'.repeat(5-n);
+    body.innerHTML=`
+      <div style="padding:14px 16px 10px;border-bottom:1px solid var(--bdr);background:var(--surf2)">
+        <div style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--gold);text-align:center">${avg} ⭐</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);text-align:center;margin-top:2px">${reviews.length} atsiliepimas(-ai)</div>
+      </div>
+      ${reviews.map(r=>{
+        const d=r.ts?.toDate?r.ts.toDate():new Date(r.ts||0);
+        const dateStr=d.toLocaleDateString('lt-LT',{month:'short',day:'numeric'});
+        return`<div style="padding:13px 16px;border-bottom:1px solid var(--bdr)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div style="font-size:.85rem;font-weight:600;color:var(--txt)">${r.name||'Anon'}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm)">${dateStr}</div>
+          </div>
+          <div style="font-size:1rem;margin-bottom:4px">${stars(r.rating)}</div>
+          ${r.text?`<div style="font-size:.8rem;color:var(--td);line-height:1.55;font-style:italic">"${r.text}"</div>`:''}
+          <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);margin-top:4px">📍 ${r.foundCount||0} vietos · ⭐ ${r.totalXP||0} XP</div>
+        </div>`;
+      }).join('')}`;
+  } catch(e){
+    body.innerHTML=`<div style="padding:20px 16px;text-align:center;font-size:.78rem;color:var(--td)">Klaida: ${e.message}</div>`;
+  }
+}
+  if(!_reviewRating) return;
+  const btn=document.getElementById('reviewSubmit');
+  btn.disabled=true;
+  btn.textContent='Siunčiama...';
+  const text=document.getElementById('reviewText').value.trim();
+  try{
+    if(window._fb&&window._fbUser){
+      const{db,collection,addDoc,serverTimestamp}=window._fb;
+      await addDoc(collection(db,'reviews'),{
+        uid:window._fbUser.uid,
+        name:playerName||'Anon',
+        rating:_reviewRating,
+        text,
+        foundCount:found.size,
+        totalXP,
+        ts:serverTimestamp(),
+      });
+    } else {
+      // Store locally if not logged in
+      const rev={name:playerName||'Anon',rating:_reviewRating,text,foundCount:found.size,ts:Date.now()};
+      const existing=JSON.parse(localStorage.getItem('kex_local_reviews')||'[]');
+      existing.push(rev);
+      localStorage.setItem('kex_local_reviews',JSON.stringify(existing));
+    }
+    localStorage.setItem('kex_review_shown',new Date().toDateString());
+    closeReview(false);
+    toast('🙏 Ačiū už atsiliepimą!','success');
+  } catch(e){
+    btn.disabled=false;
+    btn.textContent='Siųsti atsiliepimą';
+    toast('❌ Klaida, bandykite vėliau','info');
+  }
+}
+
 // ═══════════ INIT ═══════════
 
 load();initMap();updateAll();startGPS();
@@ -2695,6 +3009,7 @@ window.onFbAuthReady=function(user){
   document.getElementById('adminFab').style.display=isAdmin?'flex':'none';
   document.getElementById('drawerAddBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerOsmBtn').style.display=isAdmin?'':'none';
+  document.getElementById('drawerReviewsBtn').style.display=isAdmin?'':'none';
   if(user){
     updateAuthUI(user);
     fbLoadSpots();
