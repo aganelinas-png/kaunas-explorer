@@ -558,13 +558,26 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="fg"><label class="fl">Platuma (lat)</label><input class="fi" id="eLat" type="number" step="any"></div>
       <div class="fg"><label class="fl">Ilguma (lng)</label><input class="fi" id="eLng" type="number" step="any"></div>
     </div>
-    <div class="hint" id="edHint">💡 Uždark modalą ir spustelėk žemėlapyje – koordinatės užsipildys</div>
+    <button class="mbtn" id="mapPickBtn" onclick="startMapPick()" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);color:var(--td);border-radius:10px;padding:11px;margin-bottom:6px;font-size:.88rem;cursor:pointer">📍 Rinktis vietą žemėlapyje</button>
+    <div class="hint" id="edHint">💡 Spausk mygtuką ir palieskite žemėlapį</div>
     <div class="mact">
       <button class="mbtn sec" onclick="closeEditor()">Atšaukti</button>
       <button class="mbtn dan" id="edDelBtn" onclick="deleteSpot()" style="display:none">🗑</button>
       <button class="mbtn pri" onclick="saveSpot()">Išsaugoti</button>
     </div>
+    <div style="border-top:1px solid var(--bdr);margin-top:14px;padding-top:12px">
+      <div class="hint" style="margin-bottom:8px">📥 Importuoti vietas iš CSV failo</div>
+      <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importCSV(event)">
+      <button class="mbtn sec" onclick="document.getElementById('csvFileInput').click()" style="width:100%;padding:10px;font-size:.82rem">📂 Įkelti CSV failą</button>
+    </div>
   </div>
+</div>
+
+<!-- MAP PICK BANNER -->
+<div id="mapPickBanner" style="display:none;position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:500;background:var(--surf);border:2px solid var(--gold);border-radius:20px;padding:14px 22px;text-align:center;box-shadow:0 8px 32px var(--sh);pointer-events:none">
+  <div style="font-size:1.3rem;margin-bottom:4px">📍</div>
+  <div style="font-size:.9rem;font-weight:600;color:var(--txt)">Palieskite žemėlapį</div>
+  <div style="font-size:.72rem;color:var(--td);font-family:'DM Mono',monospace;margin-top:3px">Koordinatės bus užpildytos automatiškai</div>
 </div>
 
 <!-- UNLOCK OVERLAY — category picker -->
@@ -873,8 +886,79 @@ function initMap(){
       document.getElementById('eLat').value=e.latlng.lat.toFixed(6);
       document.getElementById('eLng').value=e.latlng.lng.toFixed(6);
       document.getElementById('edHint').textContent=`✅ ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+      // If editor was hidden for map picking, reopen it
+      const modal=document.getElementById('editorModal');
+      if(!modal.classList.contains('open')){
+        document.getElementById('mapPickBanner').style.display='none';
+        document.getElementById('map').style.cursor='';
+        modal.classList.add('open');
+        toast('📍 Vieta pažymėta žemėlapyje','success');
+      }
     }
   });
+}
+
+function startMapPick(){
+  document.getElementById('editorModal').classList.remove('open');
+  document.getElementById('mapPickBanner').style.display='block';
+  document.getElementById('map').style.cursor='crosshair';
+  toast('📍 Palieskite žemėlapį','info');
+}
+
+// ═══════════ CSV IMPORT ═══════════
+
+function importCSV(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').map(l=>l.trim()).filter(Boolean);
+    let imported=0,skipped=0;
+    // Skip header rows (first 3 rows are headers/comments/examples in template)
+    for(let i=0;i<lines.length;i++){
+      const line=lines[i];
+      // Skip comment/header rows
+      if(line.startsWith('name,') || line.startsWith('PAVADINIMAS') || line.startsWith('"---')) continue;
+      const cols=parseCSVLine(line);
+      if(cols.length<12) {skipped++;continue;}
+      const [name,cat,tier,year,time,price,tag,history,bring,radius,lat,lng]=cols;
+      const latN=parseFloat(lat),lngN=parseFloat(lng);
+      if(!name||isNaN(latN)||isNaN(lngN)){skipped++;continue;}
+      const spot={
+        id:Date.now()+imported,
+        name:name.trim(),
+        cat:(cat||'history').trim().toLowerCase(),
+        tier:parseInt(tier)||1,
+        year:(year||'').trim(),
+        time:(time||'').trim(),
+        price:(price||'').trim(),
+        tag:(tag||'').trim(),
+        history:(history||'').trim(),
+        bring:(bring||'').split(';').map(b=>b.trim()).filter(Boolean),
+        radius:parseInt(radius)||DEFAULT_RADIUS,
+        lat:latN,lng:lngN
+      };
+      SPOTS.push(spot);
+      imported++;
+    }
+    event.target.value=''; // reset input
+    save();refreshMarkers();updateAll();closeEditor();
+    if(imported>0) toast(`📥 Importuota: ${imported} vietų${skipped?' ('+skipped+' praleista)':''}`, 'success');
+    else toast('⚠ Nerasta tinkamų eilučių CSV faile','info');
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function parseCSVLine(line){
+  const cols=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){cols.push(cur);cur='';}
+    else cur+=c;
+  }
+  cols.push(cur);
+  return cols.map(c=>c.trim().replace(/^"|"$/g,''));
 }
 
 function makeIcon(spot){
