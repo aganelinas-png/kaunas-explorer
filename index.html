@@ -2962,6 +2962,8 @@ async function renderReviews(){
     body.innerHTML=`<div style="padding:20px 16px;text-align:center;font-size:.78rem;color:var(--td)">Klaida: ${e.message}</div>`;
   }
 }
+
+async function submitReview(){
   if(!_reviewRating) return;
   const btn=document.getElementById('reviewSubmit');
   btn.disabled=true;
