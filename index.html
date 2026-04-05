@@ -2790,6 +2790,7 @@ let _osmSelected=new Set();
 let _osmFilter='all';
 let _osmTier=1;
 let _osmLoading=false;
+let _osmForceRefresh=false;
 
 // Generate a display name for infrastructure items that OSM rarely names
 function osmGenerateName(t, cat){
@@ -2809,6 +2810,7 @@ function osmGenerateName(t, cat){
 async function fetchOsmData(){
   if(_osmLoading) return;
   _osmLoading=true;
+  _osmForceRefresh=false; // consume the flag
   osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
   const bbox='54.82,23.82,54.99,24.02';
   try{
@@ -2852,26 +2854,40 @@ out center;`;
 );
 out center 80;`;
 
-    // Helper — fetch Overpass and return parsed JSON, throws readable error if XML/timeout
-    async function overpassFetch(body){
+    // ── OSM CACHE — avoid hammering Overpass; cache results for 24h ──
+    const OSM_CACHE_KEY='kex_osm_cache_v2';
+    const OSM_CACHE_TTL=24*60*60*1000; // 24 hours
+    const cached=JSON.parse(localStorage.getItem(OSM_CACHE_KEY)||'null');
+    if(cached&&Date.now()-cached.ts<OSM_CACHE_TTL&&!_osmForceRefresh){
+      _osmImportData=cached.data;
+      osmSetStatus(`✅ ${_osmImportData.length} vietų (iš talpyklos · ${new Date(cached.ts).toLocaleDateString('lt-LT')}). Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+      _osmLoading=false;
+      renderOsmList();
+      return;
+    }
+
+    // Helper — fetch Overpass, show readable error if rate-limited or XML
+    async function overpassFetch(body,label){
+      osmSetStatus(`⏳ ${label}...`);
       const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});
       const text=await r.text();
       if(text.trim().startsWith('<')){
-        if(r.status===504||text.includes('Gateway Time-out')) throw new Error('Overpass timeout — bandykite po minutės');
-        const remark=text.match(/<remark>(.*?)<\/remark>/)?.[1]||'Overpass klaida ('+r.status+')';
+        if(r.status===429||text.includes('Too Many Requests')||text.includes('429'))
+          throw new Error('Serveris perkrautas (429) — palaukite ~2 min. ir bandykite dar kartą 🕐');
+        if(r.status===504||text.includes('Gateway Time-out'))
+          throw new Error('Timeout — bandykite po minutės');
+        const remark=text.match(/<remark>(.*?)<\/remark>/s)?.[1]?.trim()||`Overpass klaida (${r.status})`;
         throw new Error(remark);
       }
       return JSON.parse(text);
     }
 
-    osmSetStatus('⏳ 1/2 Žymimos vietos...');
-    const d1=await overpassFetch(namedBody);
+    const d1=await overpassFetch(namedBody,'1/2 Žymimos vietos');
 
-    // Small pause between requests to avoid Overpass rate limiting
-    await new Promise(r=>setTimeout(r,1200));
+    // Pause between requests — Overpass rate limits at ~2 req/min per IP
+    await new Promise(r=>setTimeout(r,2500));
 
-    osmSetStatus('⏳ 2/2 Infrastruktūra...');
-    const d2=await overpassFetch(unnamedBody);
+    const d2=await overpassFetch(unnamedBody,'2/2 Infrastruktūra');
 
     // Process both result sets
     function processElement(e, requireName){
@@ -2900,6 +2916,9 @@ out center 80;`;
       .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
 
     osmSetStatus(`✅ Rasta ${_osmImportData.length} vietų (${named.length} vardinių + ${unnamed.filter(x=>!namedSet.has(`${x.lat.toFixed(4)},${x.lng.toFixed(4)}`)).length} infrastruktūros). Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+
+    // Cache results so we don't hammer Overpass on every open
+    try{ localStorage.setItem(OSM_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_osmImportData})); }catch(e){}
     renderOsmList();
   }catch(e){
     osmSetStatus('❌ Klaida: '+e.message);
@@ -2993,6 +3012,7 @@ function renderOsmImport(){
   body.innerHTML=`<div class="osm-wrap">
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchOsmData()">🔄 Įkelti iš OSM</button>
+      <button class="osm-ctrl-btn" onclick="_osmForceRefresh=true;fetchOsmData()" title="Išvalyti talpyklą ir įkelti iš naujo">♻️ Atnaujinti</button>
       <button class="osm-ctrl-btn" onclick="osmSelectAll()">☑ Visos</button>
       <button class="osm-ctrl-btn" onclick="osmSelectNone()">☐ Nė viena</button>
       <button class="osm-ctrl-btn pri" id="osmImportBtn" onclick="osmImportSelected()">✅ Importuoti</button>
