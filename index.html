@@ -141,6 +141,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:200;background:var(--surf);border-radius:20px 20px 0 0;border-top:1px solid var(--bdr);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:82vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -8px 40px var(--sh)}
 .sheet.open{transform:translateY(0)}
 .shandle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+.sheet-close{position:absolute;top:10px;right:12px;background:var(--surf2);border:1px solid var(--bdr);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;color:var(--td);z-index:2;line-height:1;-webkit-user-select:none;user-select:none}
+.sheet-close:active{background:var(--surf3)}
 .sscroll{overflow-y:auto;flex:1;padding:14px 18px 100px;-webkit-overflow-scrolling:touch}
 
 /* TIER BADGE IN SHEET */
@@ -537,7 +539,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 </div>
 
 <!-- GPS -->
-<div class="gps-pill"><div class="gd" id="gpsDot"></div><span id="gpsLbl">GPS...</span><span class="gps-refresh" onclick="refreshGPS()">↻</span></div>
+<div class="gps-pill"><div class="gd" id="gpsDot"></div><span class="gps-refresh" onclick="refreshGPS()" title="Atnaujinti GPS">↻</span></div>
 
 <!-- FILTER BAR -->
 <div class="filter-bar" id="filterBar">
@@ -557,6 +559,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 <!-- BOTTOM SHEET -->
 <div class="sheet" id="sheet">
   <div class="shandle"></div>
+  <button class="sheet-close" onclick="closeSheet()">✕</button>
   <div class="sscroll" id="sheetContent"></div>
 </div>
 
@@ -1029,6 +1032,7 @@ function applyTheme(){
     :'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     {attribution:'© OpenStreetMap © CARTO',maxZoom:19});
   tileLayer.addTo(map);tileLayer.bringToBack();
+  map.invalidateSize(); // re-measure container every time tiles are swapped
   refreshMarkers();
 }
 function toggleTheme(){isDark=!isDark;applyTheme();save();}
@@ -1041,7 +1045,8 @@ function initMap(){
   clusterGroup=L.markerClusterGroup({maxClusterRadius:40,spiderfyOnMaxZoom:true,showCoverageOnHover:false,disableClusteringAtZoom:15});
   map.addLayer(clusterGroup);
   applyTheme(); // applyTheme→refreshMarkers already adds every marker; no second loop needed
-  setTimeout(()=>map.invalidateSize(),300); // fixes blank map on mobile after browser chrome settles
+  // Belt-and-suspenders invalidateSize: mobile browser chrome shifts layout at different times
+  [100,400,900,1800].forEach(ms=>setTimeout(()=>map.invalidateSize(),ms));
   window.addEventListener('resize',()=>map.invalidateSize());
   map.on('click',e=>{
     if(pickingForEditor){
@@ -1130,18 +1135,18 @@ function setFilter(cat){
 // ═══════════ GPS ═══════════
 
 function startGPS(){
-  if(!navigator.geolocation){document.getElementById('gpsLbl').textContent='GPS nėra';return;}
+  if(!navigator.geolocation){return;}
   navigator.geolocation.watchPosition(pos=>{
     userLat=pos.coords.latitude;userLng=pos.coords.longitude;
     document.getElementById('gpsDot').className='gd on';
-    document.getElementById('gpsLbl').textContent='GPS aktyvus';
+    
     if(!userMarker){
       userMarker=L.circleMarker([userLat,userLng],{radius:9,fillColor:'#c9a84c',color:'#e8c878',weight:2,fillOpacity:.95}).addTo(map);
     } else userMarker.setLatLng([userLat,userLng]);
     if(selectedSpot) updateDist(selectedSpot);
     if(!wxLoaded) fetchWeather(userLat,userLng);
     checkProximity();
-  },()=>{document.getElementById('gpsLbl').textContent='GPS nepasiekiamas';},{enableHighAccuracy:true,maximumAge:5000});
+  },()=>{},{enableHighAccuracy:true,maximumAge:5000});
 }
 
 // ─── PROXIMITY ───
@@ -2259,20 +2264,19 @@ function refreshGPS(){
   _gpsRefreshTs=now;
   const btn=document.querySelector('.gps-refresh');
   if(btn){btn.classList.add('spinning');setTimeout(()=>btn.classList.remove('spinning'),800);}
-  document.getElementById('gpsLbl').textContent='Atnaujinama...';
+  
   wxLoaded=false;
   if(navigator.geolocation){
     navigator.geolocation.getCurrentPosition(pos=>{
       userLat=pos.coords.latitude;userLng=pos.coords.longitude;
       document.getElementById('gpsDot').className='gd on';
-      document.getElementById('gpsLbl').textContent='GPS atnaujintas';
+      
       if(userMarker) userMarker.setLatLng([userLat,userLng]);
       fetchWeather(userLat,userLng);
       checkProximity();
       showSmartSuggest();
-      toast('📍 GPS atnaujintas','success');
     },()=>{
-      document.getElementById('gpsLbl').textContent='GPS klaida';
+      
       toast('📍 Nepavyko atnaujinti GPS','info');
     },{enableHighAccuracy:true,timeout:10000});
   }
