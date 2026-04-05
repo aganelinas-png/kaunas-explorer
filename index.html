@@ -2841,25 +2841,37 @@ async function fetchOsmData(){
 );
 out center;`;
 
-    // ── QUERY 2: Unnamed infrastructure — no name filter, we generate names ──
-    const unnamedBody=`data=[out:json][timeout:30];
+    // ── QUERY 2: Unnamed infrastructure — nodes only (fast), bridges need name or ref ──
+    const unnamedBody=`data=[out:json][timeout:25];
 (
   node["man_made"="water_tower"](${bbox});
   node["man_made"="chimney"](${bbox});
-  way["bridge"="yes"]["highway"](${bbox});
-  way["bridge"="yes"]["railway"](${bbox});
-  way["natural"="cliff"](${bbox});
   node["natural"="cliff"](${bbox});
+  way["bridge"="yes"]["highway"]["name"](${bbox});
+  way["bridge"="yes"]["highway"]["ref"](${bbox});
 );
-out center;`;
+out center 80;`;
+
+    // Helper — fetch Overpass and return parsed JSON, throws readable error if XML/timeout
+    async function overpassFetch(body){
+      const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});
+      const text=await r.text();
+      if(text.trim().startsWith('<')){
+        if(r.status===504||text.includes('Gateway Time-out')) throw new Error('Overpass timeout — bandykite po minutės');
+        const remark=text.match(/<remark>(.*?)<\/remark>/)?.[1]||'Overpass klaida ('+r.status+')';
+        throw new Error(remark);
+      }
+      return JSON.parse(text);
+    }
 
     osmSetStatus('⏳ 1/2 Žymimos vietos...');
-    const res1=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:namedBody});
-    const d1=await res1.json();
+    const d1=await overpassFetch(namedBody);
+
+    // Small pause between requests to avoid Overpass rate limiting
+    await new Promise(r=>setTimeout(r,1200));
 
     osmSetStatus('⏳ 2/2 Infrastruktūra...');
-    const res2=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:unnamedBody});
-    const d2=await res2.json();
+    const d2=await overpassFetch(unnamedBody);
 
     // Process both result sets
     function processElement(e, requireName){
