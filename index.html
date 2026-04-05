@@ -44,8 +44,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .logo-sub{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--td);margin-top:1px}
 
 /* ── WEATHER ── */
-.wx-bubble{position:fixed;top:62px;left:12px;z-index:190;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);box-shadow:0 2px 12px var(--sh);cursor:pointer;display:flex;align-items:center;gap:6px;-webkit-user-select:none;user-select:none;transition:opacity .3s}
-.wx-expanded{position:fixed;top:62px;left:12px;z-index:191;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px var(--sh);min-width:180px;display:none}
+.wx-expanded{position:fixed;top:58px;right:12px;z-index:191;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px var(--sh);min-width:180px;display:none}
 .wx-expanded.open{display:block}
 .we-temp{font-family:'Playfair Display',serif;font-size:2rem;color:var(--txt);line-height:1}
 .we-desc{font-size:.75rem;color:var(--td);margin-top:2px;text-transform:capitalize}
@@ -106,7 +105,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .dnav-badge{background:var(--gold);color:#0e0c09;border-radius:10px;padding:2px 7px;font-size:.62rem;font-weight:700;font-family:'DM Mono',monospace;margin-left:auto}
 
 /* DRAWER BODY */
-.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.drawer-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 
 /* DRAWER BOTTOM */
 .drawer-bottom{padding:12px 16px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
@@ -129,8 +128,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .quest-done-badge{position:absolute;top:10px;right:12px;background:var(--green);color:#fff;border-radius:10px;padding:2px 8px;font-size:.62rem;font-family:'DM Mono',monospace}
 
 /* ── FILTER BAR ── */
-.filter-bar{position:fixed;top:62px;left:0;right:0;z-index:189;display:flex;gap:6px;padding:6px 12px;overflow-x:auto;scrollbar-width:none;pointer-events:none;opacity:0;transform:translateY(-6px);transition:all .3s}
-.filter-bar.visible{opacity:1;transform:translateY(0);pointer-events:all}
+.filter-bar{position:fixed;top:108px;left:0;right:0;z-index:189;display:flex;gap:6px;padding:0 12px 4px;overflow-x:auto;scrollbar-width:none}
 .filter-bar::-webkit-scrollbar{display:none}
 .fcap{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px;font-size:.7rem;font-family:'DM Mono',monospace;color:var(--td);white-space:nowrap;cursor:pointer;box-shadow:0 2px 8px var(--sh);transition:all .2s;flex-shrink:0;-webkit-user-select:none;user-select:none}
 .fcap.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
@@ -427,14 +425,13 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="streak-pill" id="streakPill" style="display:none">🔥 <span id="streakNum">0</span></div>
   </div>
   <div class="tb-right">
+    <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
     <div class="ib" id="themeBtn" onclick="toggleTheme()">🌙</div>
-    <div class="ib" id="filterBtn" onclick="toggleFilters()">🔍</div>
     <div class="ib" onclick="centerUser()">📍</div>
   </div>
 </div>
 
-<!-- WEATHER -->
-<div class="wx-bubble" id="wxBubble" onclick="toggleWeather()"><span id="wxIcon">🌤</span><span id="wxTemp">—°</span></div>
+<!-- WEATHER EXPANDED (drops from topbar weather button) -->
 <div class="wx-expanded" id="wxExpanded">
   <div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div><div class="we-temp" id="weTemp">—°C</div><div class="we-desc" id="weDesc">Kraunama...</div></div>
@@ -494,19 +491,17 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
   </div>
 
-  <!-- TIER PROGRESS -->
-  <div class="tier-progress" id="tierProgress"></div>
-
   <!-- NAV -->
-  <div class="drawer-nav">
+  <div class="drawer-nav" style="flex-shrink:0">
     <div class="dnav-item on" id="dnav-vietos" onclick="switchDrawerPanel('vietos')"><span>📋</span><span>Vietos</span></div>
     <div class="dnav-item" id="dnav-marsrutai" onclick="switchDrawerPanel('marsrutai')"><span>🧭</span><span>Maršrutai</span></div>
     <div class="dnav-item" id="dnav-zenklai" onclick="switchDrawerPanel('zenklai')"><span>🏅</span><span>Ženkleliai</span></div>
     <div class="dnav-item" id="dnav-social" onclick="switchDrawerPanel('social')"><span>👥</span><span>Draugai</span><span class="dnav-badge" id="socialBadge" style="display:none">!</span></div>
   </div>
 
-  <!-- PANEL CONTENT -->
+  <!-- PANEL CONTENT (tier-progress lives here now so it scrolls) -->
   <div class="drawer-body">
+    <div class="tier-progress" id="tierProgress"></div>
     <div class="panel-section active" id="panel-vietos"></div>
     <div class="panel-section" id="panel-marsrutai"></div>
     <div class="panel-section" id="panel-zenklai"></div>
@@ -514,7 +509,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   </div>
 
   <!-- DRAWER BOTTOM -->
-  <div class="drawer-bottom">
+  <div class="drawer-bottom" style="flex-shrink:0">
     <div class="dbot-btn pri" onclick="closeDrawer();openEditor(null)">+ Nauja vieta</div>
   </div>
 </div>
@@ -765,7 +760,7 @@ let SPOTS=[...DEFAULT_SPOTS];
 let found=new Set(),streak=0,lastDate=null,notes={},earnedBadges=new Set();
 let unlockedCats=new Set();
 let selectedSpot=null,userLat=null,userLng=null;
-let isDark=true,activeFilter='all',filterVisible=false;
+let isDark=true,activeFilter='all';
 let map,userMarker,markers={},tileLayer,areaCircles={};
 let activeRoute=null,routeStopIdx=0;
 let pickingForEditor=false,wxOpen=false,wxLoaded=false;
@@ -945,11 +940,6 @@ function centerUser(){
 
 // ═══════════ FILTER ═══════════
 
-function toggleFilters(){
-  filterVisible=!filterVisible;
-  document.getElementById('filterBar').classList.toggle('visible',filterVisible);
-  document.getElementById('filterBtn').classList.toggle('on',filterVisible);
-}
 function setFilter(cat){
   activeFilter=cat;
   document.querySelectorAll('.fcap').forEach(el=>el.classList.toggle('on',el.dataset.cat===cat));
@@ -1067,7 +1057,6 @@ function fetchWeather(lat,lng){
       const temp=Math.round(c.temperature_2m);
       const icon=wxIcon(c.weather_code);
       document.getElementById('wxIcon').textContent=icon;
-      document.getElementById('wxTemp').textContent=`${temp}°`;
       document.getElementById('weTemp').textContent=`${temp}°C`;
       document.getElementById('weIcon').textContent=icon;
       document.getElementById('weDesc').textContent=wxDesc(c.weather_code);
@@ -1076,19 +1065,21 @@ function fetchWeather(lat,lng){
       document.getElementById('weFeels').textContent=`${Math.round(c.apparent_temperature)}°C`;
     }).catch(()=>{});
 }
-function wxIcon(c){if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';if(c<=48)return'🌫';if(c<=57)return'🌦';if(c<=67)return'🌧';if(c<=77)return'🌨';if(c<=82)return'🌧';return'⛈';}
+function wxIcon(c){if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';if(c<=48)return'🌫';if(c<=57)return'🌦';if(c<=67)return'🌧';if(c<=77)return'❄️';if(c<=82)return'🌧';return'⛈';}
 function wxDesc(c){if(c===0)return'Giedra';if(c<=2)return'Iš dalies debesuota';if(c<=3)return'Debesuota';if(c<=48)return'Rūkas';if(c<=57)return'Šlapdriba';if(c<=67)return'Lietus';if(c<=77)return'Sniegas';if(c<=82)return'Liūtys';return'Perkūnija';}
 function toggleWeather(){
   wxOpen=!wxOpen;
   document.getElementById('wxExpanded').classList.toggle('open',wxOpen);
-  document.getElementById('wxBubble').style.opacity=wxOpen?'0':'1';
+  document.getElementById('wxBtn').classList.toggle('on',wxOpen);
   if(wxOpen) setTimeout(()=>document.addEventListener('click',closeWxOut,true),50);
 }
 function closeWxOut(e){
-  if(!document.getElementById('wxExpanded').contains(e.target)){
+  const exp=document.getElementById('wxExpanded');
+  const btn=document.getElementById('wxBtn');
+  if(!exp.contains(e.target)&&!btn.contains(e.target)){
     wxOpen=false;
-    document.getElementById('wxExpanded').classList.remove('open');
-    document.getElementById('wxBubble').style.opacity='1';
+    exp.classList.remove('open');
+    btn.classList.remove('on');
     document.removeEventListener('click',closeWxOut,true);
   }
 }
