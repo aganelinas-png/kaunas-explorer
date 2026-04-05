@@ -505,6 +505,33 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sb-desc{font-size:.88rem;color:var(--td);text-align:center;max-width:280px;line-height:1.7}
 .sb-tip{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 16px;text-align:center}
 .sb-btn{background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
+/* ── OSM IMPORT ── */
+.osm-wrap{padding:12px 14px}
+.osm-controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.osm-ctrl-btn{flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--txt);cursor:pointer;transition:all .2s;min-width:120px;text-align:center}
+.osm-ctrl-btn:active{background:var(--surf3)}
+.osm-ctrl-btn.pri{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
+.osm-ctrl-btn:disabled{opacity:.4;cursor:default}
+.osm-filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.osm-fchip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:4px 10px;font-size:.68rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
+.osm-fchip.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
+.osm-status{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-bottom:10px;min-height:20px}
+.osm-list{display:flex;flex-direction:column;gap:2px}
+.osm-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
+.osm-item.selected{border-color:var(--gold);background:rgba(201,168,76,.08)}
+.osm-item.already{opacity:.4;cursor:default;pointer-events:none}
+.osm-item:not(.already):active{opacity:.7}
+.osm-check{width:18px;height:18px;border-radius:5px;border:2px solid var(--bdr);background:var(--surf3);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;transition:all .15s}
+.osm-item.selected .osm-check{background:var(--gold);border-color:var(--gold);color:#0e0c09}
+.osm-item.already .osm-check{background:var(--green);border-color:var(--green);color:#fff}
+.osm-emoji{font-size:16px;flex-shrink:0}
+.osm-info{flex:1;min-width:0}
+.osm-name{font-size:.82rem;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.osm-meta{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-top:1px}
+.osm-tier-row{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.osm-tier-label{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);flex-shrink:0}
+.osm-tier-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:5px 10px;font-size:.7rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;-webkit-user-select:none;user-select:none}
+.osm-tier-btn.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
 .auth-bar{position:fixed;bottom:0;left:0;right:0;z-index:190;background:var(--surf);border-top:1px solid var(--bdr);padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 20px var(--sh)}
 .auth-bar.hidden{display:none}
 .auth-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold);object-fit:cover;flex-shrink:0}
@@ -642,8 +669,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     </div>
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
+      <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
     </div>
-    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v12.0</div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v12.1</div>
   </div>
 
   <!-- SUB-PANEL: slides in from right -->
@@ -657,6 +685,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="panel-section" id="panel-marsrutai"></div>
       <div class="panel-section" id="panel-zenklai"></div>
       <div class="panel-section" id="panel-social"></div>
+      <div class="panel-section" id="panel-osm"></div>
     </div>
   </div>
 
@@ -1395,7 +1424,8 @@ const PANEL_TITLES={
   vietos:'📋 Vietos',
   marsrutai:'🧭 Maršrutai',
   zenklai:'🏅 Ženkleliai',
-  social:'👥 Draugai'
+  social:'👥 Draugai',
+  osm:'🗺 OSM Import'
 };
 
 function openSubPanel(name){
@@ -1410,6 +1440,7 @@ function openSubPanel(name){
   if(name==='marsrutai') renderRoutes();
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
+  if(name==='osm') renderOsmImport();
 }
 
 function closeSubPanel(instant){
@@ -2484,6 +2515,173 @@ function osmPick(lat,lng,name){
   toast('📍 Vieta parinkta','success');
 }
 
+// ═══════════ OSM BULK IMPORT ═══════════
+
+const OSM_CAT_MAP={
+  'place_of_worship':'church',
+  'museum':'museum',
+  'castle':'fort','fort':'fort','bunker':'fort',
+  'ruins':'history','monument':'history','memorial':'history','archaeological_site':'history',
+  'park':'nature','garden':'nature','nature_reserve':'nature',
+  'attraction':'history','gallery':'museum','artwork':'history',
+};
+const OSM_CAT_EMOJI={church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',modern:'🏗',soviet:'⭐'};
+
+let _osmImportData=[];
+let _osmSelected=new Set();
+let _osmFilter='all';
+let _osmTier=1;
+let _osmLoading=false;
+
+async function fetchOsmData(){
+  if(_osmLoading) return;
+  _osmLoading=true;
+  osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
+  try{
+    const body=`data=[out:json][timeout:30];
+(
+  node["amenity"="place_of_worship"]["name"](54.82,23.82,54.99,24.02);
+  way["amenity"="place_of_worship"]["name"](54.82,23.82,54.99,24.02);
+  node["tourism"="museum"]["name"](54.82,23.82,54.99,24.02);
+  way["tourism"="museum"]["name"](54.82,23.82,54.99,24.02);
+  node["tourism"="gallery"]["name"](54.82,23.82,54.99,24.02);
+  node["tourism"="attraction"]["name"](54.82,23.82,54.99,24.02);
+  way["tourism"="attraction"]["name"](54.82,23.82,54.99,24.02);
+  node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](54.82,23.82,54.99,24.02);
+  way["historic"~"castle|monument|memorial|ruins|fort|archaeological_site"]["name"](54.82,23.82,54.99,24.02);
+  node["leisure"~"park|garden|nature_reserve"]["name"](54.82,23.82,54.99,24.02);
+  way["leisure"~"park|garden|nature_reserve"]["name"](54.82,23.82,54.99,24.02);
+  node["military"~"bunker|fort"]["name"](54.82,23.82,54.99,24.02);
+  way["military"~"bunker|fort"]["name"](54.82,23.82,54.99,24.02);
+);
+out center;`;
+    const res=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});
+    const data=await res.json();
+    _osmImportData=data.elements
+      .filter(e=>e.tags&&e.tags.name)
+      .map(e=>{
+        const lat=parseFloat((e.lat||(e.center&&e.center.lat)||0).toFixed(6));
+        const lng=parseFloat((e.lon||(e.center&&e.center.lon)||0).toFixed(6));
+        if(!lat||!lng) return null;
+        const t=e.tags;
+        const typeKey=t.historic||t.tourism||t.amenity||t.leisure||t.military||'';
+        const cat=OSM_CAT_MAP[typeKey]||'history';
+        const alreadyIn=SPOTS.some(s=>Math.abs(s.lat-lat)<0.0005&&Math.abs(s.lng-lng)<0.0005);
+        return{name:t.name,nameLt:t['name:lt']||'',cat,lat,lng,typeKey,alreadyIn,tags:t};
+      })
+      .filter(Boolean)
+      .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
+    osmSetStatus(`✅ Rasta ${_osmImportData.length} vietų. Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+    renderOsmList();
+  }catch(e){
+    osmSetStatus('❌ Klaida: '+e.message);
+  }
+  _osmLoading=false;
+}
+
+function osmSetStatus(msg){
+  const el=document.getElementById('osmStatus');
+  if(el) el.textContent=msg;
+}
+
+function osmToggleItem(idx){
+  if(_osmImportData[idx]?.alreadyIn) return;
+  if(_osmSelected.has(idx)) _osmSelected.delete(idx);
+  else _osmSelected.add(idx);
+  renderOsmList();
+}
+
+function osmSelectAll(){
+  _osmImportData.forEach((item,i)=>{if(!item.alreadyIn&&(_osmFilter==='all'||item.cat===_osmFilter)) _osmSelected.add(i);});
+  renderOsmList();
+}
+function osmSelectNone(){_osmSelected.clear();renderOsmList();}
+
+function osmSetFilter(cat){
+  _osmFilter=cat;
+  document.querySelectorAll('.osm-fchip').forEach(el=>el.classList.toggle('on',el.dataset.cat===cat));
+  renderOsmList();
+}
+
+function osmSetTier(t){
+  _osmTier=t;
+  document.querySelectorAll('.osm-tier-btn').forEach(el=>el.classList.toggle('on',parseInt(el.dataset.t)===t));
+}
+
+function renderOsmList(){
+  const list=document.getElementById('osmList');
+  if(!list) return;
+  const filtered=_osmImportData.map((item,i)=>({item,i})).filter(({item})=>_osmFilter==='all'||item.cat===_osmFilter);
+  const selCount=_osmSelected.size;
+  const importBtn=document.getElementById('osmImportBtn');
+  if(importBtn) importBtn.textContent=selCount>0?`✅ Importuoti ${selCount} vietų`:'✅ Importuoti';
+  if(!filtered.length){list.innerHTML=`<div style="text-align:center;padding:24px;color:var(--td);font-size:.82rem">Nėra vietų šioje kategorijoje</div>`;return;}
+  list.innerHTML=filtered.map(({item,i})=>`
+    <div class="osm-item ${_osmSelected.has(i)?'selected':''} ${item.alreadyIn?'already':''}" onclick="osmToggleItem(${i})">
+      <div class="osm-check">${item.alreadyIn?'✓':_osmSelected.has(i)?'✓':''}</div>
+      <div class="osm-emoji">${OSM_CAT_EMOJI[item.cat]||'📍'}</div>
+      <div class="osm-info">
+        <div class="osm-name">${item.name}</div>
+        <div class="osm-meta">${item.cat} · ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}${item.alreadyIn?' · <span style="color:var(--green)">jau pridėta</span>':''}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function osmImportSelected(){
+  if(_osmSelected.size===0){toast('⚠ Nepasirinkta jokių vietų','info');return;}
+  const btn=document.getElementById('osmImportBtn');
+  if(btn){btn.disabled=true;btn.textContent='Importuojama...';}
+  const{db,collection,addDoc,serverTimestamp}=window._fb||{};
+  if(!db){toast('Firebase nepasiekiamas','info');if(btn)btn.disabled=false;return;}
+  let imported=0;
+  for(const idx of _osmSelected){
+    const item=_osmImportData[idx];
+    if(!item||item.alreadyIn) continue;
+    try{
+      const spot={
+        name:item.name,cat:item.cat,tier:_osmTier,
+        lat:item.lat,lng:item.lng,
+        radius:DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
+        history:'',bring:[],
+        createdAt:serverTimestamp()
+      };
+      await addDoc(collection(db,'spots'),spot);
+      item.alreadyIn=true;
+      imported++;
+    }catch(e){console.error('Import error',e);}
+  }
+  _osmSelected.clear();
+  if(btn){btn.disabled=false;}
+  toast(`📍 Importuota ${imported} vietų!`,'success');
+  osmSetStatus(`✅ Importuota ${imported}. Iš viso DB: ${_osmImportData.filter(x=>x.alreadyIn).length} / ${_osmImportData.length}`);
+  renderOsmList();
+}
+
+function renderOsmImport(){
+  const body=document.getElementById('panel-osm');
+  if(!body) return;
+  const cats=['all','church','museum','fort','nature','history'];
+  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija'};
+  body.innerHTML=`<div class="osm-wrap">
+    <div class="osm-controls">
+      <button class="osm-ctrl-btn" onclick="fetchOsmData()">🔄 Įkelti iš OSM</button>
+      <button class="osm-ctrl-btn" onclick="osmSelectAll()">☑ Visos</button>
+      <button class="osm-ctrl-btn" onclick="osmSelectNone()">☐ Nė viena</button>
+      <button class="osm-ctrl-btn pri" id="osmImportBtn" onclick="osmImportSelected()">✅ Importuoti</button>
+    </div>
+    <div class="osm-filter-row">
+      ${cats.map(c=>`<div class="osm-fchip ${_osmFilter===c?'on':''}" data-cat="${c}" onclick="osmSetFilter('${c}')">${catLabels[c]}</div>`).join('')}
+    </div>
+    <div class="osm-tier-row">
+      <span class="osm-tier-label">Tier:</span>
+      ${[1,2,3].map(t=>`<button class="osm-tier-btn ${_osmTier===t?'on':''}" data-t="${t}" onclick="osmSetTier(${t})">T${t}</button>`).join('')}
+    </div>
+    <div class="osm-status" id="osmStatus">${_osmImportData.length?`${_osmImportData.length} vietų įkeltos`:'Spausk "Įkelti iš OSM" pradėti'}</div>
+    <div class="osm-list" id="osmList"></div>
+  </div>`;
+  if(_osmImportData.length) renderOsmList();
+}
+
 // ═══════════ INIT ═══════════
 
 load();initMap();updateAll();startGPS();
@@ -2496,6 +2694,7 @@ window.onFbAuthReady=function(user){
   // Show admin-only UI
   document.getElementById('adminFab').style.display=isAdmin?'flex':'none';
   document.getElementById('drawerAddBtn').style.display=isAdmin?'':'none';
+  document.getElementById('drawerOsmBtn').style.display=isAdmin?'':'none';
   if(user){
     updateAuthUI(user);
     fbLoadSpots();
