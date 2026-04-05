@@ -671,7 +671,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
     </div>
-    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v12.1</div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v12.2</div>
   </div>
 
   <!-- SUB-PANEL: slides in from right -->
@@ -1430,7 +1430,7 @@ const PANEL_TITLES={
 
 function openSubPanel(name){
   // Show only the right panel
-  ['vietos','marsrutai','zenklai','social'].forEach(p=>{
+  ['vietos','marsrutai','zenklai','social','osm'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
