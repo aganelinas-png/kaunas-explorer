@@ -2196,6 +2196,8 @@ function setSyncDot(state){
 }
 
 // Load shared spots from Firestore (replaces/merges with defaults)
+let _fbSeeding=false; // local lock to prevent race condition double-push
+
 async function fbLoadSpots(){
   const{db,collection,onSnapshot,doc,getDoc,setDoc}=window._fb||{};
   if(!db) return;
@@ -2204,13 +2206,15 @@ async function fbLoadSpots(){
     onSnapshot(collection(db,'spots'),async snapshot=>{
       if(snapshot.empty){
         const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
-        if(!isAdmin) return;
-        // Guard: only seed once ever using a _meta flag in Firestore
+        if(!isAdmin||_fbSeeding) return; // not admin, or already seeding
+        _fbSeeding=true;
+        // Check Firestore flag — prevents re-seeding if spots were manually deleted
         const flagRef=doc(db,'_meta','seeded');
         const flagSnap=await getDoc(flagRef);
-        if(flagSnap.exists()) return; // already seeded, don't double-push
+        if(flagSnap.exists()){_fbSeeding=false;return;}
         await setDoc(flagRef,{at:window._fb.serverTimestamp()});
-        fbPushDefaultSpots();
+        await fbPushDefaultSpots();
+        _fbSeeding=false;
         return;
       }
       const firestoreSpots=[];
