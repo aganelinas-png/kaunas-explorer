@@ -316,7 +316,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .mbtn:active{transform:scale(.97)}
 
 /* ── TOASTS ── */
-.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%));z-index:999;display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none;width:90%;max-width:320px}
+.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none;width:90%;max-width:320px}
 .toast{background:var(--surf);border:1px solid var(--bdr);border-radius:24px;padding:10px 18px;font-size:.82rem;color:var(--txt);box-shadow:0 4px 20px var(--sh);opacity:0;transform:translateY(10px) scale(.95);transition:opacity .25s,transform .25s;white-space:nowrap;max-width:100%;overflow:hidden;display:flex;align-items:center;gap:7px}
 .toast.show{opacity:1;transform:translateY(0) scale(1)}
 .toast.success{border-color:var(--green);color:var(--green)}
@@ -508,7 +508,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 <div class="topbar">
   <div class="tb-left">
     <div class="ib" onclick="openDrawer()">☰</div>
-    <div class="logo-pill" onclick="handleLogoClic()">
+    <div class="logo-pill" onclick="handleLogoClick()">
       <div class="logo-text">Kaunas Explorer</div>
       <div class="logo-sub" id="topSub">0 / 0 surinkta</div>
     </div>
@@ -942,7 +942,7 @@ let streakRewards=new Set();
 let hiddenSpotUnlocked=false;
 let oldStreak=0;
 let nextSuggestId=null;
-let smartSuggestDismissed=false;
+let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
 
 // ═══════════ TIER UNLOCK ═══════════
 
@@ -1342,9 +1342,9 @@ function getDailyQuestTarget(){
 }
 
 function getDailyQuestProgress(){
-  // Count spots collected today
-  const collected=parseInt(localStorage.getItem('ke7_collected_today')||'0');
-  return collected;
+  const today=new Date().toDateString();
+  if(localStorage.getItem('ke7_collect_date')!==today) return 0;
+  return parseInt(localStorage.getItem('ke7_collected_today')||'0');
 }
 
 function incrementDailyCollect(){
@@ -1613,7 +1613,7 @@ function checkEasterEggs(collectSpot){
 function checkEasterEggsPassive(){
   EASTER_EGGS.forEach(egg=>{
     if(triggeredEggs.has(egg.id)) return;
-    if(egg.id==='egg_logo_secret'||egg.id==='egg_fort_first') return; // need spot arg
+    if(egg.id==='egg_fort_first') return; // needs spot arg — checked via checkEasterEggs(spot)
     let ok=false;
     try{ok=egg.check(null);}catch(e){}
     if(ok) triggerEgg(egg);
@@ -1634,7 +1634,7 @@ function triggerEgg(egg){
 function closeEgg(){document.getElementById('eggOverlay').classList.remove('show');}
 
 // Logo click easter egg
-function handleLogoClic(){
+function handleLogoClick(){
   logoClickCount++;
   clearTimeout(logoClickTimer);
   logoClickTimer=setTimeout(()=>{logoClickCount=0;},2000);
@@ -2092,10 +2092,11 @@ function checkStreakBreakOnLoad(){
   if(lastDate===yest) return;
   if(oldStreak>=2){
     const lostStreak=oldStreak;
+    const lastSeen=lastDate?new Date(lastDate).toLocaleDateString('lt-LT',{month:'short',day:'numeric'}):'nežinoma';
     streakRewards.clear();
     oldStreak=0;streak=0;save();
     setTimeout(()=>{
-      document.getElementById('sbDesc').textContent=`Tavo ${lostStreak} dienų serija baigėsi. Pradėk iš naujo!`;
+      document.getElementById('sbDesc').textContent=`Tavo ${lostStreak} dienų serija baigėsi. Paskutinį kartą lankėtės ${lastSeen} — serija prarasta.`;
       document.getElementById('streakBreakOverlay').classList.add('show');
     },800);
   }
@@ -2241,7 +2242,7 @@ function showSmartSuggest(){
   document.getElementById('ssBody').innerHTML=html;
   document.getElementById('smartSuggest').style.display='block';
 }
-function dismissSmartSuggest(){smartSuggestDismissed=true;document.getElementById('smartSuggest').style.display='none';}
+function dismissSmartSuggest(){smartSuggestDismissed=true;localStorage.setItem('ke7_ssd',new Date().toDateString());document.getElementById('smartSuggest').style.display='none';}
 function smartSuggestGo(id){
   document.getElementById('smartSuggest').style.display='none';
   const s=SPOTS.find(x=>x.id===id);
@@ -2250,7 +2251,11 @@ function smartSuggestGo(id){
 
 // ═══════════ GPS REFRESH ═══════════
 
+let _gpsRefreshTs=0;
 function refreshGPS(){
+  const now=Date.now();
+  if(now-_gpsRefreshTs<8000){toast('⌛ Palaukite prieš atnaujinant GPS','info');return;}
+  _gpsRefreshTs=now;
   const btn=document.querySelector('.gps-refresh');
   if(btn){btn.classList.add('spinning');setTimeout(()=>btn.classList.remove('spinning'),800);}
   document.getElementById('gpsLbl').textContent='Atnaujinama...';
