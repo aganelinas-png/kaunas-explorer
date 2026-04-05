@@ -706,7 +706,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <div class="tb-filters" id="filterBar">
     <div class="fcap on" data-cat="all" onclick="setFilter('all')">Visos</div>
     <div class="fgroup" data-group="heritage" onclick="toggleFilterGroup('heritage')">🏛 Paveldas <span class="fg-arr">▾</span></div>
-    <div class="fgroup" data-group="soviet" onclick="toggleFilterGroup('soviet')">⭐ Sovietika <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="nature" onclick="toggleFilterGroup('nature')">🌿 Gamta <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="urban" onclick="toggleFilterGroup('urban')">🏙 Miestas <span class="fg-arr">▾</span></div>
   </div>
@@ -845,20 +844,14 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           <option value="mound">⛰ Piliakalnis</option>
           <option value="cemetery">⚱️ Kapinės</option>
           </optgroup>
-          <optgroup label="— Sovietika —">
-          <option value="soviet">⭐ Sovietika</option>
-          <option value="mural">🎨 Gatvės menas</option>
-          </optgroup>
           <optgroup label="— Gamta —">
           <option value="nature">🌿 Gamta</option>
           <option value="trail">🥾 Takai</option>
-          <option value="cliff">🪨 Skardžiai</option>
           <option value="viewpoint">🔭 Apžvalgos</option>
           </optgroup>
           <optgroup label="— Miestas —">
-          <option value="modern">🏗 Modernizmas</option>
+          <option value="mural">🎨 Gatvės menas</option>
           <option value="watertower">🗼 Vandens bokštai</option>
-          <option value="industrial">🏭 Industrija</option>
           <option value="bridge">🌉 Tiltai</option>
           </optgroup>
         </select>
@@ -1031,26 +1024,20 @@ const CATS={
   monument:{label:'Monumentai',emoji:'🗿',color:'#8B6914'},
   mound:{label:'Piliakalnis',emoji:'⛰',color:'#5a7a3a'},
   cemetery:{label:'Kapinės',emoji:'⚱️',color:'#5a5a6a'},
-  // — Soviet —
-  soviet:{label:'Sovietika',emoji:'⭐',color:'#8B0000'},
-  mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   // — Nature —
   nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
   trail:{label:'Takai',emoji:'🥾',color:'#3a7a5a'},
-  cliff:{label:'Skardžiai',emoji:'🪨',color:'#7a6a5a'},
   viewpoint:{label:'Apžvalgos',emoji:'🔭',color:'#1a6b8a'},
-  // — Urban —
-  modern:{label:'Modernizmas',emoji:'🏗',color:'#6a5acd'},
+  // — Urban / City —
+  mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
-  industrial:{label:'Industrija',emoji:'🏭',color:'#5a4a3a'},
   bridge:{label:'Tiltai',emoji:'🌉',color:'#3a5a7a'},
 };
 
 const FILTER_GROUPS=[
   {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['fort','church','museum','history','monument','mound','cemetery']},
-  {id:'soviet',label:'Sovietika',emoji:'⭐',cats:['soviet','mural']},
-  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','trail','cliff','viewpoint']},
-  {id:'urban',label:'Miestas',emoji:'🏙',cats:['modern','watertower','industrial','bridge']},
+  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','trail','viewpoint']},
+  {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower','bridge']},
 ];
 
 const TIER_CONFIG={
@@ -1064,23 +1051,19 @@ const DEFAULT_RADIUS=80;
 
 // Per-category sensible defaults — used when no explicit radius is set
 const CAT_DEFAULT_RADIUS={
-  viewpoint:50,    // tower/deck — you're either there or not
-  monument:55,     // small sculpture, precise point
-  mural:55,        // street corner
-  church:65,       // building entrance
-  museum:65,       // building entrance
-  watertower:70,   // specific structure
-  bridge:80,       // walk onto it
-  history:80,      // generic
-  modern:80,
-  soviet:80,
-  fort:130,        // large earthwork area
-  industrial:100,  // factory grounds
-  nature:150,      // parks are wide
-  mound:160,       // hill — need to climb it
-  trail:200,       // trailhead area
-  cliff:200,       // ridge edge, can't get too close
-  cemetery:220,    // large grounds
+  viewpoint:50,
+  monument:55,
+  mural:55,
+  church:65,
+  museum:65,
+  watertower:70,
+  bridge:80,
+  history:80,
+  fort:130,
+  nature:150,
+  mound:160,
+  trail:200,
+  cemetery:220,
 };
 
 const DEFAULT_SPOTS=[
@@ -1122,94 +1105,74 @@ const BADGE_GROUPS=[
     {id:'f1',name:'Pirmasis fortas',desc:'Aplankyk 1 fortą',icon:'🏰',need:1},
     {id:'f2',name:'Fortų sargas',desc:'Aplankyk 3 fortus',icon:'🛡',need:3},
     {id:'f3',name:'Fortų valdovas',desc:'Aplankyk 6 fortų',icon:'👑',need:6},
-    {id:'f4',name:'Fortų Legenda',desc:'Aplankyk 10 fortų',icon:'💎',need:10},
+    {id:'f4',name:'Geležinis Gynėjas',desc:'Aplankyk 10 fortų',icon:'💎',need:10},
   ]},
   {id:'churches',title:'Bažnyčių piligimas',icon:'⛪',cat:'church',sub:true,badges:[
     {id:'c1',name:'Piligimas',desc:'Aplankyk 1 bažnyčią',icon:'⛪',need:1},
     {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Aplankyk 5 bažnyčias',icon:'✝',need:5},
     {id:'c3',name:'Dvasios keliautojas',desc:'Aplankyk 10 bažnyčių',icon:'🕊',need:10},
-    {id:'c4',name:'Šventyklos meistras',desc:'Aplankyk 20 bažnyčių',icon:'💎',need:20},
+    {id:'c4',name:'Šventasis',desc:'Aplankyk 20 bažnyčių',icon:'💎',need:20},
   ]},
   {id:'museums',title:'Muziejų kuratorius',icon:'🏛',cat:'museum',sub:true,badges:[
     {id:'m1',name:'Lankytojas',desc:'Aplankyk 1 muziejų',icon:'🎟',need:1},
     {id:'m2',name:'Kuratorius',desc:'Aplankyk 5 muziejus',icon:'🏛',need:5},
     {id:'m3',name:'Kultūros sargas',desc:'Aplankyk 10 muziejų',icon:'🎭',need:10},
-    {id:'m4',name:'Muziejų Legenda',desc:'Aplankyk 20 muziejų',icon:'💎',need:20},
+    {id:'m4',name:'Kultūros Archyvistas',desc:'Aplankyk 20 muziejų',icon:'💎',need:20},
   ]},
   {id:'history',title:'Istorijos ieškotojas',icon:'⚔',cat:'history',sub:true,badges:[
     {id:'h1',name:'Kronikininkas',desc:'Aplankyk 3 istorines vietas',icon:'⚔',need:3},
     {id:'h2',name:'Praeities balsas',desc:'Aplankyk 10 istorinių vietų',icon:'🗞',need:10},
-    {id:'h3',name:'Istorijos meistras',desc:'Aplankyk 25 istorinių vietų',icon:'💎',need:25},
+    {id:'h3',name:'Laikų Kronikos Sergėtojas',desc:'Aplankyk 25 istorinių vietų',icon:'💎',need:25},
   ]},
   {id:'monuments',title:'Skulptūrų kolekcionierius',icon:'🗿',cat:'monument',sub:true,badges:[
     {id:'mon1',name:'Akmeninė istorija',desc:'Aplankyk 1 monumentą',icon:'🗿',need:1},
     {id:'mon2',name:'Skulptūrų sargas',desc:'Aplankyk 5 monumentus',icon:'🏺',need:5},
     {id:'mon3',name:'Miesto atminimas',desc:'Aplankyk 10 monumentų',icon:'🗽',need:10},
-    {id:'mon4',name:'Monumentų Legenda',desc:'Aplankyk 25 monumentų',icon:'💎',need:25},
+    {id:'mon4',name:'Miesto Atminties Šauklys',desc:'Aplankyk 25 monumentų',icon:'💎',need:25},
   ]},
   {id:'mounds',title:'Piliakalninkas',icon:'⛰',cat:'mound',sub:true,badges:[
     {id:'mnd1',name:'Kalno valdovas',desc:'Aplankyk 1 piliakalnis',icon:'⛰',need:1},
     {id:'mnd2',name:'Senovės gynėjas',desc:'Aplankyk 4 piliakalnius',icon:'🪖',need:4},
-    {id:'mnd3',name:'Piliakalnių Legenda',desc:'Aplankyk 8 piliakalnius',icon:'💎',need:8},
+    {id:'mnd3',name:'Senovės Gynių Dvasia',desc:'Aplankyk 8 piliakalnius',icon:'💎',need:8},
   ]},
   {id:'cemeteries',title:'Kapinių keleivas',icon:'⚱️',cat:'cemetery',sub:true,badges:[
     {id:'cem1',name:'Atminties sargas',desc:'Aplankyk 2 kapines',icon:'⚱️',need:2},
     {id:'cem2',name:'Amžinojo poilsio tyrinėtojas',desc:'Aplankyk 5 kapines',icon:'🕯',need:5},
-    {id:'cem3',name:'Kapinių Legenda',desc:'Aplankyk 10 kapinių',icon:'💎',need:10},
+    {id:'cem3',name:'Amžinybės Sargybinis',desc:'Aplankyk 10 kapinių',icon:'💎',need:10},
   ]},
   // ── Soviet ──
-  {id:'soviet',title:'Sovietikos žinovas',icon:'⭐',cat:'soviet',sub:true,badges:[
-    {id:'s1',name:'Raudonas žvaigždelė',desc:'Aplankyk 2 sovietines vietas',icon:'⭐',need:2},
-    {id:'s2',name:'Epochos liudytojas',desc:'Aplankyk 5 sovietines vietas',icon:'🔴',need:5},
-    {id:'s3',name:'Sovietikos Legenda',desc:'Aplankyk 10 sovietinių vietų',icon:'💎',need:10},
-  ]},
   {id:'murals',title:'Gatvės meno gerbėjas',icon:'🎨',cat:'mural',sub:true,badges:[
     {id:'mrl1',name:'Pirmas piešinys',desc:'Aplankyk 1 gatvės meno kūrinį',icon:'🎨',need:1},
     {id:'mrl2',name:'Miesto tapytojas',desc:'Aplankyk 5 gatvės meno kūrinius',icon:'🖌',need:5},
     {id:'mrl3',name:'Grafičio karalius',desc:'Aplankyk 10 gatvės meno kūrinių',icon:'🎭',need:10},
-    {id:'mrl4',name:'Gatvės meno Legenda',desc:'Aplankyk 25 gatvės meno kūrinių',icon:'💎',need:25},
+    {id:'mrl4',name:'Miesto Spalvų Dievas',desc:'Aplankyk 25 gatvės meno kūrinių',icon:'💎',need:25},
   ]},
   // ── Nature ──
   {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
     {id:'n1',name:'Žaliasis miestas',desc:'Aplankyk 3 gamtos vietas',icon:'🌿',need:3},
     {id:'n2',name:'Miško dvasia',desc:'Aplankyk 8 gamtos vietų',icon:'🌳',need:8},
-    {id:'n3',name:'Gamtos Legenda',desc:'Aplankyk 20 gamtos vietų',icon:'💎',need:20},
+    {id:'n3',name:'Žalioji Siela',desc:'Aplankyk 20 gamtos vietų',icon:'💎',need:20},
   ]},
   {id:'trails',title:'Takų ieškotojas',icon:'🥾',cat:'trail',sub:true,badges:[
     {id:'tr1',name:'Pirmas takas',desc:'Aplankyk 1 taką',icon:'🥾',need:1},
     {id:'tr2',name:'Takų veteranas',desc:'Aplankyk 4 takus',icon:'🏕',need:4},
-    {id:'tr3',name:'Takų Legenda',desc:'Aplankyk 8 takų',icon:'💎',need:8},
+    {id:'tr3',name:'Laukinių Kelių Valdovas',desc:'Aplankyk 8 takų',icon:'💎',need:8},
   ]},
   {id:'viewpoints',title:'Panoramų medžiotojas',icon:'🔭',cat:'viewpoint',sub:true,badges:[
     {id:'vp1',name:'Pirmoji panorama',desc:'Aplankyk 1 apžvalgos tašką',icon:'🔭',need:1},
     {id:'vp2',name:'Debesų vaikščiotojas',desc:'Aplankyk 5 apžvalgos taškus',icon:'🌄',need:5},
-    {id:'vp3',name:'Panoramų Legenda',desc:'Aplankyk 12 apžvalgos taškų',icon:'💎',need:12},
-  ]},
-  {id:'cliffs',title:'Skardžių drąsuolis',icon:'🪨',cat:'cliff',sub:true,badges:[
-    {id:'cl1',name:'Uolos liudytojas',desc:'Aplankyk 2 skardžius',icon:'🪨',need:2},
-    {id:'cl2',name:'Kraštovaizdžio valdovas',desc:'Aplankyk 5 skardžius',icon:'🏔',need:5},
-    {id:'cl3',name:'Skardžių Legenda',desc:'Aplankyk 10 skardžių',icon:'💎',need:10},
+    {id:'vp3',name:'Horizontų Meistras',desc:'Aplankyk 12 apžvalgos taškų',icon:'💎',need:12},
   ]},
   // ── Urban ──
-  {id:'modern',title:'Modernizmo žinovas',icon:'🏗',cat:'modern',sub:true,badges:[
-    {id:'mod1',name:'Architektas',desc:'Aplankyk 3 modernizmo vietas',icon:'🏗',need:3},
-    {id:'mod2',name:'Tarpukario dvasia',desc:'Aplankyk 7 modernizmo vietų',icon:'🏙',need:7},
-    {id:'mod3',name:'Modernizmo Legenda',desc:'Aplankyk 15 modernizmo vietų',icon:'💎',need:15},
-  ]},
   {id:'watertowers',title:'Vandens bokštų medžiotojas',icon:'🗼',cat:'watertower',sub:true,badges:[
     {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1},
     {id:'wt2',name:'Bokštų kolekcininkas',desc:'Aplankyk 5 vandens bokštus',icon:'🏗',need:5},
-    {id:'wt3',name:'Bokštų Legenda',desc:'Aplankyk 12 vandens bokštų',icon:'💎',need:12},
-  ]},
-  {id:'industrial',title:'Industrijos tyrinėtojas',icon:'🏭',cat:'industrial',sub:true,badges:[
-    {id:'ind1',name:'Pramonės detektyvas',desc:'Aplankyk 3 pramonės objektus',icon:'🏭',need:3},
-    {id:'ind2',name:'Rūkstančių kaminų era',desc:'Aplankyk 8 pramonės objektų',icon:'🔧',need:8},
-    {id:'ind3',name:'Industrijos Legenda',desc:'Aplankyk 20 pramonės objektų',icon:'💎',need:20},
+    {id:'wt3',name:'Miesto Viršūnių Šeimininkas',desc:'Aplankyk 12 vandens bokštų',icon:'💎',need:12},
   ]},
   {id:'bridges',title:'Tiltų meistras',icon:'🌉',cat:'bridge',sub:true,badges:[
     {id:'br1',name:'Pirmasis tiltas',desc:'Aplankyk 1 tiltą',icon:'🌉',need:1},
     {id:'br2',name:'Tiltų kolekcionierius',desc:'Aplankyk 4 tiltus',icon:'⛵',need:4},
-    {id:'br3',name:'Tiltų Legenda',desc:'Aplankyk 8 tiltų',icon:'💎',need:8},
+    {id:'br3',name:'Upių Jungiamoji Ranka',desc:'Aplankyk 8 tiltų',icon:'💎',need:8},
   ]},
   // ── Progress ──
   {id:'tiers',title:'Tiero pažanga',icon:'⭐',cat:null,badges:[
@@ -1223,10 +1186,10 @@ const BADGE_GROUPS=[
     {id:'g3',name:'Rimtas tyrinėtojas',desc:'25 vietos surinktos',icon:'🌟',need:25,all:true},
     {id:'g4',name:'Miesto ekspertas',desc:'50 vietų surinkta',icon:'🏆',need:50,all:true},
     {id:'g5',name:'Legendinis keliautojas',desc:'100 vietų surinkta',icon:'👑',need:100,all:true},
-    {id:'g6',name:'Nemirtingas tyrinėtojas',desc:'250 vietų surinkta',icon:'💎',need:250,all:true},
+    {id:'g6',name:'Amžinasis Klajoklis',desc:'250 vietų surinkta',icon:'💎',need:250,all:true},
     {id:'st3',name:'3 dienų serija',desc:'3 dienos iš eilės',icon:'🔥',streak:3},
     {id:'st7',name:'Savaitinis tyrinėtojas',desc:'7 dienos iš eilės',icon:'⚡',streak:7},
-    {id:'st30',name:'Mėnesio herojus',desc:'30 dienų iš eilės',icon:'💎',streak:30},
+    {id:'st30',name:'Nenugalimas Keliautojas',desc:'30 dienų iš eilės',icon:'💎',streak:30},
   ]},
 ];
 
@@ -1790,7 +1753,9 @@ function openDrawer(){
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   document.getElementById('drawerBackdrop').classList.remove('open');
-  closeSubPanel(true); // close sub-panel without animation when drawer closes
+  closeSubPanel(true);
+  // On mobile the drawer covers the full map — invalidate after transition
+  setTimeout(()=>map&&map.invalidateSize(),350);
 }
 
 const PANEL_TITLES={
@@ -2273,7 +2238,16 @@ function surpriseMe(){
 
 function renderRoutes(){
   const body=document.getElementById('panel-marsrutai');
+  const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
   body.innerHTML='';
+
+  if(isAdmin){
+    const adminBtn=document.createElement('div');
+    adminBtn.style.cssText='padding:10px 14px;';
+    adminBtn.innerHTML=`<button onclick="openRouteEditor()" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--td);cursor:pointer;">✏️ Redaguoti maršrutus</button>`;
+    body.appendChild(adminBtn);
+  }
+
   ROUTES.forEach(route=>{
     const total=route.stops.length;
     const done=route.stops.filter(id=>found.has(id)).length;
@@ -2293,10 +2267,10 @@ function renderRoutes(){
         <div class="rc-prog"><div class="rc-pf" style="width:${pct}%"></div></div>
       </div>
       <div class="rc-stops">${route.stops.map(id=>{
-        const sp=SPOTS.find(s=>s.id===id);
+        const sp=SPOTS.find(s=>s.id===id||s._fid===id||String(s.id)===String(id));
         if(!sp) return '';
         const locked=!isSpotUnlocked(sp);
-        const d=found.has(id);
+        const d=found.has(id)||found.has(sp.id);
         return `<div class="rc-stop ${d?'done':''} ${locked?'locked-stop':''}">
           <div class="rc-stop-dot"></div>${locked?'🔒 ???':sp.name}
         </div>`;
@@ -2309,6 +2283,39 @@ function renderRoutes(){
     btn.onclick=()=>toggleRoute(route.id);
     body.appendChild(btn);
   });
+}
+
+// ── Route editor (admin only) ──
+function openRouteEditor(){
+  const existing=JSON.stringify(ROUTES,null,2);
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:12px';
+  overlay.innerHTML=`
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold)">✏️ Maršrutų redaktorius</div>
+    <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);text-align:center">Redaguok JSON — kiekvienas maršrutas turi: id, name, emoji, desc, time, dist, stops (ID masyvas)</div>
+    <textarea id="routeEditorTA" style="width:100%;max-width:500px;height:320px;background:#1a1710;border:1px solid #2e2a20;border-radius:10px;padding:12px;color:#e8e0d0;font-family:'DM Mono',monospace;font-size:.72rem;resize:vertical">${existing}</textarea>
+    <div style="display:flex;gap:10px">
+      <button onclick="saveRouteEditor(this.closest('div[style*=fixed]'))" style="background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:10px 24px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer">💾 Išsaugoti</button>
+      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:var(--surf2);border:1px solid var(--bdr);color:var(--td);border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;cursor:pointer">Atšaukti</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function saveRouteEditor(overlay){
+  try{
+    const raw=document.getElementById('routeEditorTA').value;
+    const parsed=JSON.parse(raw);
+    if(!Array.isArray(parsed)) throw new Error('Turi būti masyvas []');
+    ROUTES.length=0;
+    parsed.forEach(r=>ROUTES.push(r));
+    localStorage.setItem('ke7_routes',JSON.stringify(ROUTES));
+    overlay.remove();
+    renderRoutes();
+    toast('✅ Maršrutai išsaugoti','success');
+  }catch(e){
+    toast('❌ JSON klaida: '+e.message,'info');
+  }
 }
 
 function toggleRoute(id){
@@ -2983,14 +2990,13 @@ function resolveOsmCat(t){
   // ── MAN_MADE namespace ──
   if(t.man_made){
     if(t.man_made==='water_tower') return 'watertower';
-    if(t.man_made==='chimney') return 'industrial';
-    if(t.man_made==='works') return 'industrial';
-    return 'industrial';
+    if(t.man_made==='chimney') return 'history'; // chimneys → history now
+    return 'history';
   }
 
   // ── NATURAL namespace ──
   if(t.natural){
-    if(t.natural==='cliff') return 'cliff';
+    if(t.natural==='cliff') return 'nature'; // cliffs → nature
     return 'nature';
   }
 
@@ -3010,9 +3016,9 @@ function resolveOsmCat(t){
   return 'history';
 }
 const OSM_CAT_EMOJI={
-  church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',modern:'🏗',soviet:'⭐',
-  monument:'🗿',mound:'⛰',viewpoint:'🔭',watertower:'🗼',cliff:'🪨',
-  trail:'🥾',mural:'🎨',cemetery:'⚱️',industrial:'🏭',bridge:'🌉',
+  church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',
+  monument:'🗿',mound:'⛰',viewpoint:'🔭',watertower:'🗼',
+  trail:'🥾',mural:'🎨',cemetery:'⚱️',bridge:'🌉',
 };
 
 let _osmImportData=[];
@@ -3238,7 +3244,7 @@ function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
   const cats=['all','church','museum','fort','nature','history'];
-  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',cliff:'🪨 Skardžiai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės',industrial:'🏭 Industrija',bridge:'🌉 Tiltai',soviet:'⭐ Sovietika'};
+  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės',bridge:'🌉 Tiltai',trail:'🥾 Takai'};
   body.innerHTML=`<div class="osm-wrap">
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchOsmData()">🔄 Įkelti iš OSM</button>
@@ -3307,6 +3313,15 @@ function introNext(){
     return;
   }
   renderIntroStep();
+}
+
+// Mobile nav — opens a sub-panel in a sheet overlay instead of showing the full drawer
+// On mobile the drawer covers the map; this opens a panel then user can close to see map
+function mobNavTo(panel){
+  openDrawer();
+  setTimeout(()=>{
+    openSubPanel(panel);
+  },50);
 }
 
 // ═══════════ MOBILE FILTER SHEET ═══════════
@@ -3551,6 +3566,9 @@ async function submitReview(){
 // ═══════════ INIT ═══════════
 
 load();initMap();updateAll();startGPS();
+// Load any admin-saved routes
+const _savedRoutes=localStorage.getItem('ke7_routes');
+if(_savedRoutes){try{const r=JSON.parse(_savedRoutes);ROUTES.length=0;r.forEach(x=>ROUTES.push(x));}catch(e){}}
 setTimeout(()=>checkEasterEggsPassive(),1000);
 setTimeout(()=>showIntroIfNeeded(),800);
 setupClusteringListener();
@@ -3867,15 +3885,15 @@ deleteSpot=async function(){
     <div class="mob-nav-icon" id="mobNavFilterIcon">🎛</div>
     <div class="mob-nav-label" id="mobNavFilterLabel">Filtras</div>
   </div>
-  <div class="mob-nav-item" onclick="centerUser()">
-    <div class="mob-nav-icon">📍</div>
-    <div class="mob-nav-label">GPS</div>
-  </div>
-  <div class="mob-nav-item" onclick="openDrawer();setTimeout(()=>openSubPanel('zenklai'),150)">
+  <div class="mob-nav-item" onclick="mobNavTo('zenklai')">
     <div class="mob-nav-icon">🏅</div>
     <div class="mob-nav-label">Ženkleliai</div>
   </div>
-  <div class="mob-nav-item" onclick="openDrawer();setTimeout(()=>openSubPanel('favs'),150)">
+  <div class="mob-nav-item" onclick="mobNavTo('marsrutai')">
+    <div class="mob-nav-icon">🧭</div>
+    <div class="mob-nav-label">Maršrutai</div>
+  </div>
+  <div class="mob-nav-item" onclick="mobNavTo('favs')">
     <div class="mob-nav-icon">♥</div>
     <div class="mob-nav-label">Mėgstami</div>
     <div class="mob-nav-badge" id="mobNavFavBadge" style="display:none">0</div>
