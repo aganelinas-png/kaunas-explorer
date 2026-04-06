@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Kaunas Explorer</title>
+
+<!-- PWA -->
+<meta name="theme-color" content="#c9a84c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kaunas Explorer">
+<meta name="description" content="Tyrinėk Kauną — surink vietas, atrakinkinėk paslėptas istorijas">
+<link rel="manifest" id="pwaManifest">
+<!-- Apple touch icon (inline SVG as data URI fallback) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230e0c09'/><text y='340' x='256' text-anchor='middle' font-size='300' font-family='serif'>🗺</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -3155,7 +3166,7 @@ async function fetchOsmData(){
   _osmLoading=true;
   _osmForceRefresh=false; // consume the flag
   osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
-  const bbox='54.82,23.82,54.99,24.02';
+  const bbox=activeCity.bbox;
   try{
     // ── QUERY 1: Named items — categories where name is expected ──
     const namedBody=`data=[out:json][timeout:45];
@@ -3351,9 +3362,17 @@ async function osmImportSelected(){
 function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
-  const cats=['all','church','museum','fort','nature','history'];
+  const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery','bridge','trail'];
   const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės',bridge:'🌉 Tiltai',trail:'🥾 Takai'};
+  const cityOptions=Object.values(CITIES).map(c=>`<option value="${c.id}" ${c.id===activeCity.id?'selected':''}>${c.flag} ${c.name}</option>`).join('');
   body.innerHTML=`<div class="osm-wrap">
+    <div style="margin-bottom:10px">
+      <label style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Miestas</label>
+      <select id="osmCitySelect" onchange="osmSetCity(this.value)" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px 10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none">
+        ${cityOptions}
+      </select>
+      <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-top:4px">⚠ Prieš importuojant, patvirtink kad miesto lokacijos dar nepridėtos</div>
+    </div>
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchOsmData()">🔄 Įkelti iš OSM</button>
       <button class="osm-ctrl-btn" onclick="_osmForceRefresh=true;fetchOsmData()" title="Išvalyti talpyklą ir įkelti iš naujo">♻️ Atnaujinti</button>
@@ -3362,16 +3381,30 @@ function renderOsmImport(){
       <button class="osm-ctrl-btn pri" id="osmImportBtn" onclick="osmImportSelected()">✅ Importuoti</button>
     </div>
     <div class="osm-filter-row">
-      ${cats.map(c=>`<div class="osm-fchip ${_osmFilter===c?'on':''}" data-cat="${c}" onclick="osmSetFilter('${c}')">${catLabels[c]}</div>`).join('')}
+      ${cats.map(c=>`<div class="osm-fchip ${_osmFilter===c?'on':''}" data-cat="${c}" onclick="osmSetFilter('${c}')">${catLabels[c]||c}</div>`).join('')}
     </div>
     <div class="osm-tier-row">
       <span class="osm-tier-label">Tier:</span>
       ${[1,2,3].map(t=>`<button class="osm-tier-btn ${_osmTier===t?'on':''}" data-t="${t}" onclick="osmSetTier(${t})">T${t}</button>`).join('')}
     </div>
-    <div class="osm-status" id="osmStatus">${_osmImportData.length?`${_osmImportData.length} vietų įkeltos`:'Spausk "Įkelti iš OSM" pradėti'}</div>
+    <div class="osm-status" id="osmStatus">${_osmImportData.length?`${_osmImportData.length} vietų įkeltos (${_osmImportData.filter(x=>x.alreadyIn).length} jau pridėtos)`:'Spausk "Įkelti iš OSM" pradėti'}</div>
     <div class="osm-list" id="osmList"></div>
   </div>`;
   if(_osmImportData.length) renderOsmList();
+}
+
+function osmSetCity(cityId){
+  const city=CITIES[cityId];
+  if(!city) return;
+  activeCity=city;
+  // Clear cache so next fetch uses new bbox
+  _osmForceRefresh=true;
+  _osmImportData=[];
+  _osmSelected.clear();
+  const status=document.getElementById('osmStatus');
+  if(status) status.textContent=`Pasirinktas: ${city.flag} ${city.name} — spausk "Įkelti iš OSM"`;
+  const list=document.getElementById('osmList');
+  if(list) list.innerHTML='';
 }
 
 // ═══════════ CITY CONFIG ═══════════
@@ -3721,6 +3754,61 @@ async function submitReview(){
 // ═══════════ INIT ═══════════
 
 load();initMap();updateAll();startGPS();
+
+// ═══════════ PWA SETUP ═══════════
+(function(){
+  // Inject manifest as blob URL (works from any host including Cloudflare Workers)
+  const manifest={
+    name:'Kaunas Explorer',
+    short_name:'KaunasXP',
+    description:'Tyrinėk Kauną — surink vietas, atrakinkinėk paslėptas istorijas',
+    start_url:'/',
+    display:'standalone',
+    background_color:'#0e0c09',
+    theme_color:'#c9a84c',
+    orientation:'portrait',
+    lang:'lt',
+    icons:[
+      {src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230e0c09'/><text y='340' x='256' text-anchor='middle' font-size='300' font-family='serif'>%F0%9F%97%BA</text></svg>",sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'},
+    ],
+    categories:['travel','lifestyle','entertainment'],
+  };
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+  const url=URL.createObjectURL(blob);
+  document.getElementById('pwaManifest').href=url;
+
+  // Register service worker for offline caching
+  if('serviceWorker' in navigator){
+    const swCode=`
+const CACHE='kaunas-explorer-v13';
+const PRECACHE=['/'];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PRECACHE)));
+  self.skipWaiting();
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch',e=>{
+  // Network first for Firebase/API, cache first for app shell
+  const url=new URL(e.request.url);
+  if(url.hostname.includes('firebase')||url.hostname.includes('overpass')||url.hostname.includes('openstreetmap')){
+    e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
+  } else {
+    e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
+      if(res.ok){const clone=res.clone();caches.open(CACHE).then(c=>c.put(e.request,clone));}
+      return res;
+    })));
+  }
+});`;
+    const swBlob=new Blob([swCode],{type:'application/javascript'});
+    const swUrl=URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl,{scope:'/'})
+      .then(()=>console.log('SW registered'))
+      .catch(e=>console.log('SW failed (expected on some hosts):',e.message));
+  }
+})();
 // Load any admin-saved routes
 const _savedRoutes=localStorage.getItem('ke7_routes');
 if(_savedRoutes){try{const r=JSON.parse(_savedRoutes);ROUTES.length=0;r.forEach(x=>ROUTES.push(x));}catch(e){}}
