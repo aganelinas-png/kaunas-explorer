@@ -846,6 +846,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <span class="dnmi-arrow">›</span>
       </div>
     </div>
+    <!-- STATS SECTION in main drawer -->
+    <div id="drawerStats" style="padding:8px 12px;overflow-y:auto;flex:1;min-height:0"></div>
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
@@ -1876,6 +1878,7 @@ function openDrawer(){
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawerBackdrop').classList.add('open');
   updateDrawerHeader();
+  renderDrawerStats();
 }
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
@@ -2565,68 +2568,135 @@ function renderNearbySuggestions(){
   </div>`;
 }
 
+// ═══════════ DRAWER STATS (main panel) ═══════════
+function renderDrawerStats(){
+  const el=document.getElementById('drawerStats');
+  if(!el) return;
+  el.innerHTML=renderTierProgressHTML()
+    +renderLevelCard()
+    +renderStreakCard()
+    +renderQuestCard()
+    +renderWeeklyChallenge()
+    +renderCityCompletion()
+    +renderNearbySuggestions();
+}
+
+// ═══════════ SPOT LIST (collapsed by category) ═══════════
+let _catExpanded=new Set();
+function toggleCatList(catId){
+  if(_catExpanded.has(catId)) _catExpanded.delete(catId);
+  else _catExpanded.add(catId);
+  renderList();
+}
+
 function renderList(){
   const body=document.getElementById('panel-vietos');
   const visibleSpots=SPOTS.filter(s=>s.cat!=='hidden');
   const pct=visibleSpots.length?Math.round(found.size/visibleSpots.length*100):0;
-  let h=`${renderTierProgressHTML()}
-  ${renderLevelCard()}
-  ${renderStreakCard()}
-  ${renderWeeklyChallenge()}
-  ${renderCityCompletion()}
-  ${renderNearbySuggestions()}
-  <div class="prog-h">
-    <div class="prog-row"><div class="prog-cnt">${found.size} / ${SPOTS.length} surinkta</div><div class="streak-t">🔥 ${streak} d. · ⭐ ${totalXP} XP</div></div>
+
+  // Search bar + overall progress
+  let h=`<div style="padding:8px 0 4px">
+    <input id="spotSearchInput" placeholder="🔍 Ieškoti vietos..." oninput="renderList()"
+      style="width:100%;box-sizing:border-box;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--txt);outline:none">
+  </div>
+  <div class="prog-h" style="margin-bottom:6px">
+    <div class="prog-row"><div class="prog-cnt">${found.size} / ${visibleSpots.length} surinkta</div><div class="streak-t">⭐ ${totalXP} XP</div></div>
     <div class="pbar"><div class="pbf" style="width:${pct}%"></div></div>
   </div>`;
 
-  // Group unlocked spots by category, sorted by name within each group
+  const searchVal=(document.getElementById('spotSearchInput')?.value||'').toLowerCase().trim();
+
   const unlockedSpots=SPOTS.filter(s=>isSpotUnlocked(s)&&s.cat!=='hidden');
   const lockedSpots=SPOTS.filter(s=>!isSpotUnlocked(s)&&s.cat!=='hidden');
 
-  // Build category groups from FILTER_GROUPS order
   const allCats=FILTER_GROUPS.flatMap(g=>g.cats);
-  // Add any cats not in FILTER_GROUPS
   const extraCats=[...new Set(unlockedSpots.map(s=>s.cat))].filter(c=>!allCats.includes(c));
   const orderedCats=[...allCats,...extraCats];
 
-  orderedCats.forEach(catId=>{
-    const catSpots=unlockedSpots.filter(s=>s.cat===catId).sort((a,b)=>(a.name||'').localeCompare(b.name||'','lt'));
-    if(!catSpots.length) return;
-    const cat=CATS[catId]||CATS.history;
-    const collectedInCat=catSpots.filter(s=>found.has(s.id)).length;
-    h+=`<div class="sh">${cat.emoji} ${cat.label} <span style="color:var(--tm);font-size:.6rem;margin-left:4px">${collectedInCat}/${catSpots.length}</span></div>`;
-    catSpots.forEach(s=>{
-      const isF=found.has(s.id);
-      const isFav=favorites.has(String(s.id));
-      let ds='';
-      if(userLat!==null){const d=dist(userLat,userLng,s.lat,s.lng);ds=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;}
-      h+=`<div class="sr ${isF?'col':''}" onclick="closeDrawer();goToSpot('${s.id}')">
-        <div class="sri">${isF?'✓':cat.emoji}</div>
-        <div style="flex:1;min-width:0"><div class="srn">${s.name||'—'}</div><div class="srm">${cat.label} · ${s.time||'—'}</div></div>
-        <div style="display:flex;align-items:center;gap:6px">
-          ${isFav?'<span style="color:var(--gold);font-size:13px">♥</span>':''}
+  if(searchVal){
+    // Flat search results
+    const results=unlockedSpots
+      .filter(s=>(s.name||'').toLowerCase().includes(searchVal))
+      .sort((a,b)=>(a.name||'').localeCompare(b.name||'','lt'));
+    if(results.length===0){
+      h+=`<div style="text-align:center;padding:24px;color:var(--tm);font-size:.8rem">Nerasta</div>`;
+    } else {
+      h+=`<div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);padding:4px 2px;margin-bottom:2px">${results.length} rezultat${results.length===1?'as':'ų'}</div>`;
+      results.forEach(s=>{
+        const isF=found.has(s.id);
+        const cat=CATS[s.cat]||CATS.history;
+        let ds='';
+        if(userLat!==null){const d=dist(userLat,userLng,s.lat,s.lng);ds=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;}
+        h+=`<div class="sr ${isF?'col':''}" onclick="closeDrawer();goToSpot('${s.id}')">
+          <div class="sri">${isF?'✓':cat.emoji}</div>
+          <div style="flex:1;min-width:0"><div class="srn">${s.name||'—'}</div><div class="srm">${cat.label}</div></div>
           <div class="srr">${isF?'★':ds}</div>
+        </div>`;
+      });
+    }
+  } else {
+    // Collapsed category headers
+    orderedCats.forEach(catId=>{
+      const catSpots=unlockedSpots.filter(s=>s.cat===catId).sort((a,b)=>(a.name||'').localeCompare(b.name||'','lt'));
+      if(!catSpots.length) return;
+      const cat=CATS[catId]||CATS.history;
+      const collectedInCat=catSpots.filter(s=>found.has(s.id)).length;
+      const expanded=_catExpanded.has(catId);
+      const pct2=catSpots.length?Math.round(collectedInCat/catSpots.length*100):0;
+      h+=`<div onclick="toggleCatList('${catId}')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none">
+        <span style="font-size:1.1rem">${cat.emoji}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.78rem;color:var(--txt);font-weight:600">${cat.label}</div>
+          <div style="height:3px;background:var(--surf2);border-radius:2px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${pct2}%;background:${pct2===100?'var(--gold)':'var(--gd)'};border-radius:2px"></div></div>
         </div>
+        <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);white-space:nowrap">${collectedInCat}/${catSpots.length}</span>
+        <span style="color:var(--tm);font-size:.8rem;transition:transform .2s;display:inline-block;transform:rotate(${expanded?90:0}deg)">›</span>
       </div>`;
+      if(expanded){
+        catSpots.forEach(s=>{
+          const isF=found.has(s.id);
+          const isFav=favorites.has(String(s.id));
+          let ds='';
+          if(userLat!==null){const d=dist(userLat,userLng,s.lat,s.lng);ds=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;}
+          h+=`<div class="sr ${isF?'col':''}" onclick="closeDrawer();goToSpot('${s.id}')" style="padding-left:16px">
+            <div class="sri">${isF?'✓':cat.emoji}</div>
+            <div style="flex:1;min-width:0"><div class="srn">${s.name||'—'}</div><div class="srm">${cat.label}</div></div>
+            <div style="display:flex;align-items:center;gap:6px">
+              ${isFav?'<span style="color:var(--gold);font-size:13px">♥</span>':''}
+              <div class="srr">${isF?'★':ds}</div>
+            </div>
+          </div>`;
+        });
+      }
     });
-  });
 
-  // Locked spots at the bottom, grouped
-  if(lockedSpots.length){
-    h+=`<div class="sh" style="color:var(--tm)">🔒 Užrakinta (${lockedSpots.length})</div>`;
-    lockedSpots.forEach(s=>{
-      const cat=CATS[s.cat]||CATS.history;
-      const tokAvail=tokensAvailable(s.tier);
-      h+=`<div class="sr hidden-spot" onclick="closeDrawer();goToSpot('${s.id}')">
-        <div class="sri" style="opacity:.4">🔒</div>
-        <div style="flex:1;min-width:0"><div class="srn" style="color:var(--tm)">??? — ${cat.label}</div><div class="srm">${TIER_CONFIG[s.tier||1].label}</div></div>
-        ${tokAvail>0?`<div class="srr" style="color:var(--gold)">🔓</div>`:''}
+    // Locked
+    if(lockedSpots.length){
+      const lockedExpanded=_catExpanded.has('_locked');
+      h+=`<div onclick="toggleCatList('_locked')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bdr);cursor:pointer;opacity:.6">
+        <span style="font-size:1.1rem">🔒</span>
+        <div style="flex:1"><div style="font-size:.78rem;color:var(--tm);font-weight:600">Užrakinta</div></div>
+        <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">${lockedSpots.length}</span>
+        <span style="color:var(--tm);font-size:.8rem;transform:rotate(${lockedExpanded?90:0}deg);display:inline-block">›</span>
       </div>`;
-    });
+      if(lockedExpanded){
+        lockedSpots.forEach(s=>{
+          const cat=CATS[s.cat]||CATS.history;
+          const tokAvail=tokensAvailable(s.tier);
+          h+=`<div class="sr hidden-spot" onclick="closeDrawer();goToSpot('${s.id}')" style="padding-left:16px">
+            <div class="sri" style="opacity:.4">🔒</div>
+            <div style="flex:1;min-width:0"><div class="srn" style="color:var(--tm)">??? — ${cat.label}</div><div class="srm">${TIER_CONFIG[s.tier||1].label}</div></div>
+            ${tokAvail>0?`<div class="srr" style="color:var(--gold)">🔓</div>`:''}
+          </div>`;
+        });
+      }
+    }
   }
 
   body.innerHTML=h;
+  // Restore search value after re-render
+  const si=document.getElementById('spotSearchInput');
+  if(si&&searchVal){si.value=searchVal;si.focus();}
 }
 
 function goToSpot(id){
@@ -2902,6 +2972,7 @@ function updateAll(){
   pill.style.display=s>0?'flex':'none';
   updateLevelPill();
   updateDrawerHeader();
+  renderDrawerStats();
   // Favorites badge (drawer)
   const fb=document.getElementById('favsBadge');
   if(fb){const fc=favorites.size;fb.textContent=fc;fb.style.display=fc>0?'inline-flex':'none';}
@@ -3496,12 +3567,27 @@ async function osmImportSelected(){
   renderOsmList();
 }
 
+let _importTab='osm'; // 'osm' | 'wikidata'
+
 function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
   const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery','bridge','trail'];
   const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės',bridge:'🌉 Tiltai',trail:'🥾 Takai'};
+  if(_importTab==='wikidata'){
+    body.innerHTML=`<div class="osm-wrap">
+    <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
+      <button onclick="_importTab='osm';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='osm'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='osm'?'var(--gold)':'var(--tm)'};cursor:pointer">🗺 OSM</button>
+      <button onclick="_importTab='wikidata';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='wikidata'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='wikidata'?'var(--gold)':'var(--tm)'};cursor:pointer">📚 Wikidata</button>
+    </div>
+    ${renderWikidataPanel()}
+  </div>`;
+  } else {
   body.innerHTML=`<div class="osm-wrap">
+    <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
+      <button onclick="_importTab='osm';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='osm'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='osm'?'var(--gold)':'var(--tm)'};cursor:pointer">🗺 OSM</button>
+      <button onclick="_importTab='wikidata';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='wikidata'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='wikidata'?'var(--gold)':'var(--tm)'};cursor:pointer">📚 Wikidata</button>
+    </div>
     <div style="margin-bottom:10px">
       <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">🇱🇹 Visa Lietuva · area filtrais</div>
       <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">⚠ Greitesnis užklausimas nei anksčiau. Patikrink dublikatus prieš pridedant.</div>
@@ -3527,6 +3613,146 @@ function renderOsmImport(){
   </div>`;
   if(_osmImportData.length) renderOsmList();
   if(_osmManualMode) renderOsmManualUI();
+  }
+}
+
+
+// ═══════════ WIKIDATA IMPORT ═══════════
+let _wikiData=[];
+let _wikiSelected=new Set();
+let _wikiLoading=false;
+let _wikiFilter='all';
+const WIKI_CACHE_KEY='kex_wiki_cache_lt_v1';
+const WIKI_CACHE_TTL=48*60*60*1000;
+
+const WIKIDATA_CAT_MAP={
+  Q16970:'church',Q2977:'church',Q108325:'church',Q44539:'church',
+  Q33506:'museum',Q207694:'museum',
+  Q16831714:'fort',Q57831:'fort',Q23413:'fort',Q44450:'fort',
+  Q570116:'mound',Q371204:'mound',
+  Q747074:'history',Q839954:'history',
+  Q5003624:'monument',Q4989906:'monument',Q179700:'monument',
+  Q5086:'nature',Q22698:'nature',Q728937:'nature',
+  Q1048835:'viewpoint',Q1311958:'viewpoint',
+  Q12280:'bridge',
+  Q18371:'cemetery',Q39614:'cemetery',
+};
+
+function wikidataCat(instanceIds){
+  for(const id of (instanceIds||[])){
+    if(WIKIDATA_CAT_MAP[id]) return WIKIDATA_CAT_MAP[id];
+  }
+  return 'history';
+}
+
+function renderWikidataPanel(){
+  const cached=JSON.parse(localStorage.getItem(WIKI_CACHE_KEY)||'null');
+  const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_wikiData.length} iš talpyklos (${new Date(cached.ts).toLocaleDateString('lt-LT')})</span>`:'';
+  const wcats=['all','church','museum','fort','mound','history','monument','nature','viewpoint','bridge','cemetery'];
+  const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',bridge:'🌉',cemetery:'⚱️'};
+  return`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">Vietos iš Wikidata. Nemokama. ${cacheInfo}</div>
+    <div class="osm-controls">
+      <button class="osm-ctrl-btn" onclick="fetchWikidataLT(false)">🔄 Įkelti</button>
+      <button class="osm-ctrl-btn" onclick="fetchWikidataLT(true)">♻️ Atnaujinti</button>
+      <button class="osm-ctrl-btn" onclick="wikiSelectAll()">☑ Visos</button>
+      <button class="osm-ctrl-btn" onclick="wikiSelectNone()">☐ Nė viena</button>
+      <button class="osm-ctrl-btn pri" onclick="wikiImportSelected()">✅ Importuoti</button>
+    </div>
+    <div class="osm-filter-row" style="margin-top:6px">
+      ${wcats.map(wc=>`<div class="osm-fchip ${_wikiFilter===wc?'on':''}" onclick="_wikiFilter='${wc}';renderOsmImport()">${wcatLabels[wc]||wc}</div>`).join('')}
+    </div>
+    <div class="osm-status" id="wikiStatus">${_wikiData.length?`${_wikiData.length} vietų · ${_wikiData.filter(x=>x.alreadyIn).length} jau pridėta`:'Spausk "Įkelti" pradėti'}</div>
+    <div class="osm-list" id="wikiList"></div>
+  </div>`;
+}
+
+async function fetchWikidataLT(forceRefresh){
+  if(_wikiLoading) return;
+  _wikiLoading=true;
+  const setS=m=>{const e=document.getElementById('wikiStatus');if(e)e.textContent=m;};
+  if(!forceRefresh){
+    const cached=JSON.parse(localStorage.getItem(WIKI_CACHE_KEY)||'null');
+    if(cached&&Date.now()-cached.ts<WIKI_CACHE_TTL){
+      _wikiData=cached.data;setS(`✅ ${_wikiData.length} vietų (talpykla)`);
+      _wikiLoading=false;renderWikidataList();return;
+    }
+  }
+  const sparql=`SELECT DISTINCT ?item ?itemLabel ?lat ?lon ?instanceOf WHERE {
+  ?item wdt:P17 wd:Q37.
+  ?item p:P625 ?coord.
+  ?coord psv:P625 ?coordNode.
+  ?coordNode wikibase:geoLatitude ?lat.
+  ?coordNode wikibase:geoLongitude ?lon.
+  ?item wdt:P31 ?instanceOf.
+  ?item wdt:P31 ?inst.
+  VALUES ?inst {
+    wd:Q16970 wd:Q2977 wd:Q108325 wd:Q33506 wd:Q207694
+    wd:Q16831714 wd:Q23413 wd:Q44450 wd:Q570116 wd:Q371204
+    wd:Q747074 wd:Q839954 wd:Q5003624 wd:Q4989906 wd:Q179700
+    wd:Q22698 wd:Q39614 wd:Q1048835 wd:Q12280 wd:Q44539
+  }
+  FILTER(?lat > 53.8 && ?lat < 56.5 && ?lon > 20.9 && ?lon < 26.9)
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "lt,en". }
+} LIMIT 3000`;
+  const url='https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(sparql);
+  setS('⏳ Kraunama iš Wikidata (iki 30s)...');
+  try{
+    const r=await fetch(url,{headers:{'Accept':'application/sparql-results+json','User-Agent':'LithuaniaExplorer/1.0'},signal:AbortSignal.timeout(30000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const json=await r.json();
+    const rows=json.results.bindings;
+    setS(`⏳ Apdorojama ${rows.length} įrašų...`);
+    const byItem={};
+    for(const row of rows){
+      const id=row.item.value.split('/').pop();
+      if(!byItem[id]){byItem[id]={id:'wd_'+id,name:row.itemLabel?.value||'',lat:parseFloat(row.lat.value),lng:parseFloat(row.lon.value),instances:[],wdId:id};}
+      if(row.instanceOf) byItem[id].instances.push(row.instanceOf.value.split('/').pop());
+    }
+    const processed=Object.values(byItem)
+      .filter(x=>x.name&&!x.name.startsWith('Q')&&x.lat>53.8&&x.lat<56.5)
+      .map(x=>({...x,cat:wikidataCat(x.instances),alreadyIn:SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005)}))
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0003&&Math.abs(y.lng-x.lng)<0.0003&&y.cat===x.cat)===i)
+      .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
+    _wikiData=processed;
+    try{localStorage.setItem(WIKI_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_wikiData}));}catch(e){}
+    setS(`✅ ${_wikiData.length} vietų. Jau pridėta: ${_wikiData.filter(x=>x.alreadyIn).length}`);
+    renderWikidataList();
+  }catch(e){setS('❌ Klaida: '+e.message);}
+  _wikiLoading=false;
+}
+
+function renderWikidataList(){
+  const el=document.getElementById('wikiList');if(!el) return;
+  const filtered=_wikiData.filter(x=>_wikiFilter==='all'||x.cat===_wikiFilter);
+  el.innerHTML=filtered.map((item,i)=>{
+    if(item.alreadyIn) return'';
+    const sel=_wikiSelected.has(i);
+    const cat=CATS[item.cat]||CATS.history;
+    return`<div class="osm-item ${sel?'sel':''}" onclick="wikiToggleItem(${i})">
+      <div class="osm-chk">${sel?'☑':'☐'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="osm-name">${item.name}</div>
+        <div class="osm-meta">${cat.emoji} ${cat.label} · <a href="https://www.wikidata.org/wiki/${item.wdId}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">WD ↗</a></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function wikiToggleItem(idx){if(_wikiSelected.has(idx))_wikiSelected.delete(idx);else _wikiSelected.add(idx);renderWikidataList();}
+function wikiSelectAll(){_wikiData.forEach((x,i)=>{if(!x.alreadyIn&&(_wikiFilter==='all'||x.cat===_wikiFilter))_wikiSelected.add(i);});renderWikidataList();}
+function wikiSelectNone(){_wikiSelected.clear();renderWikidataList();}
+async function wikiImportSelected(){
+  if(!_wikiSelected.size){toast('Nieko nepasirinkta','info');return;}
+  const setS=m=>{const e=document.getElementById('wikiStatus');if(e)e.textContent=m;};
+  let imported=0;
+  for(const idx of _wikiSelected){
+    const item=_wikiData[idx];if(!item||item.alreadyIn) continue;
+    const spot={name:item.name,cat:item.cat,tier:2,lat:item.lat,lng:item.lng,radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,history:`Wikidata: ${item.wdId}`,year:'',tag:'',bring:[]};
+    try{await saveSpot(spot);item.alreadyIn=true;imported++;}catch(e){}
+  }
+  _wikiSelected.clear();
+  setS(`✅ Importuota ${imported} vietų`);
+  renderWikidataList();
 }
 
 function osmToggleManual(){
