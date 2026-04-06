@@ -3039,79 +3039,88 @@ async function fetchOsmData(){
   if(_osmLoading) return;
   _osmLoading=true;
   _osmForceRefresh=false;
-  osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
-  // Use area filter — scopes query to Lithuania without huge bbox
+
+  // ── OSM CACHE ──
+  const OSM_CACHE_KEY=`kex_osm_cache_lt_v3`;
+  const OSM_CACHE_TTL=24*60*60*1000;
+  const cached=JSON.parse(localStorage.getItem(OSM_CACHE_KEY)||'null');
+  if(cached&&Date.now()-cached.ts<OSM_CACHE_TTL&&!_osmForceRefresh){
+    _osmImportData=cached.data;
+    osmSetStatus(`✅ ${_osmImportData.length} vietų (iš talpyklos · ${new Date(cached.ts).toLocaleDateString('lt-LT')}). Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+    _osmLoading=false;
+    renderOsmList();
+    return;
+  }
+
+  // City bboxes: south,west,north,east — small enough to never timeout
+  const CITY_BBOXES=[
+    ['Kaunas','54.84,23.82,54.95,24.05'],
+    ['Vilnius','54.63,25.05,54.74,25.36'],
+    ['Klaipėda','55.68,21.08,55.75,21.19'],
+    ['Šiauliai','55.89,23.26,55.96,23.38'],
+    ['Panevėžys','55.70,24.32,55.76,24.42'],
+    ['Alytus','54.38,24.02,54.42,24.08'],
+    ['Marijampolė','54.55,23.33,54.57,23.37'],
+    ['Utena','55.49,25.59,55.52,25.63'],
+    ['Telšiai','55.97,22.23,56.00,22.27'],
+    ['Kėdainiai','55.27,23.96,55.30,24.02'],
+    ['Trakai','54.63,24.92,54.66,24.95'],
+    ['Anykščiai','55.52,25.09,55.54,25.12'],
+    ['Molėtai','55.22,25.41,55.24,25.44'],
+    ['Druskininkai','53.98,24.02,54.02,24.06'],
+    ['Palanga','55.90,21.04,55.96,21.09'],
+    ['Nida','55.29,20.98,55.32,21.01'],
+  ];
+
+  function makeQuery(bbox){
+    return `data=[out:json][timeout:25];
+(
+  node["amenity"="place_of_worship"]["name"](${bbox});
+  node["tourism"="museum"]["name"](${bbox});
+  node["tourism"="gallery"]["name"](${bbox});
+  node["tourism"="viewpoint"]["name"](${bbox});
+  node["tourism"="artwork"]["name"](${bbox});
+  node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](${bbox});
+  node["historic"~"mound|wayside_shrine|stone"]["name"](${bbox});
+  node["historic"="bridge"]["name"](${bbox});
+  node["leisure"~"park|garden|nature_reserve"]["name"](${bbox});
+  node["military"~"bunker|fort"]["name"](${bbox});
+  node["amenity"="grave_yard"]["name"](${bbox});
+  node["highway"="trailhead"]["name"](${bbox});
+  node["man_made"="water_tower"](${bbox});
+  node["man_made"="chimney"](${bbox});
+  node["natural"="cliff"](${bbox});
+  way["amenity"="place_of_worship"]["name"](${bbox});
+  way["tourism"="museum"]["name"](${bbox});
+  way["historic"~"castle|monument|memorial|ruins|fort"]["name"](${bbox});
+  way["historic"="mound"]["name"](${bbox});
+  way["leisure"~"park|garden|nature_reserve"]["name"](${bbox});
+  way["landuse"="cemetery"]["name"](${bbox});
+);
+out center;`;
+  }
+
   try{
-    const namedBody=`data=[out:json][timeout:55];
-area["name"="Lietuva"]["boundary"="administrative"]["admin_level"="2"]->.lt;
-(
-  node["amenity"="place_of_worship"]["name"](area.lt);
-  node["tourism"="museum"]["name"](area.lt);
-  node["tourism"="gallery"]["name"](area.lt);
-  node["tourism"="viewpoint"]["name"](area.lt);
-  node["tourism"="artwork"]["name"](area.lt);
-  node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](area.lt);
-  node["historic"~"mound|wayside_shrine|stone"]["name"](area.lt);
-  node["historic"="bridge"]["name"](area.lt);
-  node["leisure"~"park|garden|nature_reserve"]["name"](area.lt);
-  node["military"~"bunker|fort"]["name"](area.lt);
-  node["amenity"="grave_yard"]["name"](area.lt);
-  node["highway"="trailhead"]["name"](area.lt);
-  way["amenity"="place_of_worship"]["name"](area.lt);
-  way["tourism"="museum"]["name"](area.lt);
-  way["historic"~"castle|monument|memorial|ruins|fort"]["name"](area.lt);
-  way["historic"="mound"]["name"](area.lt);
-  way["leisure"~"park|garden|nature_reserve"]["name"](area.lt);
-  way["landuse"="cemetery"]["name"](area.lt);
-);
-out center 500;`;
-
-    // ── QUERY 2: Unnamed infra — nodes only, tight limit ──
-    const unnamedBody=`data=[out:json][timeout:30];
-area["name"="Lietuva"]["boundary"="administrative"]["admin_level"="2"]->.lt;
-(
-  node["man_made"="water_tower"](area.lt);
-  node["man_made"="chimney"](area.lt);
-  node["natural"="cliff"](area.lt);
-);
-out center 60;`;
-
-    // ── OSM CACHE — avoid hammering Overpass; cache results for 24h ──
-    const OSM_CACHE_KEY=`kex_osm_cache_lt_v2`;
-    const OSM_CACHE_TTL=24*60*60*1000; // 24 hours
-    const cached=JSON.parse(localStorage.getItem(OSM_CACHE_KEY)||'null');
-    if(cached&&Date.now()-cached.ts<OSM_CACHE_TTL&&!_osmForceRefresh){
-      _osmImportData=cached.data;
-      osmSetStatus(`✅ ${_osmImportData.length} vietų (iš talpyklos · ${new Date(cached.ts).toLocaleDateString('lt-LT')}). Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
-      _osmLoading=false;
-      renderOsmList();
-      return;
-    }
-
-    // Helper — fetch Overpass, show readable error if rate-limited or XML
-    async function overpassFetch(body,label){
-      osmSetStatus(`⏳ ${label}...`);
+    const allElements=[];
+    for(let i=0;i<CITY_BBOXES.length;i++){
+      const [cityName,bbox]=CITY_BBOXES[i];
+      osmSetStatus(`⏳ ${i+1}/${CITY_BBOXES.length} · ${cityName}...`);
+      const body=makeQuery(bbox);
       const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body});
       const text=await r.text();
       if(text.trim().startsWith('<')){
-        if(r.status===429||text.includes('Too Many Requests')||text.includes('429'))
-          throw new Error('Serveris perkrautas (429) — palaukite ~2 min. ir bandykite dar kartą 🕐');
-        if(r.status===504||text.includes('Gateway Time-out'))
-          throw new Error('Timeout — bandykite po minutės');
+        if(r.status===429||text.includes('Too Many Requests'))
+          throw new Error('Serveris perkrautas (429) — palaukite ~2 min. 🕐');
         const remark=text.match(/<remark>(.*?)<\/remark>/s)?.[1]?.trim()||`Overpass klaida (${r.status})`;
-        throw new Error(remark);
+        throw new Error(`${cityName}: ${remark}`);
       }
-      return JSON.parse(text);
+      const data=JSON.parse(text);
+      allElements.push(...(data.elements||[]));
+      // Small pause between requests
+      if(i<CITY_BBOXES.length-1) await new Promise(res=>setTimeout(res,1200));
     }
 
-    const d1=await overpassFetch(namedBody,'1/2 Žymimos vietos');
-
-    // Pause between requests — Overpass rate limits at ~2 req/min per IP
-    await new Promise(r=>setTimeout(r,2500));
-
-    const d2=await overpassFetch(unnamedBody,'2/2 Infrastruktūra');
-
-    // Process both result sets
+    // Process all results
     function processElement(e, requireName){
       const lat=parseFloat((e.lat||(e.center&&e.center.lat)||0).toFixed(6));
       const lng=parseFloat((e.lon||(e.center&&e.center.lon)||0).toFixed(6));
@@ -3126,20 +3135,15 @@ out center 60;`;
       return{name,nameLt:t['name:lt']||'',cat,lat,lng,typeKey,alreadyIn,tags:t};
     }
 
-    const named=(d1.elements||[]).map(e=>processElement(e,true)).filter(Boolean);
-    const unnamed=(d2.elements||[]).map(e=>processElement(e,false)).filter(Boolean);
+    // All elements from all cities — process and dedupe
+    const processed=allElements.map(e=>processElement(e,false)).filter(Boolean);
 
-    // Merge — named takes priority; skip unnamed if same position already covered
-    const namedSet=new Set(named.map(x=>`${x.lat.toFixed(4)},${x.lng.toFixed(4)}`));
-    const merged=[...named,...unnamed.filter(x=>!namedSet.has(`${x.lat.toFixed(4)},${x.lng.toFixed(4)}`))];
-
-    _osmImportData=merged
-      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002&&y.cat===x.cat)===i) // dedupe by position+cat
+    _osmImportData=processed
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002&&y.cat===x.cat)===i)
       .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
 
-    osmSetStatus(`✅ Rasta ${_osmImportData.length} vietų (${named.length} vardinių + ${unnamed.filter(x=>!namedSet.has(`${x.lat.toFixed(4)},${x.lng.toFixed(4)}`)).length} infrastruktūros). Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+    osmSetStatus(`✅ Rasta ${_osmImportData.length} vietų iš ${CITY_BBOXES.length} miestų. Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
 
-    // Cache results so we don't hammer Overpass on every open
     try{ localStorage.setItem(OSM_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_osmImportData})); }catch(e){}
     renderOsmList();
   }catch(e){
