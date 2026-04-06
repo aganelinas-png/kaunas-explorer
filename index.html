@@ -122,7 +122,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .we-item span:first-child{color:var(--td);font-size:.72rem}
 
 /* ── GPS ── */
-.gps-pill{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);display:flex;align-items:center;gap:5px;box-shadow:0 2px 8px var(--sh)}
+.mob-gps-refresh{display:none}.gps-pill{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);display:flex;align-items:center;gap:5px;box-shadow:0 2px 8px var(--sh)}
 .gps-refresh{cursor:pointer;font-size:14px;color:var(--td);transition:transform .3s,color .2s;display:inline-block;line-height:1;-webkit-user-select:none;user-select:none}
 .gps-refresh:active{color:var(--gold)}
 .gps-refresh.spinning{animation:gpsRefreshSpin .8s ease}
@@ -190,7 +190,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .drawer-back-btn{background:none;border:none;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;padding:4px 0;flex-shrink:0;-webkit-user-select:none;user-select:none}
 .drawer-back-btn:active{opacity:.7}
 .drawer-sub-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt);flex:1}
-.drawer-sub-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
+.drawer-sub-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;overscroll-behavior:contain}
 
 /* ── PANEL SECTIONS (inside sub-panel) ── */
 .panel-section{display:none}
@@ -336,33 +336,19 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .bpf{height:100%;background:var(--gold);border-radius:1px}
 
 /* Routes */
-.route-card{margin:10px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
 .route-card:active{transform:scale(.98)}
-.rc-head{padding:12px 14px 8px}
 .rc-emoji{font-size:20px;margin-bottom:4px}
 .rc-name{font-family:'Playfair Display',serif;font-size:.92rem;color:var(--txt);margin-bottom:2px}
 .rc-desc{font-size:.72rem;color:var(--td);line-height:1.5;margin-bottom:7px}
 .rc-meta{display:flex;gap:6px;flex-wrap:wrap}
 .rc-chip{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:2px 8px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)}
-.rc-stops{padding:8px 14px}
-.rc-stop{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:.75rem;color:var(--td)}
-.rc-stop-dot{width:7px;height:7px;border-radius:50%;background:var(--bdr);flex-shrink:0}
 .rc-stop.done .rc-stop-dot{background:var(--gold)}
 .rc-stop.locked-stop{color:var(--tm)}
-.rc-prog{height:2px;background:var(--bdr);border-radius:1px;margin:6px 0 0;overflow:hidden}
-.rc-pf{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:1px;transition:width .5s}
-.start-route-btn{width:calc(100% - 28px);margin:0 14px 12px;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.83rem;cursor:pointer}
 .start-route-btn:active{transform:scale(.98)}
 
 /* Route bar */
-.route-bar{position:fixed;bottom:0;left:0;right:0;z-index:195;background:var(--surf);border-top:1px solid var(--gold);padding:10px 16px;display:none;align-items:center;gap:10px;box-shadow:0 -4px 20px var(--sh)}
 .route-bar.active{display:flex}
-.rb-info{flex:1}
-.rb-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gd);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
-.rb-name{font-size:.85rem;font-weight:600;color:var(--txt)}
-.rb-stop{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td)}
 .rb-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer}
-.rb-end{background:none;border:1px solid var(--bdr);color:var(--td);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer}
 
 /* ── SOCIAL PANEL ── */
 .social-section{padding:14px}
@@ -454,7 +440,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 @keyframes streakPulse{0%,100%{box-shadow:0 2px 12px var(--sh)}50%{box-shadow:0 2px 16px rgba(201,168,76,.35)}}
 
 /* ── PROXIMITY POPUP ── */
-.prox-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);z-index:500;background:var(--surf);border:1.5px solid var(--gold);border-radius:20px;padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;gap:10px;min-width:240px;max-width:88vw;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
+.prox-popup{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);z-index:500;background:var(--surf);border:1.5px solid var(--gold);border-radius:20px;padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;gap:10px;width:90vw;max-width:360px;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
 .prox-popup.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:all}
 .prox-top{display:flex;align-items:center;gap:10px;width:100%}
 .prox-emoji{font-size:26px;flex-shrink:0}
@@ -613,7 +599,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   .mob-filter-btn{display:flex;bottom:calc(80px + env(safe-area-inset-bottom))}
 
   /* ── PROX POPUP: wider, above bottom nav ── */
-  .prox-popup{left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom))}
+  .prox-popup{left:12px;right:12px;width:auto;max-width:none;bottom:calc(80px + env(safe-area-inset-bottom))}
 
   /* ── ZOOM CONTROLS: above bottom nav, left side to avoid dice ── */
   .leaflet-control-zoom{bottom:calc(80px + env(safe-area-inset-bottom))!important;right:auto!important;left:10px!important}
@@ -625,6 +611,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   /* ── AUTH BAR: hidden on mobile (login is in topbar instead) ── */
   .auth-bar{display:none!important}
 
+  /* ── GPS refresh visible on mobile ── */
+  .mob-gps-refresh{display:flex!important}
   /* ── STREAK PILL: smaller ── */
   .streak-pill{font-size:.62rem;padding:4px 8px}
 }
@@ -762,6 +750,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
     <div class="ib" id="themeBtn" onclick="toggleTheme()" title="Dienos/nakties režimas">☀️</div>
     <div class="ib" onclick="centerUser()">📍</div>
+    <div class="ib mob-gps-refresh" onclick="refreshGPS()" title="Atnaujinti GPS">↻</div>
     <!-- Mobile login pill — only visible on mobile when not logged in -->
     <div class="mob-login-pill" id="mobLoginPill" onclick="fbLogin()" style="display:none">Prisijungti</div>
     <div class="gps-pill"><div class="gd" id="gpsDot"></div><span class="gps-refresh" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS">↻</span></div>
@@ -819,25 +808,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           <div class="drawer-logo">Kaunas Explorer</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
-          <!-- XP progress bar -->
-          <div style="margin-top:8px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span id="lpName" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--gold)">—</span>
-              <span id="lpLvl" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)">Lv.1</span>
-            </div>
-            <div style="height:4px;background:var(--bdr);border-radius:2px;overflow:hidden">
-              <div id="xpBar" style="height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;transition:width .6s;width:0%"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:2px">
-              <span id="xpCurrent" style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--tm)">0 XP</span>
-              <span id="xpNext" style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--tm)">→ 100 XP</span>
-            </div>
-          </div>
-          <!-- Login/logout button always visible -->
-          <button id="drawerAuthBtn" onclick="drawerAuthAction()" style="margin-top:10px;width:100%;background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">
-            <span id="drawerAuthAvatar">👤</span>
-            <span id="drawerAuthLabel">Prisijungti su Google</span>
-          </button>
           <!-- City switcher -->
           <select id="citySwitcher" onchange="switchCity(this.value)" style="margin-top:8px;background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:5px 8px;color:var(--txt);font-family:'DM Mono',monospace;font-size:.65rem;width:100%;outline:none;cursor:pointer"></select>
         </div>
@@ -847,9 +817,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-nav-main">
       <div class="dnav-main-item" onclick="openSubPanel('vietos')">
         <span class="dnmi-icon">📋</span><span class="dnmi-label">Vietos</span><span class="dnmi-arrow">›</span>
-      </div>
-      <div class="dnav-main-item" onclick="openSubPanel('marsrutai')">
-        <span class="dnmi-icon">🧭</span><span class="dnmi-label">Maršrutai</span><span class="dnmi-arrow">›</span>
       </div>
       <div class="dnav-main-item" onclick="openSubPanel('zenklai')">
         <span class="dnmi-icon">🏅</span><span class="dnmi-label">Ženkleliai</span><span class="dnmi-arrow">›</span>
@@ -882,7 +849,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-sub-body" id="drawerSubBody">
       <div class="panel-section" id="panel-vietos"></div>
       <div class="panel-section" id="panel-favs"></div>
-      <div class="panel-section" id="panel-marsrutai"></div>
       <div class="panel-section" id="panel-zenklai"></div>
       <div class="panel-section" id="panel-social"></div>
       <div class="panel-section" id="panel-osm"></div>
@@ -992,14 +958,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 </div>
 
 <!-- EASTER EGG OVERLAY -->
-<div class="egg-overlay" id="eggOverlay">
-  <div class="egg-glyph" id="eggGlyph">🥚</div>
-  <div class="egg-title" id="eggTitle">Slaptoji vieta!</div>
-  <div class="egg-desc" id="eggDesc">Kažką radai...</div>
-  <div class="egg-reward" id="eggReward">+50 XP</div>
-  <button class="egg-btn" onclick="closeEgg()">Fantastiška! ✨</button>
-</div>
-
 <!-- INTRO OVERLAY -->
 <div class="intro-overlay hidden" id="introOverlay">
   <div class="intro-glyph">🗺</div>
@@ -1279,80 +1237,6 @@ const BADGE_GROUPS=[
   ]},
 ];
 
-// ═══════════ EASTER EGGS ═══════════
-// Each egg: id, trigger type, condition fn (called with context), title, desc, reward(XP), glyph
-const EASTER_EGGS=[
-  {
-    id:'egg_midnight',
-    title:'Nakties klajoklis',
-    desc:'Tu tyrinėji Kauną vidurnaktį. Miestas tavo.',
-    glyph:'🌙',
-    reward:75,
-    rewardText:'+75 XP — Nakties ženklelis',
-    check:()=>{const h=new Date().getHours();return h>=0&&h<4;}
-  },
-  {
-    id:'egg_dawn',
-    title:'Aušros sargybinis',
-    desc:'Anksčiausias paukštis gauna kirmėlę. O tu – slaptą ženklelį.',
-    glyph:'🌅',
-    reward:60,
-    rewardText:'+60 XP — Aušros ženklelis',
-    check:()=>{const h=new Date().getHours();return h>=5&&h<=7;}
-  },
-  {
-    id:'egg_fort_first',
-    title:'Fortų paslaptis',
-    desc:'Pirmą kartą žengei į fortą. Čia buvo kariauta, kenčiama ir laukta. Atsimink.',
-    glyph:'🏰',
-    reward:50,
-    rewardText:'+50 XP — Fortų iniciacijos ženklelis',
-    check:(spot)=>spot&&spot.cat==='fort'&&[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.cat==='fort')).length===1
-  },
-  {
-    id:'egg_five_streak',
-    title:'Nesustojamas',
-    desc:'5 dienos iš eilės! Tu ne turistas – tu tyrinėtojas.',
-    glyph:'🔥',
-    reward:100,
-    rewardText:'+100 XP — Ugningas ženklelis',
-    check:()=>streak===5
-  },
-  {
-    id:'egg_logo_secret',
-    title:'Smalsus kaip katė',
-    desc:'Kas čia spaustų logotipą 7 kartus? Tu, pasirodo.',
-    glyph:'🐱',
-    reward:30,
-    rewardText:'+30 XP — Slaptasis ženklelis',
-    check:()=>logoClickCount>=7
-  },
-  {
-    id:'egg_all_t1',
-    title:'T1 Meistras',
-    desc:'Visas T1 surinktas! Kaunas tau atsivėrė. Dabar gilyn.',
-    glyph:'🏆',
-    reward:150,
-    rewardText:'+150 XP — Aukso ženklelis',
-    check:()=>SPOTS.filter(s=>s.tier===1).every(s=>found.has(s.id))
-  },
-];
-
-// ═══════════ LEVEL SYSTEM ═══════════
-const LEVELS=[
-  {level:1,name:'Naujokas',icon:'🐣',xp:0},
-  {level:2,name:'Klajoklis',icon:'🚶',xp:50},
-  {level:3,name:'Žvalgybininkas',icon:'🔭',xp:120},
-  {level:4,name:'Tyrinėtojas',icon:'🧭',xp:220},
-  {level:5,name:'Keliauninkas',icon:'🗺',xp:350},
-  {level:6,name:'Žinovas',icon:'📚',xp:520},
-  {level:7,name:'Meistras',icon:'⚔',xp:750},
-  {level:8,name:'Kauno legenda',icon:'👑',xp:1000},
-];
-function getLevel(xp){let lv=LEVELS[0];for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].xp){lv=LEVELS[i];break;}}return lv;}
-function getNextLevel(xp){for(let i=0;i<LEVELS.length;i++){if(xp<LEVELS[i].xp) return LEVELS[i];}return null;}
-function getLevelProgress(xp){const c=getLevel(xp),n=getNextLevel(xp);if(!n)return 100;return Math.round((xp-c.xp)/(n.xp-c.xp)*100);}
-
 // ═══════════ STREAK MILESTONES ═══════════
 const STREAK_MILES=[
   {day:3,reward:25,label:'3d.',desc:'+25 XP',icon:'⚡'},
@@ -1361,7 +1245,6 @@ const STREAK_MILES=[
   {day:14,reward:200,label:'14d.',desc:'+200 XP',icon:'🏆'},
   {day:30,reward:500,label:'30d.',desc:'+500 XP',icon:'👑'},
 ];
-const STREAK_HIDDEN_SPOT={id:99,name:'Napoleono tiltas',cat:'history',tier:1,year:'1812',time:'20 min.',price:'Nemokama',radius:100,bring:['Smalsumą'],history:'Vieta kur 1812 m. Napoleono didžioji armija kirto Nemuną žygiuodama į Rusiją. Šiandien – tik atmintis ir vaizdas. Ši vieta atsiveria tik ištvermingiems tyrinėtojams.',lat:54.9012,lng:23.9108,tag:'Slaptoji'};
 
 // ═══════════ STATE ═══════════
 
@@ -1470,7 +1353,6 @@ function load(){
   const today=new Date().toDateString();
   if(dailyQuestDate!==today){dailyQuestDone=false;dailyQuestDate=today;}
   // Restore hidden spot if earned
-  if(hiddenSpotUnlocked&&!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});}
   // Clear any stale spots from localStorage
   localStorage.removeItem('ke7_spots');
   checkStreakBreakOnLoad();
@@ -1901,7 +1783,6 @@ function closeDrawer(){
 const PANEL_TITLES={
   vietos:'📋 Vietos',
   favs:'♥ Mėgstamiausi',
-  marsrutai:'🧭 Maršrutai',
   zenklai:'🏅 Ženkleliai',
   social:'👥 Draugai',
   osm:'🗺 OSM Import',
@@ -1909,14 +1790,13 @@ const PANEL_TITLES={
 };
 
 function openSubPanel(name){
-  ['vietos','favs','marsrutai','zenklai','social','osm','reviews'].forEach(p=>{
+  ['vietos','favs','zenklai','social','osm','reviews'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
   document.getElementById('drawerSubPanel').classList.add('open');
   if(name==='vietos') renderList();
   if(name==='favs') renderFavorites();
-  if(name==='marsrutai') renderRoutes();
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
   if(name==='osm') renderOsmImport();
@@ -2206,8 +2086,12 @@ function collectCurrent(){
     const r=spotRadius(selectedSpot);
     if(d>r){
       const lbl=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
-      toast(`📍 Per toli! Zona: ${r}m (tu: ${lbl})`,'info');
-      return;
+      if(d>250){
+        toast(`📍 Per toli! Zona: ${r}m (tu: ${lbl})`,'info');
+        return;
+      }
+      // Within 250m — show force collect option
+      if(!confirm(`GPS rodo ${lbl} nuo vietos. Ar tikrai esi čia?`)){return;}
     }
   }
   const wasT1=t1Collected();const wasT2=t2Collected();
@@ -2228,8 +2112,6 @@ function collectCurrent(){
   toast(`🏅 Surinkta: ${selectedSpot.name}`,'success');
   launchConfetti();
 
-  // Check easter eggs after collect
-  setTimeout(()=>checkEasterEggs(selectedSpot),300);
 
   const newT1=t1Collected();const newT2=t2Collected();
   const prevT2tokens=Math.floor(wasT1/TIER_CONFIG[2].unlockAt);
@@ -2265,44 +2147,12 @@ function updateStreak(){
 
 // ═══════════ EASTER EGGS ═══════════
 
-function checkEasterEggs(collectSpot){
-  EASTER_EGGS.forEach(egg=>{
-    if(triggeredEggs.has(egg.id)) return;
-    let ok=false;
-    try{ok=egg.check(collectSpot);}catch(e){}
-    if(ok) triggerEgg(egg);
-  });
-}
-
-function checkEasterEggsPassive(){
-  EASTER_EGGS.forEach(egg=>{
-    if(triggeredEggs.has(egg.id)) return;
-    if(egg.id==='egg_fort_first') return; // needs a spot arg — handled in checkEasterEggs(spot)
-    let ok=false;
-    try{ok=egg.check(null);}catch(e){}
-    if(ok) triggerEgg(egg);
-  });
-}
-
-function triggerEgg(egg){
-  triggeredEggs.add(egg.id);
-  addXP(egg.reward);
-  save();
-  document.getElementById('eggGlyph').textContent=egg.glyph;
-  document.getElementById('eggTitle').textContent=egg.title;
-  document.getElementById('eggDesc').textContent=egg.desc;
-  document.getElementById('eggReward').textContent=egg.rewardText;
-  document.getElementById('eggOverlay').classList.add('show');
-  launchConfetti();
-}
-function closeEgg(){document.getElementById('eggOverlay').classList.remove('show');}
 
 // Logo click easter egg
 function handleLogoClick(){
   logoClickCount++;
   clearTimeout(logoClickTimer);
   logoClickTimer=setTimeout(()=>{logoClickCount=0;},2000);
-  if(logoClickCount>=7) checkEasterEggsPassive();
 }
 
 // ═══════════ UNLOCK PICKER ═══════════
@@ -2375,54 +2225,6 @@ function surpriseMe(){
 
 // ═══════════ ROUTES ═══════════
 
-function renderRoutes(){
-  const body=document.getElementById('panel-marsrutai');
-  const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
-  body.innerHTML='';
-
-  if(isAdmin){
-    const adminBtn=document.createElement('div');
-    adminBtn.style.cssText='padding:10px 14px;';
-    adminBtn.innerHTML=`<button onclick="openRouteEditor()" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--td);cursor:pointer;">✏️ Redaguoti maršrutus</button>`;
-    body.appendChild(adminBtn);
-  }
-
-  ROUTES.forEach(route=>{
-    const total=route.stops.length;
-    const done=route.stops.filter(id=>found.has(id)).length;
-    const pct=Math.round(done/total*100);
-    const div=document.createElement('div');
-    div.className='route-card';
-    div.innerHTML=`
-      <div class="rc-head">
-        <div class="rc-emoji">${route.emoji}</div>
-        <div class="rc-name">${route.name}</div>
-        <div class="rc-desc">${route.desc}</div>
-        <div class="rc-meta">
-          <span class="rc-chip">⏱ ${route.time}</span>
-          <span class="rc-chip">📍 ${route.dist}</span>
-          <span class="rc-chip">${done}/${total}</span>
-        </div>
-        <div class="rc-prog"><div class="rc-pf" style="width:${pct}%"></div></div>
-      </div>
-      <div class="rc-stops">${route.stops.map(id=>{
-        const sp=SPOTS.find(s=>s.id===id||s._fid===id||String(s.id)===String(id));
-        if(!sp) return '';
-        const locked=!isSpotUnlocked(sp);
-        const d=found.has(id)||found.has(sp.id);
-        return `<div class="rc-stop ${d?'done':''} ${locked?'locked-stop':''}">
-          <div class="rc-stop-dot"></div>${locked?'🔒 ???':sp.name}
-        </div>`;
-      }).join('')}</div>
-    `;
-    body.appendChild(div);
-    const btn=document.createElement('button');
-    btn.className='start-route-btn';
-    btn.textContent=activeRoute===route.id?'⏹ Sustabdyti':'▶ Pradėti maršrutą';
-    btn.onclick=()=>toggleRoute(route.id);
-    body.appendChild(btn);
-  });
-}
 
 // ── Route editor (admin only) ──
 function openRouteEditor(){
@@ -2450,7 +2252,6 @@ function saveRouteEditor(overlay){
     parsed.forEach(r=>ROUTES.push(r));
     localStorage.setItem('ke7_routes',JSON.stringify(ROUTES));
     overlay.remove();
-    renderRoutes();
     toast('✅ Maršrutai išsaugoti','success');
   }catch(e){
     toast('❌ JSON klaida: '+e.message,'info');
@@ -2946,19 +2747,10 @@ function closeLevelUp(){document.getElementById('levelUpOverlay')?.classList.rem
 
 function updateLevelPill(){
   const lv=getLevel(totalXP);
-  const next=getNextLevel(totalXP);
-  const pct=getLevelProgress(totalXP);
-  // Drawer XP bar
-  const xpBar=document.getElementById('xpBar');
-  const xpCurrent=document.getElementById('xpCurrent');
-  const xpNext=document.getElementById('xpNext');
   const lpLvl=document.getElementById('lpLvl');
   const lpName=document.getElementById('lpName');
-  if(xpBar) xpBar.style.width=pct+'%';
-  if(xpCurrent) xpCurrent.textContent=`${totalXP} XP`;
-  if(xpNext) xpNext.textContent=next?`→ ${next.xp} XP`:'MAX';
   if(lpLvl) lpLvl.textContent=`Lv.${lv.level}`;
-  if(lpName) lpName.textContent=lv.icon+' '+lv.name;
+  if(lpName) lpName.textContent=lv.name;
 }
 
 function renderStreakCard(){
@@ -2994,7 +2786,6 @@ function checkStreakMilestones(){
       toast(`${m.icon} ${m.day}d. serija! +${m.reward} XP`,'gold');
       if(m.unlocksHidden&&!hiddenSpotUnlocked){
         hiddenSpotUnlocked=true;
-        if(!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});refreshMarkers();}
         setTimeout(()=>toast('🗺 Slapta vieta atrakinta žemėlapyje!','gold'),1500);
       }
       save();
@@ -3196,6 +2987,7 @@ async function fetchOsmData(){
   _osmLoading=true;
   _osmForceRefresh=false; // consume the flag
   osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
+  // Use active city bbox for import — switch city to import different areas
   const bbox=activeCity.bbox;
   try{
     // ── QUERY 1: Named items — categories where name is expected ──
@@ -3578,7 +3370,6 @@ function introNext(){
 // This keeps the map accessible — user taps ✕ to return to map
 const MOB_PANEL_TITLES={
   zenklai:'🏅 Ženkleliai',
-  marsrutai:'🧭 Maršrutai',
   favs:'♥ Mėgstamiausi',
   vietos:'📋 Vietos',
 };
@@ -3606,7 +3397,6 @@ function mobNavTo(panel){
   if(origEl){
     // Clone the panel element approach — render then copy innerHTML
     if(panel==='zenklai') renderBadgesInto(body);
-    else if(panel==='marsrutai') renderRoutesInto(body);
     else if(panel==='favs') renderFavoritesInto(body);
     else if(panel==='vietos') renderListInto(body);
   }
@@ -3627,13 +3417,6 @@ function renderBadgesInto(target){
   const orig=document.getElementById('panel-zenklai');
   const saved=orig.innerHTML;
   renderBadges();
-  target.innerHTML=orig.innerHTML;
-  orig.innerHTML=saved;
-}
-function renderRoutesInto(target){
-  const orig=document.getElementById('panel-marsrutai');
-  const saved=orig.innerHTML;
-  renderRoutes();
   target.innerHTML=orig.innerHTML;
   orig.innerHTML=saved;
 }
@@ -3931,7 +3714,6 @@ self.addEventListener('fetch',e=>{
 // Load any admin-saved routes
 const _savedRoutes=localStorage.getItem('ke7_routes');
 if(_savedRoutes){try{const r=JSON.parse(_savedRoutes);ROUTES.length=0;r.forEach(x=>ROUTES.push(x));}catch(e){}}
-setTimeout(()=>checkEasterEggsPassive(),1000);
 setTimeout(()=>showIntroIfNeeded(),800);
 setupClusteringListener();
 
@@ -3948,6 +3730,8 @@ window.onFbAuthReady=function(user){
     updateAuthUI(user);
     fbLoadSpots();
     fbLoadUserProgress(user.uid);
+    // Center map on user location after login
+    if(userLat!==null) setTimeout(()=>map&&map.setView([userLat,userLng],15),500);
     // Re-render social panel so leaderboard shows immediately after login
     const socialPanel=document.getElementById('panel-social');
     if(socialPanel&&socialPanel.innerHTML) renderSocial();
@@ -3959,11 +3743,6 @@ window.onFbAuthReady=function(user){
 
 // ═══════════ FIREBASE AUTH ═══════════
 
-function drawerAuthAction(){
-  if(window._fbUser) fbLogout();
-  else fbLogin();
-}
-
 function updateAuthUI(user){
   const bar=document.getElementById('authBar');
   const nameEl=document.getElementById('authName');
@@ -3971,33 +3750,28 @@ function updateAuthUI(user){
   const btn=document.getElementById('authBtn');
   const avatar=document.getElementById('authAvatar');
   const mobPill=document.getElementById('mobLoginPill');
-  // Drawer auth button
-  const drawerBtn=document.getElementById('drawerAuthBtn');
-  const drawerAvatar=document.getElementById('drawerAuthAvatar');
-  const drawerLabel=document.getElementById('drawerAuthLabel');
 
   if(user){
-    if(nameEl) nameEl.textContent=user.displayName||user.email||'Vartotojas';
-    if(subEl) subEl.textContent='Sinchronizuota ✓';
-    if(btn){btn.textContent='Atsijungti';btn.className='auth-btn out';btn.onclick=fbLogout;}
-    if(avatar){
-      if(user.photoURL) avatar.innerHTML=`<img class="auth-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`;
-      else avatar.textContent='👤';
+    nameEl.textContent=user.displayName||user.email||'Vartotojas';
+    subEl.textContent='Sinchronizuota ✓';
+    btn.textContent='Atsijungti';
+    btn.className='auth-btn out';
+    btn.onclick=fbLogout;
+    if(user.photoURL){
+      avatar.innerHTML=`<img class="auth-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`;
+    } else {
+      avatar.textContent='👤';
     }
-    // Drawer button — show user name + logout
-    if(drawerAvatar) drawerAvatar.textContent=user.photoURL?'':'👤';
-    if(drawerLabel) drawerLabel.textContent=`${user.displayName||'Vartotojas'} · Atsijungti`;
-    if(drawerBtn) drawerBtn.style.borderColor='var(--green)';
+    // Hide login pill when logged in
     if(mobPill) mobPill.style.display='none';
   } else {
-    if(nameEl) nameEl.textContent='Neprisijungęs';
-    if(subEl) subEl.textContent='Prisijunk norėdamas sinchronizuoti';
-    if(btn){btn.textContent='Prisijungti su Google';btn.className='auth-btn';btn.onclick=fbLogin;}
-    if(avatar) avatar.innerHTML='👤';
-    // Drawer button — show login
-    if(drawerAvatar) drawerAvatar.textContent='👤';
-    if(drawerLabel) drawerLabel.textContent='Prisijungti su Google';
-    if(drawerBtn) drawerBtn.style.borderColor='var(--bdr)';
+    nameEl.textContent='Neprisijungęs';
+    subEl.textContent='Prisijunk norėdamas sinchronizuoti';
+    btn.textContent='Prisijungti su Google';
+    btn.className='auth-btn';
+    btn.onclick=fbLogin;
+    avatar.innerHTML='👤';
+    // Show login pill on mobile when not logged in
     if(mobPill&&window.innerWidth<=600) mobPill.style.display='block';
   }
 }
@@ -4056,9 +3830,7 @@ async function fbLoadSpots(){
       const firestoreSpots=[];
       snapshot.forEach(d=>{
         const data=d.data();
-        // Filter by activeCity — spots with no city field belong to kaunas (backwards compat)
-        const spotCity=data.city||'kaunas';
-        if(spotCity!==activeCity.id) return;
+        // All Lithuanian spots loaded regardless of city
         firestoreSpots.push({radius:DEFAULT_RADIUS,...data,_fid:d.id,id:d.id});
       });
       SPOTS=firestoreSpots;
@@ -4268,7 +4040,6 @@ deleteSpot=async function(){
     <div class="mob-nav-icon">🏅</div>
     <div class="mob-nav-label">Ženkleliai</div>
   </div>
-  <div class="mob-nav-item" onclick="mobNavTo('marsrutai')">
     <div class="mob-nav-icon">🧭</div>
     <div class="mob-nav-label">Maršrutai</div>
   </div>
