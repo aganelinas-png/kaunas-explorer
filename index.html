@@ -815,12 +815,14 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <div class="drawer-main" id="drawerMain">
     <div class="drawer-header">
       <div style="display:flex;align-items:flex-start;justify-content:space-between">
-        <div>
+        <div style="flex:1;min-width:0">
           <div class="drawer-logo">Kaunas Explorer</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+          <!-- City switcher -->
+          <select id="citySwitcher" onchange="switchCity(this.value)" style="margin-top:8px;background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:5px 8px;color:var(--txt);font-family:'DM Mono',monospace;font-size:.65rem;width:100%;outline:none;cursor:pointer"></select>
         </div>
-        <button onclick="closeDrawer()" style="background:none;border:none;color:var(--td);font-size:1.3rem;cursor:pointer;padding:0 0 0 12px;line-height:1;margin-top:-2px;-webkit-user-select:none;user-select:none" title="Uždaryti">✕</button>
+        <button onclick="closeDrawer()" style="background:none;border:none;color:var(--td);font-size:1.3rem;cursor:pointer;padding:0 0 0 12px;line-height:1;margin-top:-2px;-webkit-user-select:none;user-select:none;flex-shrink:0" title="Uždaryti">✕</button>
       </div>
     </div>
     <div class="drawer-nav-main">
@@ -3479,6 +3481,36 @@ const CITIES={
 };
 let activeCity=CITIES.kaunas;
 
+function initCitySwitcher(){
+  const sel=document.getElementById('citySwitcher');
+  if(!sel) return;
+  sel.innerHTML=Object.values(CITIES).map(c=>
+    `<option value="${c.id}" ${c.id===activeCity.id?'selected':''}>${c.flag} ${c.name}</option>`
+  ).join('');
+}
+
+function switchCity(cityId){
+  const city=CITIES[cityId];
+  if(!city||city.id===activeCity.id) return;
+  activeCity=city;
+  // Update OSM cache key so next import fetches new city
+  _osmForceRefresh=true;
+  _osmImportData=[];
+  _osmSelected.clear();
+  // Clear markers and spots
+  if(clusterGroup) clusterGroup.clearLayers();
+  markers={};
+  SPOTS=[];
+  // Fly map to new city
+  map.flyTo(city.center,city.zoom,{duration:1.2});
+  // Reload spots for new city from Firestore
+  fbLoadSpots();
+  // Update topbar
+  updateAll();
+  toast(`📍 ${city.flag} ${city.name}`,'info');
+  closeDrawer();
+}
+
 // ═══════════ INTRO ═══════════
 const INTRO_STEPS=[
   {glyph:'🗺',title:'Sveiki į Kaunas Explorer',sub:'Tyrinėk miestą realiu laiku. Surink vietas fiziškai apsilankydamas.'},
@@ -3812,6 +3844,7 @@ async function submitReview(){
 // ═══════════ INIT ═══════════
 
 load();initMap();updateAll();startGPS();
+initCitySwitcher();
 
 // ═══════════ PWA SETUP ═══════════
 (function(){
@@ -3965,16 +3998,15 @@ function setSyncDot(state){
 let _fbSeeding=false; // local lock to prevent race condition double-push
 
 async function fbLoadSpots(){
-  const{db,collection,onSnapshot,doc,getDoc,setDoc}=window._fb||{};
+  const{db,collection,onSnapshot,doc,getDoc,setDoc,query,where}=window._fb||{};
   if(!db) return;
   setSyncDot('syncing');
   try{
     onSnapshot(collection(db,'spots'),async snapshot=>{
       if(snapshot.empty){
         const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
-        if(!isAdmin||_fbSeeding) return; // not admin, or already seeding
+        if(!isAdmin||_fbSeeding) return;
         _fbSeeding=true;
-        // Check Firestore flag — prevents re-seeding if spots were manually deleted
         const flagRef=doc(db,'_meta','seeded');
         const flagSnap=await getDoc(flagRef);
         if(flagSnap.exists()){_fbSeeding=false;return;}
@@ -3986,6 +4018,9 @@ async function fbLoadSpots(){
       const firestoreSpots=[];
       snapshot.forEach(d=>{
         const data=d.data();
+        // Filter by activeCity — spots with no city field belong to kaunas (backwards compat)
+        const spotCity=data.city||'kaunas';
+        if(spotCity!==activeCity.id) return;
         firestoreSpots.push({radius:DEFAULT_RADIUS,...data,_fid:d.id,id:d.id});
       });
       SPOTS=firestoreSpots;
