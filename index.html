@@ -1451,7 +1451,7 @@ function toggleTheme(){isDark=!isDark;applyTheme();save();}
 // ═══════════ MAP ═══════════
 
 function initMap(){
-  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([54.8985,23.917],14);
+  map=L.map('map',{zoomControl:false,attributionControl:false,maxZoom:19}).setView([54.8985,23.917],14);
   L.control.zoom({position:'bottomright'}).addTo(map);
 
   // ── Marker cluster group — gold themed, disables at zoom 16+ ──
