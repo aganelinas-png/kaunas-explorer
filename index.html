@@ -912,6 +912,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           <option value="watertower">🗼 Vandens bokštai</option>
           <option value="bridge">🌉 Tiltai</option>
           </optgroup>
+          <optgroup label="— Paslėptos —">
+          <option value="hidden">🔮 Paslėpta vieta</option>
+          </optgroup>
         </select>
       </div>
       <div class="fg">
@@ -1092,6 +1095,8 @@ const CATS={
   mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
   bridge:{label:'Tiltai',emoji:'🌉',color:'#3a5a7a'},
+  // — Hidden —
+  hidden:{label:'Paslėpta',emoji:'🔮',color:'#6a3a8a'},
 };
 
 const FILTER_GROUPS=[
@@ -1250,6 +1255,12 @@ const BADGE_GROUPS=[
     {id:'st30',name:'Mėnesio keliautojas',desc:'30 dienų iš eilės',icon:'🏅',streak:30},
     {id:'st60',name:'Nenugalimas',desc:'60 dienų iš eilės',icon:'💎',streak:60},
     {id:'st100',name:'Šimto dienų legenda',desc:'100 dienų iš eilės',icon:'👑',streak:100},
+  ]},
+  {id:'hidden',title:'Paslėptų vietų radiniai',icon:'🔮',cat:'hidden',sub:true,badges:[
+    {id:'hid1',name:'Pirmasis radinys',desc:'Surask 1 paslėptą vietą',icon:'🔮',need:1},
+    {id:'hid2',name:'Ieškotojas',desc:'Surask 3 paslėptas vietas',icon:'🗝',need:3},
+    {id:'hid3',name:'Slaptas tyrinėtojas',desc:'Surask 7 paslėptas vietas',icon:'🕵️',need:7},
+    {id:'hid4',name:'Šešėlių Meistras',desc:'Surask 15 paslėptų vietų',icon:'💎',need:15},
   ]},
   {id:'xp',title:'XP pasiekimai',icon:'⭐',cat:null,badges:[
     {id:'xp1',name:'Pirmieji taškai',desc:'Surink 100 XP',icon:'⭐',xpNeed:100},
@@ -1559,6 +1570,7 @@ function makeIcon(spot){
 }
 
 function addMarker(spot){
+  if(spot.cat==='hidden') return; // hidden spots never show on map
   const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
   m._isMarker=true;
   m.on('click',()=>openSheet(spot));
@@ -1576,6 +1588,7 @@ function refreshMarkers(){
   clusterGroup.clearLayers();
 
   SPOTS.forEach(s=>{
+    if(s.cat==='hidden') return; // never on map
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(markers[s.id]){
       markers[s.id].setIcon(makeIcon(s));
@@ -1714,7 +1727,8 @@ function checkProximity(){
   let best=null,bestDist=Infinity;
   SPOTS.forEach(s=>{
     if(found.has(s.id)) return;
-    if(!isSpotUnlocked(s)) return;
+    // hidden spots: always proximity-eligible (no tier lock)
+    if(s.cat!=='hidden'&&!isSpotUnlocked(s)) return;
     if(proxDismissedIds.has(s.id)) return;
     const d=dist(userLat,userLng,s.lat,s.lng);
     if(d<=PROX_DISPLAY_RADIUS&&d<bestDist){bestDist=d;best=s;}
@@ -1738,8 +1752,8 @@ function checkProximity(){
     proxSpotId=best.id;
     const cat=CATS[best.cat]||CATS.history;
     const r=spotRadius(best);
-    document.getElementById('proxEmoji').textContent=cat.emoji;
-    document.getElementById('proxName').textContent=best.name;
+    document.getElementById('proxEmoji').textContent=best.cat==='hidden'?'🔮':cat.emoji;
+    document.getElementById('proxName').textContent=best.cat==='hidden'?'??? Paslėpta vieta':best.name;
     const inZone=bestDist<=r;
     const inForce=bestDist<=250;
     document.getElementById('proxDist').textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
@@ -2039,6 +2053,11 @@ function showXPBurst(amount){
 // ═══════════ SHEET ═══════════
 
 function openSheet(spot){
+  // hidden spots: only open if already found
+  if(spot.cat==='hidden'&&!found.has(spot.id)){
+    toast('🔮 Paslėpta vieta — prieik arčiau ir surink!','gold');
+    return;
+  }
   selectedSpot=spot;
   const locked=!isSpotUnlocked(spot);
   const cat=CATS[spot.cat]||CATS.history;
@@ -2165,6 +2184,9 @@ function saveNote(){
 // ═══════════ COLLECT ═══════════
 
 function collectCurrent(){
+  if(selectedSpot&&selectedSpot.cat==='hidden'){
+    setTimeout(()=>toast('🔮 Paslėpta vieta surasta! Naujas ženklelis?','gold'),600);
+  }
   if(!selectedSpot||found.has(selectedSpot.id)) return;
   if(userLat!==null){
     const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
@@ -2300,7 +2322,7 @@ function closeUnlock(){
 // ═══════════ SURPRISE ═══════════
 
 function surpriseMe(){
-  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotUnlocked(s));
+  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotUnlocked(s)&&s.cat!=='hidden');
   if(!unfound.length){toast('🎉 Viskas surinkta! Tu legenda!','gold');return;}
   // Truly random — no proximity bias
   const pick=unfound[Math.floor(Math.random()*unfound.length)];
@@ -2361,7 +2383,8 @@ function renderBadges(){
 
 function renderList(){
   const body=document.getElementById('panel-vietos');
-  const pct=SPOTS.length?Math.round(found.size/SPOTS.length*100):0;
+  const visibleSpots=SPOTS.filter(s=>s.cat!=='hidden');
+  const pct=visibleSpots.length?Math.round(found.size/visibleSpots.length*100):0;
   let h=`${renderTierProgressHTML()}
   ${renderLevelCard()}
   ${renderStreakCard()}
@@ -2372,8 +2395,8 @@ function renderList(){
   </div>`;
 
   // Group unlocked spots by category, sorted by name within each group
-  const unlockedSpots=SPOTS.filter(s=>isSpotUnlocked(s));
-  const lockedSpots=SPOTS.filter(s=>!isSpotUnlocked(s));
+  const unlockedSpots=SPOTS.filter(s=>isSpotUnlocked(s)&&s.cat!=='hidden');
+  const lockedSpots=SPOTS.filter(s=>!isSpotUnlocked(s)&&s.cat!=='hidden');
 
   // Build category groups from FILTER_GROUPS order
   const allCats=FILTER_GROUPS.flatMap(g=>g.cats);
@@ -3017,51 +3040,44 @@ async function fetchOsmData(){
   _osmLoading=true;
   _osmForceRefresh=false;
   osmSetStatus('⏳ Kraunami duomenys iš OpenStreetMap...');
-  // Lithuania-wide bounding box: south,west,north,east
-  const bbox='53.89,20.93,56.45,26.83';
+  // Use area filter — scopes query to Lithuania without huge bbox
   try{
-    // ── QUERY 1: Named items — categories where name is expected ──
-    const namedBody=`data=[out:json][timeout:45];
+    const namedBody=`data=[out:json][timeout:55];
+area["name"="Lietuva"]["boundary"="administrative"]["admin_level"="2"]->.lt;
 (
-  node["amenity"="place_of_worship"]["name"](${bbox});
-  way["amenity"="place_of_worship"]["name"](${bbox});
-  node["tourism"="museum"]["name"](${bbox});
-  way["tourism"="museum"]["name"](${bbox});
-  node["tourism"="gallery"]["name"](${bbox});
-  node["tourism"="viewpoint"](${bbox});
-  way["tourism"="viewpoint"](${bbox});
-  node["tourism"="artwork"]["name"](${bbox});
-  node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](${bbox});
-  way["historic"~"castle|monument|memorial|ruins|fort|archaeological_site"]["name"](${bbox});
-  node["historic"~"mound|wayside_shrine|stone"]["name"](${bbox});
-  way["historic"="mound"]["name"](${bbox});
-  node["historic"="bridge"]["name"](${bbox});
-  way["historic"="bridge"]["name"](${bbox});
-  node["leisure"~"park|garden|nature_reserve"]["name"](${bbox});
-  way["leisure"~"park|garden|nature_reserve"]["name"](${bbox});
-  node["military"~"bunker|fort"]["name"](${bbox});
-  way["military"~"bunker|fort"]["name"](${bbox});
-  node["amenity"="grave_yard"]["name"](${bbox});
-  way["amenity"="grave_yard"]["name"](${bbox});
-  way["landuse"="cemetery"]["name"](${bbox});
-  node["highway"="trailhead"]["name"](${bbox});
-  relation["route"~"hiking|foot"]["name"](${bbox});
+  node["amenity"="place_of_worship"]["name"](area.lt);
+  node["tourism"="museum"]["name"](area.lt);
+  node["tourism"="gallery"]["name"](area.lt);
+  node["tourism"="viewpoint"]["name"](area.lt);
+  node["tourism"="artwork"]["name"](area.lt);
+  node["historic"~"castle|monument|memorial|ruins|fort|archaeological_site|artwork"]["name"](area.lt);
+  node["historic"~"mound|wayside_shrine|stone"]["name"](area.lt);
+  node["historic"="bridge"]["name"](area.lt);
+  node["leisure"~"park|garden|nature_reserve"]["name"](area.lt);
+  node["military"~"bunker|fort"]["name"](area.lt);
+  node["amenity"="grave_yard"]["name"](area.lt);
+  node["highway"="trailhead"]["name"](area.lt);
+  way["amenity"="place_of_worship"]["name"](area.lt);
+  way["tourism"="museum"]["name"](area.lt);
+  way["historic"~"castle|monument|memorial|ruins|fort"]["name"](area.lt);
+  way["historic"="mound"]["name"](area.lt);
+  way["leisure"~"park|garden|nature_reserve"]["name"](area.lt);
+  way["landuse"="cemetery"]["name"](area.lt);
 );
-out center;`;
+out center 500;`;
 
-    // ── QUERY 2: Unnamed infrastructure — nodes only (fast), bridges need name or ref ──
-    const unnamedBody=`data=[out:json][timeout:25];
+    // ── QUERY 2: Unnamed infra — nodes only, tight limit ──
+    const unnamedBody=`data=[out:json][timeout:30];
+area["name"="Lietuva"]["boundary"="administrative"]["admin_level"="2"]->.lt;
 (
-  node["man_made"="water_tower"](${bbox});
-  node["man_made"="chimney"](${bbox});
-  node["natural"="cliff"](${bbox});
-  way["bridge"="yes"]["highway"]["name"](${bbox});
-  way["bridge"="yes"]["highway"]["ref"](${bbox});
+  node["man_made"="water_tower"](area.lt);
+  node["man_made"="chimney"](area.lt);
+  node["natural"="cliff"](area.lt);
 );
-out center 80;`;
+out center 60;`;
 
     // ── OSM CACHE — avoid hammering Overpass; cache results for 24h ──
-    const OSM_CACHE_KEY=`kex_osm_cache_lt_v1`;
+    const OSM_CACHE_KEY=`kex_osm_cache_lt_v2`;
     const OSM_CACHE_TTL=24*60*60*1000; // 24 hours
     const cached=JSON.parse(localStorage.getItem(OSM_CACHE_KEY)||'null');
     if(cached&&Date.now()-cached.ts<OSM_CACHE_TTL&&!_osmForceRefresh){
@@ -3217,8 +3233,8 @@ function renderOsmImport(){
   const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės',bridge:'🌉 Tiltai',trail:'🥾 Takai'};
   body.innerHTML=`<div class="osm-wrap">
     <div style="margin-bottom:10px">
-      <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">🇱🇹 Visa Lietuva</div>
-      <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">⚠ Importuoja vietas iš viso Lietuvos. Patikrink dublikatus prieš pridedant.</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">🇱🇹 Visa Lietuva · area filtrais</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">⚠ Greitesnis užklausimas nei anksčiau. Patikrink dublikatus prieš pridedant.</div>
     </div>
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchOsmData()">🔄 Įkelti iš OSM</button>
@@ -3234,7 +3250,7 @@ function renderOsmImport(){
       <span class="osm-tier-label">Tier:</span>
       ${[1,2,3].map(t=>`<button class="osm-tier-btn ${_osmTier===t?'on':''}" data-t="${t}" onclick="osmSetTier(${t})">T${t}</button>`).join('')}
     </div>
-    <div class="osm-status" id="osmStatus">${_osmImportData.length?`${_osmImportData.length} vietų įkeltos (${_osmImportData.filter(x=>x.alreadyIn).length} jau pridėtos)`:'Spausk "Įkelti iš OSM" pradėti'}</div>
+    <div class="osm-status" id="osmStatus">${_osmImportData.length?`${_osmImportData.length} vietų įkeltos (${_osmImportData.filter(x=>x.alreadyIn).length} jau pridėtos)`:'Spausk "Įkelti iš OSM" pradėti (area filtrais, be timeout)'}</div>
     <div class="osm-list" id="osmList"></div>
   </div>`;
   if(_osmImportData.length) renderOsmList();
