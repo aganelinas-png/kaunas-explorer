@@ -819,6 +819,25 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           <div class="drawer-logo">Kaunas Explorer</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+          <!-- XP progress bar -->
+          <div style="margin-top:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span id="lpName" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--gold)">—</span>
+              <span id="lpLvl" style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)">Lv.1</span>
+            </div>
+            <div style="height:4px;background:var(--bdr);border-radius:2px;overflow:hidden">
+              <div id="xpBar" style="height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;transition:width .6s;width:0%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:2px">
+              <span id="xpCurrent" style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--tm)">0 XP</span>
+              <span id="xpNext" style="font-family:'DM Mono',monospace;font-size:.55rem;color:var(--tm)">→ 100 XP</span>
+            </div>
+          </div>
+          <!-- Login/logout button always visible -->
+          <button id="drawerAuthBtn" onclick="drawerAuthAction()" style="margin-top:10px;width:100%;background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">
+            <span id="drawerAuthAvatar">👤</span>
+            <span id="drawerAuthLabel">Prisijungti su Google</span>
+          </button>
           <!-- City switcher -->
           <select id="citySwitcher" onchange="switchCity(this.value)" style="margin-top:8px;background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:5px 8px;color:var(--txt);font-family:'DM Mono',monospace;font-size:.65rem;width:100%;outline:none;cursor:pointer"></select>
         </div>
@@ -2927,10 +2946,19 @@ function closeLevelUp(){document.getElementById('levelUpOverlay')?.classList.rem
 
 function updateLevelPill(){
   const lv=getLevel(totalXP);
+  const next=getNextLevel(totalXP);
+  const pct=getLevelProgress(totalXP);
+  // Drawer XP bar
+  const xpBar=document.getElementById('xpBar');
+  const xpCurrent=document.getElementById('xpCurrent');
+  const xpNext=document.getElementById('xpNext');
   const lpLvl=document.getElementById('lpLvl');
   const lpName=document.getElementById('lpName');
+  if(xpBar) xpBar.style.width=pct+'%';
+  if(xpCurrent) xpCurrent.textContent=`${totalXP} XP`;
+  if(xpNext) xpNext.textContent=next?`→ ${next.xp} XP`:'MAX';
   if(lpLvl) lpLvl.textContent=`Lv.${lv.level}`;
-  if(lpName) lpName.textContent=lv.name;
+  if(lpName) lpName.textContent=lv.icon+' '+lv.name;
 }
 
 function renderStreakCard(){
@@ -3931,6 +3959,11 @@ window.onFbAuthReady=function(user){
 
 // ═══════════ FIREBASE AUTH ═══════════
 
+function drawerAuthAction(){
+  if(window._fbUser) fbLogout();
+  else fbLogin();
+}
+
 function updateAuthUI(user){
   const bar=document.getElementById('authBar');
   const nameEl=document.getElementById('authName');
@@ -3938,28 +3971,33 @@ function updateAuthUI(user){
   const btn=document.getElementById('authBtn');
   const avatar=document.getElementById('authAvatar');
   const mobPill=document.getElementById('mobLoginPill');
+  // Drawer auth button
+  const drawerBtn=document.getElementById('drawerAuthBtn');
+  const drawerAvatar=document.getElementById('drawerAuthAvatar');
+  const drawerLabel=document.getElementById('drawerAuthLabel');
 
   if(user){
-    nameEl.textContent=user.displayName||user.email||'Vartotojas';
-    subEl.textContent='Sinchronizuota ✓';
-    btn.textContent='Atsijungti';
-    btn.className='auth-btn out';
-    btn.onclick=fbLogout;
-    if(user.photoURL){
-      avatar.innerHTML=`<img class="auth-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`;
-    } else {
-      avatar.textContent='👤';
+    if(nameEl) nameEl.textContent=user.displayName||user.email||'Vartotojas';
+    if(subEl) subEl.textContent='Sinchronizuota ✓';
+    if(btn){btn.textContent='Atsijungti';btn.className='auth-btn out';btn.onclick=fbLogout;}
+    if(avatar){
+      if(user.photoURL) avatar.innerHTML=`<img class="auth-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`;
+      else avatar.textContent='👤';
     }
-    // Hide login pill when logged in
+    // Drawer button — show user name + logout
+    if(drawerAvatar) drawerAvatar.textContent=user.photoURL?'':'👤';
+    if(drawerLabel) drawerLabel.textContent=`${user.displayName||'Vartotojas'} · Atsijungti`;
+    if(drawerBtn) drawerBtn.style.borderColor='var(--green)';
     if(mobPill) mobPill.style.display='none';
   } else {
-    nameEl.textContent='Neprisijungęs';
-    subEl.textContent='Prisijunk norėdamas sinchronizuoti';
-    btn.textContent='Prisijungti su Google';
-    btn.className='auth-btn';
-    btn.onclick=fbLogin;
-    avatar.innerHTML='👤';
-    // Show login pill on mobile when not logged in
+    if(nameEl) nameEl.textContent='Neprisijungęs';
+    if(subEl) subEl.textContent='Prisijunk norėdamas sinchronizuoti';
+    if(btn){btn.textContent='Prisijungti su Google';btn.className='auth-btn';btn.onclick=fbLogin;}
+    if(avatar) avatar.innerHTML='👤';
+    // Drawer button — show login
+    if(drawerAvatar) drawerAvatar.textContent='👤';
+    if(drawerLabel) drawerLabel.textContent='Prisijungti su Google';
+    if(drawerBtn) drawerBtn.style.borderColor='var(--bdr)';
     if(mobPill&&window.innerWidth<=600) mobPill.style.display='block';
   }
 }
