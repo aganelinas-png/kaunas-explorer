@@ -3211,7 +3211,7 @@ out center;`;
 out center 80;`;
 
     // ── OSM CACHE — avoid hammering Overpass; cache results for 24h ──
-    const OSM_CACHE_KEY='kex_osm_cache_v2';
+    const OSM_CACHE_KEY=`kex_osm_cache_v2_${activeCity.id}`;
     const OSM_CACHE_TTL=24*60*60*1000; // 24 hours
     const cached=JSON.parse(localStorage.getItem(OSM_CACHE_KEY)||'null');
     if(cached&&Date.now()-cached.ts<OSM_CACHE_TTL&&!_osmForceRefresh){
