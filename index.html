@@ -852,6 +852,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
       <div class="dbot-btn" id="drawerReviewsBtn" onclick="openSubPanel('reviews')" style="display:none">💬 Atsiliepimai</div>
+      <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="batchEnrichExistingSpots()" style="display:none">📚 Wikipedia Enrich</div>
     </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v13</div>
   </div>
@@ -2921,11 +2922,8 @@ function openEditor(spot){
   document.getElementById('eCat').value=spot?spot.cat:'fort';
   document.getElementById('eTier').value=spot?spot.tier||1:1;
   document.getElementById('eHist').value=spot?spot.history:'';
-  document.getElementById('eTime').value=spot?spot.time:'';
-  document.getElementById('ePrice').value=spot?spot.price:'';
   document.getElementById('eYear').value=spot?spot.year:'';
   document.getElementById('eTag').value=spot?spot.tag:'';
-  document.getElementById('eBring').value=spot?(spot.bring||[]).join(', '):'';
   document.getElementById('eRadius').value=spot?spot.radius||DEFAULT_RADIUS:DEFAULT_RADIUS;
   document.getElementById('eLat').value=spot?spot.lat:'';
   document.getElementById('eLng').value=spot?spot.lng:'';
@@ -2940,9 +2938,9 @@ function saveSpot(){
   const lat=parseFloat(document.getElementById('eLat').value);
   const lng=parseFloat(document.getElementById('eLng').value);
   if(!name||isNaN(lat)||isNaN(lng)){toast('⚠ Užpildyk pavadinimą ir koordinates','info');return;}
-  const bring=document.getElementById('eBring').value.split(',').map(b=>b.trim()).filter(Boolean);
+  const bring=[];
   const radius=parseInt(document.getElementById('eRadius').value)||DEFAULT_RADIUS;
-  const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),history:document.getElementById('eHist').value,time:document.getElementById('eTime').value,price:document.getElementById('ePrice').value,year:document.getElementById('eYear').value,tag:document.getElementById('eTag').value,bring,lat,lng,radius};
+  const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),history:document.getElementById('eHist').valuetime:'',price:'',year:document.getElementById('eYear').value,tag:document.getElementById('eTag').value,bring,lat,lng,radius};
   const id=document.getElementById('eId').value;
   if(id){
     const idx=SPOTS.findIndex(s=>s.id==id);
@@ -3622,7 +3620,7 @@ let _wikiData=[];
 let _wikiSelected=new Set();
 let _wikiLoading=false;
 let _wikiFilter='all';
-const WIKI_CACHE_KEY='kex_wiki_cache_lt_v1';
+const WIKI_CACHE_KEY='kex_wiki_cache_lt_v2';
 const WIKI_CACHE_TTL=48*60*60*1000;
 
 const WIKIDATA_CAT_MAP={
@@ -3678,7 +3676,7 @@ async function fetchWikidataLT(forceRefresh){
       _wikiLoading=false;renderWikidataList();return;
     }
   }
-  const sparql=`SELECT DISTINCT ?item ?itemLabel ?lat ?lon ?instanceOf WHERE {
+  const sparql=`SELECT DISTINCT ?item ?itemLabel ?itemDescription ?lat ?lon ?instanceOf ?wpLT ?wpEN WHERE {
   ?item wdt:P17 wd:Q37.
   ?item p:P625 ?coord.
   ?coord psv:P625 ?coordNode.
@@ -3693,6 +3691,8 @@ async function fetchWikidataLT(forceRefresh){
     wd:Q22698 wd:Q39614 wd:Q1048835 wd:Q12280 wd:Q44539
   }
   FILTER(?lat > 53.8 && ?lat < 56.5 && ?lon > 20.9 && ?lon < 26.9)
+  OPTIONAL { ?wpLT schema:about ?item; schema:inLanguage "lt"; schema:isPartOf <https://lt.wikipedia.org/>. }
+  OPTIONAL { ?wpEN schema:about ?item; schema:inLanguage "en"; schema:isPartOf <https://en.wikipedia.org/>. }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "lt,en". }
 } LIMIT 3000`;
   const url='https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(sparql);
@@ -3706,8 +3706,10 @@ async function fetchWikidataLT(forceRefresh){
     const byItem={};
     for(const row of rows){
       const id=row.item.value.split('/').pop();
-      if(!byItem[id]){byItem[id]={id:'wd_'+id,name:row.itemLabel?.value||'',lat:parseFloat(row.lat.value),lng:parseFloat(row.lon.value),instances:[],wdId:id};}
+      if(!byItem[id]){byItem[id]={id:'wd_'+id,name:row.itemLabel?.value||'',lat:parseFloat(row.lat.value),lng:parseFloat(row.lon.value),instances:[],wdId:id,wdDesc:row.itemDescription?.value||'',wpLT:'',wpEN:''};}
       if(row.instanceOf) byItem[id].instances.push(row.instanceOf.value.split('/').pop());
+      if(row.wpLT?.value) byItem[id].wpLT=row.wpLT.value.split('/wiki/').pop();
+      if(row.wpEN?.value) byItem[id].wpEN=row.wpEN.value.split('/wiki/').pop();
     }
     const processed=Object.values(byItem)
       .filter(x=>x.name&&!x.name.startsWith('Q')&&x.lat>53.8&&x.lat<56.5)
@@ -3733,7 +3735,8 @@ function renderWikidataList(){
       <div class="osm-chk">${sel?'☑':'☐'}</div>
       <div style="flex:1;min-width:0">
         <div class="osm-name">${item.name}</div>
-        <div class="osm-meta">${cat.emoji} ${cat.label} · <a href="https://www.wikidata.org/wiki/${item.wdId}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">WD ↗</a></div>
+        <div class="osm-meta">${cat.emoji} ${cat.label}${item.wdDesc?' · '+item.wdDesc:''}</div>
+        <div class="osm-meta" style="margin-top:1px"><a href="https://www.wikidata.org/wiki/${item.wdId}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">WD ↗</a>${item.wpLT?` <a href="https://lt.wikipedia.org/wiki/${item.wpLT}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">LT Wiki ↗</a>`:item.wpEN?` <a href="https://en.wikipedia.org/wiki/${item.wpEN}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">EN Wiki ↗</a>`:''}</div>
       </div>
     </div>`;
   }).join('');
@@ -3745,14 +3748,100 @@ async function wikiImportSelected(){
   if(!_wikiSelected.size){toast('Nieko nepasirinkta','info');return;}
   const setS=m=>{const e=document.getElementById('wikiStatus');if(e)e.textContent=m;};
   let imported=0;
+  const toEnrich=[];
   for(const idx of _wikiSelected){
     const item=_wikiData[idx];if(!item||item.alreadyIn) continue;
-    const spot={name:item.name,cat:item.cat,tier:2,lat:item.lat,lng:item.lng,radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,history:`Wikidata: ${item.wdId}`,year:'',tag:'',bring:[]};
-    try{await saveSpot(spot);item.alreadyIn=true;imported++;}catch(e){}
+    // Build history: start with Wikidata description if available
+    const baseDesc=item.wdDesc?item.wdDesc+'.':'';
+    const spot={name:item.name,cat:item.cat,tier:2,lat:item.lat,lng:item.lng,
+      radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
+      history:baseDesc,year:'',tag:item.wdId,bring:[]};
+    try{
+      const fid=await fbSaveSpot(spot);
+      if(fid){
+        spot.id=fid;spot._fid=fid;
+        SPOTS.push(spot);
+        item.alreadyIn=true;imported++;
+        if(item.wpLT||item.wpEN) toEnrich.push({item,fid});
+      }
+    }catch(e){console.error('wikiImport',e);}
   }
   _wikiSelected.clear();
-  setS(`✅ Importuota ${imported} vietų`);
+  if(imported>0){refreshMarkers();updateAll();}
+  setS(`✅ Importuota ${imported}. ${toEnrich.length>0?'Kraunami Wikipedia aprašymai...':''}`);
   renderWikidataList();
+  if(toEnrich.length>0) enrichWithWikipedia(toEnrich,setS);
+}
+
+async function enrichWithWikipedia(items,setS){
+  let done=0;
+  for(const {item,fid} of items){
+    const title=item.wpLT||item.wpEN;
+    const lang=item.wpLT?'lt':'en';
+    try{
+      const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(decodeURIComponent(title))}`,
+        {signal:AbortSignal.timeout(8000)});
+      if(r.ok){
+        const d=await r.json();
+        const extract=(d.extract||'').split('. ').slice(0,3).join('. ').trim();
+        if(extract){
+          const spot=SPOTS.find(s=>s.id===fid||s._fid===fid||(Math.abs(s.lat-item.lat)<0.0003&&Math.abs(s.lng-item.lng)<0.0003));
+          if(spot&&window._fb){
+            const{db,doc,updateDoc}=window._fb;
+            const spotFid=spot._fid||spot.id;
+            await updateDoc(doc(db,'spots',spotFid),{history:extract+(extract.endsWith('.')?'':'.'),wpTitle:title,wpLang:lang});
+            spot.history=extract;
+          }
+        }
+      }
+    }catch(e){}
+    done++;
+    if(setS) setS(`⏳ Wikipedia: ${done}/${items.length}...`);
+    await new Promise(r=>setTimeout(r,350)); // rate limit
+  }
+  if(setS) setS(`✅ Wikipedia aprašymai pridėti (${done}/${items.length})`);
+}
+
+// ── Batch enrich existing spots that have wdId tag but no description ──
+async function batchEnrichExistingSpots(){
+  const candidates=SPOTS.filter(s=>s.tag&&s.tag.startsWith('Q')&&(!s.history||s.history.startsWith('Wikidata:')||s.history.length<10));
+  if(!candidates.length){toast('Nerasta vietų su Wikidata ID ir tuščiu aprašu','info');return;}
+  toast(`⏳ Pradedama ${candidates.length} vietų Wikipedia paieška...`,'gold');
+  let done=0,enriched=0;
+  for(const spot of candidates){
+    const wdId=spot.tag;
+    // First get Wikipedia title from Wikidata
+    try{
+      const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wdId}&props=sitelinks&sitefilter=ltwiki|enwiki&format=json&origin=*`,
+        {signal:AbortSignal.timeout(8000)});
+      if(r.ok){
+        const d=await r.json();
+        const entity=d.entities?.[wdId];
+        const ltTitle=entity?.sitelinks?.ltwiki?.title;
+        const enTitle=entity?.sitelinks?.enwiki?.title;
+        const title=ltTitle||enTitle;
+        const lang=ltTitle?'lt':'en';
+        if(title){
+          const wr=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
+            {signal:AbortSignal.timeout(8000)});
+          if(wr.ok){
+            const wd=await wr.json();
+            const extract=(wd.extract||'').split('. ').slice(0,3).join('. ').trim();
+            if(extract&&window._fb){
+              const{db,doc,updateDoc}=window._fb;
+              const ref=doc(db,'spots',String(spot.id));
+              await updateDoc(ref,{history:extract+(extract.endsWith('.')?'':'.'),wpTitle:title,wpLang:lang});
+              spot.history=extract;enriched++;
+            }
+          }
+        }
+      }
+    }catch(e){}
+    done++;
+    await new Promise(r=>setTimeout(r,400));
+    if(done%10===0) toast(`⏳ Wikipedia: ${done}/${candidates.length} (${enriched} pridėta)...`,'info');
+  }
+  toast(`✅ Wikipedia baigta: ${enriched} aprašymų pridėta iš ${candidates.length}!`,'gold');
 }
 
 function osmToggleManual(){
@@ -4151,6 +4240,7 @@ window.onFbAuthReady=function(user){
   document.getElementById('drawerAddBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerOsmBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerReviewsBtn').style.display=isAdmin?'':'none';
+  document.getElementById('drawerWikiEnrichBtn').style.display=isAdmin?'':'none';
   if(user){
     updateAuthUI(user);
     fbLoadSpots();
@@ -4411,10 +4501,10 @@ saveSpot=async function(){
   const lat=parseFloat(document.getElementById('eLat').value);
   const lng=parseFloat(document.getElementById('eLng').value);
   if(!name||isNaN(lat)||isNaN(lng)){toast('⚠ Užpildyk pavadinimą ir koordinates','info');return;}
-  const bring=document.getElementById('eBring').value.split(',').map(b=>b.trim()).filter(Boolean);
+  const bring=[];
   const radius=parseInt(document.getElementById('eRadius').value)||DEFAULT_RADIUS;
   const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),
-    history:document.getElementById('eHist').value,time:document.getElementById('eTime').value,
+    history:document.getElementById('eHist').valuetime:'',
     price:document.getElementById('ePrice').value,year:document.getElementById('eYear').value,
     tag:document.getElementById('eTag').value,bring,lat,lng,radius};
   const id=document.getElementById('eId').value;
