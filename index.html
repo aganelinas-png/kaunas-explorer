@@ -7,7 +7,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <!-- Firebase -->
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
@@ -66,6 +69,24 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 /* MAP */
 #map{position:fixed;inset:0;z-index:0}
 .marker-hidden{pointer-events:none!important;}
+
+/* ── MARKER CLUSTERS ── */
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{
+  background:rgba(201,168,76,.25)!important;
+}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{
+  background:rgba(201,168,76,.7)!important;
+  color:#0e0c09!important;
+  font-family:'DM Mono',monospace!important;
+  font-weight:700!important;
+  font-size:.72rem!important;
+}
+.light .marker-cluster-small,.light .marker-cluster-medium,.light .marker-cluster-large{
+  background:rgba(160,120,40,.2)!important;
+}
+.light .marker-cluster-small div,.light .marker-cluster-medium div,.light .marker-cluster-large div{
+  background:rgba(160,120,40,.65)!important;
+}
 
 /* ── TOPBAR ── */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:8px;padding:10px 12px 10px 12px;pointer-events:none}
@@ -771,9 +792,14 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <!-- MAIN VIEW: header + nav -->
   <div class="drawer-main" id="drawerMain">
     <div class="drawer-header">
-      <div class="drawer-logo">Kaunas Explorer</div>
-      <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
-      <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div class="drawer-logo">Kaunas Explorer</div>
+          <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
+          <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+        </div>
+        <button onclick="closeDrawer()" style="background:none;border:none;color:var(--td);font-size:1.3rem;cursor:pointer;padding:0 0 0 12px;line-height:1;margin-top:-2px;-webkit-user-select:none;user-select:none" title="Uždaryti">✕</button>
+      </div>
     </div>
     <div class="drawer-nav-main">
       <div class="dnav-main-item" onclick="openSubPanel('vietos')">
@@ -1302,7 +1328,7 @@ let unlockedCats=new Set();
 let favorites=new Set(); // spot ids
 let selectedSpot=null,userLat=null,userLng=null;
 let isDark=false,activeFilter='all';
-let map,userMarker,markers={},tileLayer,areaCircles={};
+let map,userMarker,markers={},tileLayer,areaCircles={},clusterGroup=null;
 let activeRoute=null,routeStopIdx=0;
 let pickingForEditor=false,wxOpen=false,wxLoaded=false;
 let proxSpotId=null,proxDismissedIds=new Set();
@@ -1427,7 +1453,29 @@ function toggleTheme(){isDark=!isDark;applyTheme();save();}
 function initMap(){
   map=L.map('map',{zoomControl:false,attributionControl:false}).setView([54.8985,23.917],14);
   L.control.zoom({position:'bottomright'}).addTo(map);
-  applyTheme(); // already calls refreshMarkers() → addMarker() for every spot — no second loop needed
+
+  // ── Marker cluster group — gold themed, disables at zoom 16+ ──
+  clusterGroup=L.markerClusterGroup({
+    disableClusteringAtZoom:16,
+    maxClusterRadius:60,
+    spiderfyOnMaxZoom:true,
+    showCoverageOnHover:false,
+    zoomToBoundsOnClick:true,
+    animate:true,
+    iconCreateFunction:function(cluster){
+      const count=cluster.getChildCount();
+      const size=count<10?36:count<50?42:48;
+      return L.divIcon({
+        html:`<div style="width:${size}px;height:${size}px;border-radius:50%;background:rgba(201,168,76,.8);border:2px solid #c9a84c;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-weight:700;font-size:${count<10?'.75':'.65'}rem;color:#0e0c09;box-shadow:0 2px 8px rgba(0,0,0,.3)">${count}</div>`,
+        className:'',
+        iconSize:[size,size],
+        iconAnchor:[size/2,size/2],
+      });
+    }
+  });
+  clusterGroup.addTo(map);
+
+  applyTheme();
   [100,400,900,1800].forEach(ms=>setTimeout(()=>map.invalidateSize(),ms));
   window.addEventListener('resize',()=>map.invalidateSize());
   map.on('click',e=>{
@@ -1435,7 +1483,6 @@ function initMap(){
       document.getElementById('eLat').value=e.latlng.lat.toFixed(6);
       document.getElementById('eLng').value=e.latlng.lng.toFixed(6);
       document.getElementById('edHint').textContent=`✅ ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
-      // If editor was hidden for map picking, reopen it
       const modal=document.getElementById('editorModal');
       if(!modal.classList.contains('open')){
         document.getElementById('mapPickBanner').style.display='none';
@@ -1512,8 +1559,6 @@ function parseCSVLine(line){
 
 function makeIcon(spot){
   const cat=CATS[spot.cat]||CATS.history;
-  const show=activeFilter==='all'||activeFilter===spot.cat;
-  if(!show) return L.divIcon({className:'marker-hidden',html:'',iconSize:[0,0]});
   const locked=!isSpotUnlocked(spot);
   const isF=found.has(spot.id);
   const tc=TIER_CONFIG[spot.tier||1];
@@ -1552,18 +1597,41 @@ function addMarker(spot){
   const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
   m._isMarker=true;
   m.on('click',()=>openSheet(spot));
-  m.addTo(map);
   markers[spot.id]=m;
+  // Only add to cluster if it should be visible
+  const show=activeFilter==='all'||activeFilter===spot.cat;
+  if(show&&clusterGroup) clusterGroup.addLayer(m);
+  else if(!show) m._hiddenFromCluster=true;
 }
 
 function refreshMarkers(){
+  if(!clusterGroup) return;
+  // Batch update: rebuild cluster group entirely when filter changes
+  // This is faster than updating individual markers
+  clusterGroup.clearLayers();
+
   SPOTS.forEach(s=>{
-    if(markers[s.id]) markers[s.id].setIcon(makeIcon(s));
-    else addMarker(s);
+    const show=activeFilter==='all'||activeFilter===s.cat;
+    if(markers[s.id]){
+      markers[s.id].setIcon(makeIcon(s));
+      if(show) clusterGroup.addLayer(markers[s.id]);
+    } else {
+      addMarkerToCluster(s,show);
+    }
   });
+
+  // Remove markers for spots that no longer exist
   Object.keys(markers).forEach(id=>{
-    if(!SPOTS.find(s=>s.id==id)){map.removeLayer(markers[id]);delete markers[id];}
+    if(!SPOTS.find(s=>s.id==id)){delete markers[id];}
   });
+}
+
+function addMarkerToCluster(spot,show){
+  const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
+  m._isMarker=true;
+  m.on('click',()=>openSheet(spot));
+  markers[spot.id]=m;
+  if(show&&clusterGroup) clusterGroup.addLayer(m);
 }
 
 function centerUser(){
@@ -1577,13 +1645,26 @@ let activeGroup=null;
 
 function toggleFilterGroup(gid){
   if(activeGroup===gid){
+    // clicking active group — close it, reset to all
     activeGroup=null;
     setFilter('all');
   } else {
+    // switching to a different group — always reset filter to 'all' first
+    // this prevents the stuck state where activeFilter is from a different group
     activeGroup=gid;
+    if(activeFilter!=='all'){
+      const oldGroup=FILTER_GROUPS.find(g=>g.cats.includes(activeFilter));
+      if(!oldGroup||oldGroup.id!==gid){
+        // filter was from a different group — reset it
+        activeFilter='all';
+      }
+    }
     renderFilterSub();
   }
   document.querySelectorAll('.fgroup').forEach(el=>el.classList.toggle('on',el.dataset.group===activeGroup));
+  // Also sync the "Visos" pill
+  document.querySelector('.fcap[data-cat="all"]')?.classList.toggle('on',activeFilter==='all');
+  refreshMarkers();
 }
 
 function renderFilterSub(){
@@ -1619,7 +1700,6 @@ function setFilter(cat){
     else{const c=CATS[cat];mobLabel.textContent=c?c.emoji+' '+c.label:'Filtruota';mobBtn.classList.add('active-filter');}
   }
   refreshMarkers();
-  applyViewportCulling();
 }
 
 // ═══════════ GPS ═══════════
@@ -3463,31 +3543,9 @@ function mobSetFilter(cat){
 let _lastClusterZoom=-1;
 let _clusterTimer=null;
 
-function setupClusteringListener(){
-  map.on('zoomend moveend',()=>{
-    clearTimeout(_clusterTimer);
-    _clusterTimer=setTimeout(applyViewportCulling, 150);
-  });
-}
-
-function applyViewportCulling(){
-  const zoom=map.getZoom();
-  const bounds=map.getBounds().pad(0.3); // 30% padding outside viewport
-  SPOTS.forEach(s=>{
-    const m=markers[s.id];
-    if(!m) return;
-    const inView=bounds.contains([s.lat,s.lng]);
-    const show=activeFilter==='all'||activeFilter===s.cat;
-    // At low zoom hide markers outside viewport to keep map fast
-    if(zoom<13&&!inView){
-      m.setOpacity(0);
-      m.options.interactive=false;
-    } else {
-      m.setOpacity(show?1:0);
-      m.options.interactive=show;
-    }
-  });
-}
+// Clustering is handled by L.markerClusterGroup — no manual culling needed
+function setupClusteringListener(){}
+function applyViewportCulling(){}
 
 // ═══════════ FAVORITES ═══════════
 
