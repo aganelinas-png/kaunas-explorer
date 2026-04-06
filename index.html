@@ -586,26 +586,33 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   /* ── BOTTOM NAV BAR ── */
   .mob-nav-bar{display:flex!important}
 
-  /* ── SHEET: taller on mobile, better spacing ── */
-  .sheet{border-radius:20px 20px 0 0;max-height:90vh}
-  .sscroll{padding-bottom:env(safe-area-inset-bottom)}
+  /* ── SHEET: account for bottom nav (70px) + safe area ── */
+  .sheet{
+    border-radius:20px 20px 0 0;
+    max-height:calc(92vh - 70px - env(safe-area-inset-bottom));
+    bottom:calc(70px + env(safe-area-inset-bottom))!important;
+  }
+  .sscroll{padding-bottom:16px}
 
   /* ── DRAWER: full width on mobile ── */
   :root{--drawer:100vw}
   .drawer{border-right:none}
 
   /* ── MOB FILTER BUTTON ── */
-  .mob-filter-btn{display:flex}
+  .mob-filter-btn{display:flex;bottom:calc(80px + env(safe-area-inset-bottom))}
 
-  /* ── PROX POPUP: wider ── */
-  .prox-popup{left:12px;right:12px;bottom:80px}
+  /* ── PROX POPUP: wider, above bottom nav ── */
+  .prox-popup{left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom))}
 
-  /* ── ZOOM CONTROLS: above bottom nav ── */
-  .leaflet-control-zoom{bottom:80px!important;right:10px!important}
+  /* ── ZOOM CONTROLS: above bottom nav, left side to avoid dice ── */
+  .leaflet-control-zoom{bottom:calc(80px + env(safe-area-inset-bottom))!important;right:auto!important;left:10px!important}
 
-  /* ── FAB: above bottom nav ── */
-  .fab{bottom:76px!important}
-  .mob-filter-btn{bottom:76px}
+  /* ── FAB + DICE: right side, stacked above bottom nav ── */
+  .fab{bottom:calc(140px + env(safe-area-inset-bottom))!important;right:16px!important}
+  .surprise-fab{bottom:calc(80px + env(safe-area-inset-bottom))!important;right:16px!important}
+
+  /* ── AUTH BAR: hidden on mobile (login is in topbar instead) ── */
+  .auth-bar{display:none!important}
 
   /* ── STREAK PILL: smaller ── */
   .streak-pill{font-size:.62rem;padding:4px 8px}
@@ -688,6 +695,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .auth-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:9px 14px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.82rem;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .auth-btn.out{background:var(--surf2);border:1px solid var(--bdr);color:var(--td)}
 .auth-btn:active{transform:scale(.96)}
+/* Mobile login pill in topbar */
+.mob-login-pill{background:var(--gold);color:#0e0c09;border:none;border-radius:16px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.72rem;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;display:none}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--tm);flex-shrink:0}
 .sync-dot.synced{background:var(--green);box-shadow:0 0 5px var(--green)}
 .sync-dot.syncing{background:var(--gold);animation:gp 1s infinite}
@@ -742,6 +751,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
     <div class="ib" id="themeBtn" onclick="toggleTheme()" title="Dienos/nakties režimas">☀️</div>
     <div class="ib" onclick="centerUser()">📍</div>
+    <!-- Mobile login pill — only visible on mobile when not logged in -->
+    <div class="mob-login-pill" id="mobLoginPill" onclick="fbLogin()" style="display:none">Prisijungti</div>
     <div class="gps-pill"><div class="gd" id="gpsDot"></div><span class="gps-refresh" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS">↻</span></div>
   </div>
 </div>
@@ -2323,9 +2334,8 @@ function closeUnlock(){
 function surpriseMe(){
   const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotUnlocked(s));
   if(!unfound.length){toast('🎉 Viskas surinkta! Tu legenda!','gold');return;}
-  let cands=unfound;
-  if(userLat!==null) cands=unfound.sort((a,b)=>dist(userLat,userLng,a.lat,a.lng)-dist(userLat,userLng,b.lat,b.lng)).slice(0,6);
-  const pick=cands[Math.floor(Math.random()*cands.length)];
+  // Truly random — no proximity bias
+  const pick=unfound[Math.floor(Math.random()*unfound.length)];
   map.setView([pick.lat,pick.lng],16);
   setTimeout(()=>openSheet(pick),300);
   toast(`🎲 Stebėk: ${pick.name}`,'info');
@@ -3323,6 +3333,7 @@ async function osmImportSelected(){
         lat:item.lat,lng:item.lng,
         radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
         history:'',bring:[],
+        city:activeCity.id,
         createdAt:serverTimestamp()
       };
       await addDoc(collection(db,'spots'),spot);
@@ -3747,6 +3758,7 @@ function updateAuthUI(user){
   const subEl=document.getElementById('authSub');
   const btn=document.getElementById('authBtn');
   const avatar=document.getElementById('authAvatar');
+  const mobPill=document.getElementById('mobLoginPill');
 
   if(user){
     nameEl.textContent=user.displayName||user.email||'Vartotojas';
@@ -3759,6 +3771,8 @@ function updateAuthUI(user){
     } else {
       avatar.textContent='👤';
     }
+    // Hide login pill when logged in
+    if(mobPill) mobPill.style.display='none';
   } else {
     nameEl.textContent='Neprisijungęs';
     subEl.textContent='Prisijunk norėdamas sinchronizuoti';
@@ -3766,6 +3780,8 @@ function updateAuthUI(user){
     btn.className='auth-btn';
     btn.onclick=fbLogin;
     avatar.innerHTML='👤';
+    // Show login pill on mobile when not logged in
+    if(mobPill&&window.innerWidth<=600) mobPill.style.display='block';
   }
 }
 
@@ -3870,9 +3886,9 @@ async function fbSaveSpot(spotData){
       setSyncDot('synced');
       return spotData._fid;
     } else {
-      // New spot
+      // New spot — include city for future multi-city filtering
       const{id,...data}=spotData;
-      const ref=await addDoc(collection(db,'spots'),{...data,createdAt:serverTimestamp()});
+      const ref=await addDoc(collection(db,'spots'),{...data,city:data.city||activeCity.id,createdAt:serverTimestamp()});
       setSyncDot('synced');
       return ref.id;
     }
