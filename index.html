@@ -2940,7 +2940,7 @@ function saveSpot(){
   if(!name||isNaN(lat)||isNaN(lng)){toast('⚠ Užpildyk pavadinimą ir koordinates','info');return;}
   const bring=[];
   const radius=parseInt(document.getElementById('eRadius').value)||DEFAULT_RADIUS;
-  const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),history:document.getElementById('eHist').valuetime:'',price:'',year:document.getElementById('eYear').value,tag:document.getElementById('eTag').value,bring,lat,lng,radius};
+  const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),history:document.getElementById('eHist').value,time:'',price:'',year:document.getElementById('eYear').value,tag:document.getElementById('eTag').value,bring,lat,lng,radius};
   const id=document.getElementById('eId').value;
   if(id){
     const idx=SPOTS.findIndex(s=>s.id==id);
@@ -4504,8 +4504,8 @@ saveSpot=async function(){
   const bring=[];
   const radius=parseInt(document.getElementById('eRadius').value)||DEFAULT_RADIUS;
   const data={name,cat:document.getElementById('eCat').value,tier:parseInt(document.getElementById('eTier').value),
-    history:document.getElementById('eHist').valuetime:'',
-    price:document.getElementById('ePrice').value,year:document.getElementById('eYear').value,
+    history:document.getElementById('eHist').value,time:'',
+    price:'',year:document.getElementById('eYear').value,
     tag:document.getElementById('eTag').value,bring,lat,lng,radius};
   const id=document.getElementById('eId').value;
 
