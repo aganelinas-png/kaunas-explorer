@@ -928,15 +928,12 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     </div>
     <div class="fg"><label class="fl">Istorinis aprašymas</label><textarea class="fa" id="eHist"></textarea></div>
     <div class="frow">
-      <div class="fg"><label class="fl">Laikas</label><input class="fi" id="eTime" placeholder="1.5 val."></div>
-      <div class="fg"><label class="fl">Kaina</label><input class="fi" id="ePrice" placeholder="3 €"></div>
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">Metai</label><input class="fi" id="eYear" placeholder="1930"></div>
       <div class="fg"><label class="fl">Zona (m)</label><input class="fi" id="eRadius" type="number" placeholder="80" min="30" max="500"></div>
     </div>
     <div class="fg"><label class="fl">Žyma</label><input class="fi" id="eTag" placeholder="Modernizmas"></div>
-    <div class="fg"><label class="fl">Ką pasiimti (per kablelį)</label><input class="fi" id="eBring" placeholder="Kamerą, Vandenį"></div>
     <div class="frow">
       <div class="fg"><label class="fl">Platuma (lat)</label><input class="fi" id="eLat" type="number" step="any"></div>
       <div class="fg"><label class="fl">Ilguma (lng)</label><input class="fi" id="eLng" type="number" step="any"></div>
@@ -1160,114 +1157,128 @@ const DEFAULT_SPOTS=[
 const BADGE_GROUPS=[
   // ── Heritage ──
   {id:'forts',title:'Fortų kolekcininkas',icon:'🏰',cat:'fort',sub:true,badges:[
-    {id:'f1',name:'Pirmasis fortas',desc:'Aplankyk 1 fortą',icon:'🏰',need:1},
-    {id:'f2',name:'Fortų sargas',desc:'Aplankyk 3 fortus',icon:'🛡',need:3},
-    {id:'f3',name:'Fortų valdovas',desc:'Aplankyk 6 fortų',icon:'👑',need:6},
-    {id:'f4',name:'Geležinis Gynėjas',desc:'Aplankyk 10 fortų',icon:'💎',need:10},
+    {id:'f1',name:'Pirmasis fortas',desc:'Aplankyk 1 fortą',icon:'🏰',need:1,xpReward:10},
+    {id:'f2',name:'Fortų sargas',desc:'Aplankyk 3 fortus',icon:'🛡',need:3,xpReward:10},
+    {id:'f3',name:'Fortų valdovas',desc:'Aplankyk 6 fortų',icon:'⚔️',need:6,xpReward:20},
+    {id:'f4',name:'Geležinis Gynėjas',desc:'Aplankyk 10 fortų',icon:'👑',need:10,xpReward:20},
+    {id:'f5',name:'Tvirtovių Imperatorius',desc:'Aplankyk 20 fortų',icon:'💎',need:20,xpReward:50},
   ]},
   {id:'churches',title:'Bažnyčių piligimas',icon:'⛪',cat:'church',sub:true,badges:[
-    {id:'c1',name:'Piligimas',desc:'Aplankyk 1 bažnyčią',icon:'⛪',need:1},
-    {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Aplankyk 5 bažnyčias',icon:'✝',need:5},
-    {id:'c3',name:'Dvasios keliautojas',desc:'Aplankyk 10 bažnyčių',icon:'🕊',need:10},
-    {id:'c4',name:'Šventasis',desc:'Aplankyk 20 bažnyčių',icon:'💎',need:20},
+    {id:'c1',name:'Piligimas',desc:'Aplankyk 1 bažnyčią',icon:'⛪',need:1,xpReward:10},
+    {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Aplankyk 5 bažnyčias',icon:'✝️',need:5,xpReward:10},
+    {id:'c3',name:'Dvasios keliautojas',desc:'Aplankyk 10 bažnyčių',icon:'🕊️',need:10,xpReward:20},
+    {id:'c4',name:'Šventasis',desc:'Aplankyk 20 bažnyčių',icon:'😇',need:20,xpReward:20},
+    {id:'c5',name:'Dievo Architektas',desc:'Aplankyk 40 bažnyčių',icon:'💎',need:40,xpReward:50},
   ]},
   {id:'museums',title:'Muziejų kuratorius',icon:'🏛',cat:'museum',sub:true,badges:[
-    {id:'m1',name:'Lankytojas',desc:'Aplankyk 1 muziejų',icon:'🎟',need:1},
-    {id:'m2',name:'Kuratorius',desc:'Aplankyk 5 muziejus',icon:'🏛',need:5},
-    {id:'m3',name:'Kultūros sargas',desc:'Aplankyk 10 muziejų',icon:'🎭',need:10},
-    {id:'m4',name:'Kultūros Archyvistas',desc:'Aplankyk 20 muziejų',icon:'💎',need:20},
+    {id:'m1',name:'Lankytojas',desc:'Aplankyk 1 muziejų',icon:'🎟️',need:1,xpReward:10},
+    {id:'m2',name:'Kuratorius',desc:'Aplankyk 5 muziejus',icon:'🏛️',need:5,xpReward:10},
+    {id:'m3',name:'Kultūros sargas',desc:'Aplankyk 10 muziejų',icon:'🎭',need:10,xpReward:20},
+    {id:'m4',name:'Muziejinė Pelė',desc:'Aplankyk 20 muziejų',icon:'🐭',need:20,xpReward:20},
+    {id:'m5',name:'Gyvas Eksponatas',desc:'Aplankyk 40 muziejų',icon:'💎',need:40,xpReward:50},
   ]},
-  {id:'history',title:'Istorijos ieškotojas',icon:'⚔',cat:'history',sub:true,badges:[
-    {id:'h1',name:'Kronikininkas',desc:'Aplankyk 3 istorines vietas',icon:'⚔',need:3},
-    {id:'h2',name:'Praeities balsas',desc:'Aplankyk 10 istorinių vietų',icon:'🗞',need:10},
-    {id:'h3',name:'Laikų Kronikos Sergėtojas',desc:'Aplankyk 25 istorinių vietų',icon:'💎',need:25},
+  {id:'history',title:'Istorijos ieškotojas',icon:'⚔️',cat:'history',sub:true,badges:[
+    {id:'h1',name:'Kronikininkas',desc:'Aplankyk 3 istorines vietas',icon:'📜',need:3,xpReward:10},
+    {id:'h2',name:'Praeities balsas',desc:'Aplankyk 10 istorinių vietų',icon:'⚔️',need:10,xpReward:20},
+    {id:'h3',name:'Laikų Mašina',desc:'Aplankyk 25 istorinių vietų',icon:'⏳',need:25,xpReward:20},
+    {id:'h4',name:'Gyvas Istorijos Vadovėlis',desc:'Aplankyk 50 istorinių vietų',icon:'💎',need:50,xpReward:50},
   ]},
   {id:'monuments',title:'Skulptūrų kolekcionierius',icon:'🗿',cat:'monument',sub:true,badges:[
-    {id:'mon1',name:'Akmeninė istorija',desc:'Aplankyk 1 monumentą',icon:'🗿',need:1},
-    {id:'mon2',name:'Skulptūrų sargas',desc:'Aplankyk 5 monumentus',icon:'🏺',need:5},
-    {id:'mon3',name:'Miesto atminimas',desc:'Aplankyk 10 monumentų',icon:'🗽',need:10},
-    {id:'mon4',name:'Miesto Atminties Šauklys',desc:'Aplankyk 25 monumentų',icon:'💎',need:25},
+    {id:'mon1',name:'Akmeninė istorija',desc:'Aplankyk 1 monumentą',icon:'🗿',need:1,xpReward:10},
+    {id:'mon2',name:'Skulptūrų sargas',desc:'Aplankyk 5 monumentus',icon:'🏺',need:5,xpReward:10},
+    {id:'mon3',name:'Miesto atminimas',desc:'Aplankyk 10 monumentų',icon:'🗽',need:10,xpReward:20},
+    {id:'mon4',name:'Akmens Šnabždesių Klausytojas',desc:'Aplankyk 25 monumentų',icon:'🪨',need:25,xpReward:20},
+    {id:'mon5',name:'Monumentų Dievas',desc:'Aplankyk 50 monumentų',icon:'💎',need:50,xpReward:50},
   ]},
-  {id:'mounds',title:'Piliakalninkas',icon:'⛰',cat:'mound',sub:true,badges:[
-    {id:'mnd1',name:'Kalno valdovas',desc:'Aplankyk 1 piliakalnis',icon:'⛰',need:1},
-    {id:'mnd2',name:'Senovės gynėjas',desc:'Aplankyk 4 piliakalnius',icon:'🪖',need:4},
-    {id:'mnd3',name:'Senovės Gynių Dvasia',desc:'Aplankyk 8 piliakalnius',icon:'💎',need:8},
+  {id:'mounds',title:'Piliakalninkas',icon:'⛰️',cat:'mound',sub:true,badges:[
+    {id:'mnd1',name:'Kalno valdovas',desc:'Aplankyk 1 piliakalnis',icon:'⛰️',need:1,xpReward:10},
+    {id:'mnd2',name:'Senovės gynėjas',desc:'Aplankyk 4 piliakalnius',icon:'🪖',need:4,xpReward:10},
+    {id:'mnd3',name:'Aukštumų Narkomanas',desc:'Aplankyk 8 piliakalnius',icon:'🌄',need:8,xpReward:20},
+    {id:'mnd4',name:'Piliakalnių Imperatorius',desc:'Aplankyk 15 piliakalnius',icon:'💎',need:15,xpReward:50},
   ]},
   {id:'cemeteries',title:'Kapinių keleivas',icon:'⚱️',cat:'cemetery',sub:true,badges:[
-    {id:'cem1',name:'Atminties sargas',desc:'Aplankyk 2 kapines',icon:'⚱️',need:2},
-    {id:'cem2',name:'Amžinojo poilsio tyrinėtojas',desc:'Aplankyk 5 kapines',icon:'🕯',need:5},
-    {id:'cem3',name:'Amžinybės Sargybinis',desc:'Aplankyk 10 kapinių',icon:'💎',need:10},
+    {id:'cem1',name:'Atminties sargas',desc:'Aplankyk 2 kapines',icon:'⚱️',need:2,xpReward:10},
+    {id:'cem2',name:'Amžinojo poilsio tyrinėtojas',desc:'Aplankyk 5 kapines',icon:'🕯️',need:5,xpReward:10},
+    {id:'cem3',name:'Turistų Siaubas',desc:'Aplankyk 10 kapinių',icon:'💀',need:10,xpReward:20},
+    {id:'cem4',name:'Kapinių Someljė',desc:'Aplankyk 20 kapinių',icon:'💎',need:20,xpReward:50},
   ]},
-  // ── Soviet ──
+  // ── Urban ──
   {id:'murals',title:'Gatvės meno gerbėjas',icon:'🎨',cat:'mural',sub:true,badges:[
-    {id:'mrl1',name:'Pirmas piešinys',desc:'Aplankyk 1 gatvės meno kūrinį',icon:'🎨',need:1},
-    {id:'mrl2',name:'Miesto tapytojas',desc:'Aplankyk 5 gatvės meno kūrinius',icon:'🖌',need:5},
-    {id:'mrl3',name:'Grafičio karalius',desc:'Aplankyk 10 gatvės meno kūrinių',icon:'🎭',need:10},
-    {id:'mrl4',name:'Miesto Spalvų Dievas',desc:'Aplankyk 25 gatvės meno kūrinių',icon:'💎',need:25},
+    {id:'mrl1',name:'Pirmas piešinys',desc:'Aplankyk 1 gatvės meno kūrinį',icon:'🎨',need:1,xpReward:10},
+    {id:'mrl2',name:'Miesto tapytojas',desc:'Aplankyk 5 gatvės meno kūrinius',icon:'🖌️',need:5,xpReward:10},
+    {id:'mrl3',name:'Grafičio karalius',desc:'Aplankyk 10 gatvės meno kūrinių',icon:'🎭',need:10,xpReward:20},
+    {id:'mrl4',name:'Einantis Galerija',desc:'Aplankyk 25 gatvės meno kūrinių',icon:'🖼️',need:25,xpReward:20},
+    {id:'mrl5',name:'Miestas — Mano Drobė',desc:'Aplankyk 50 gatvės meno kūrinių',icon:'💎',need:50,xpReward:50},
+  ]},
+  {id:'watertowers',title:'Vandens bokštų medžiotojas',icon:'🗼',cat:'watertower',sub:true,badges:[
+    {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1,xpReward:10},
+    {id:'wt2',name:'Bokštų kolekcininkas',desc:'Aplankyk 5 vandens bokštus',icon:'🏗️',need:5,xpReward:20},
+    {id:'wt3',name:'Hidroinžinierius Entuziastas',desc:'Aplankyk 12 vandens bokštų',icon:'💎',need:12,xpReward:50},
+  ]},
+  {id:'bridges',title:'Tiltų meistras',icon:'🌉',cat:'bridge',sub:true,badges:[
+    {id:'br1',name:'Pirmasis tiltas',desc:'Aplankyk 1 tiltą',icon:'🌉',need:1,xpReward:10},
+    {id:'br2',name:'Tiltų kolekcionierius',desc:'Aplankyk 4 tiltus',icon:'⛵',need:4,xpReward:10},
+    {id:'br3',name:'Niekada Negrimzdantis',desc:'Aplankyk 8 tiltų',icon:'⚓',need:8,xpReward:20},
+    {id:'br4',name:'Tiltas Tarp Pasaulių',desc:'Aplankyk 15 tiltų',icon:'💎',need:15,xpReward:50},
   ]},
   // ── Nature ──
   {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
-    {id:'n1',name:'Žaliasis miestas',desc:'Aplankyk 3 gamtos vietas',icon:'🌿',need:3},
-    {id:'n2',name:'Miško dvasia',desc:'Aplankyk 8 gamtos vietų',icon:'🌳',need:8},
-    {id:'n3',name:'Žalioji Siela',desc:'Aplankyk 20 gamtos vietų',icon:'💎',need:20},
+    {id:'n1',name:'Žaliasis miestas',desc:'Aplankyk 3 gamtos vietas',icon:'🌿',need:3,xpReward:10},
+    {id:'n2',name:'Miško dvasia',desc:'Aplankyk 8 gamtos vietų',icon:'🌳',need:8,xpReward:10},
+    {id:'n3',name:'Medžių Kalbėtojas',desc:'Aplankyk 20 gamtos vietų',icon:'🍃',need:20,xpReward:20},
+    {id:'n4',name:'Gamtos Žmogus',desc:'Aplankyk 40 gamtos vietų',icon:'💎',need:40,xpReward:50},
   ]},
   {id:'trails',title:'Takų ieškotojas',icon:'🥾',cat:'trail',sub:true,badges:[
-    {id:'tr1',name:'Pirmas takas',desc:'Aplankyk 1 taką',icon:'🥾',need:1},
-    {id:'tr2',name:'Takų veteranas',desc:'Aplankyk 4 takus',icon:'🏕',need:4},
-    {id:'tr3',name:'Laukinių Kelių Valdovas',desc:'Aplankyk 8 takų',icon:'💎',need:8},
+    {id:'tr1',name:'Pirmas takas',desc:'Aplankyk 1 taką',icon:'🥾',need:1,xpReward:10},
+    {id:'tr2',name:'Takų veteranas',desc:'Aplankyk 4 takus',icon:'🏕️',need:4,xpReward:10},
+    {id:'tr3',name:'Bateliai Neišdžiūsta',desc:'Aplankyk 8 takų',icon:'👟',need:8,xpReward:20},
+    {id:'tr4',name:'Laukinių Kelių Valdovas',desc:'Aplankyk 15 takų',icon:'💎',need:15,xpReward:50},
   ]},
   {id:'viewpoints',title:'Panoramų medžiotojas',icon:'🔭',cat:'viewpoint',sub:true,badges:[
-    {id:'vp1',name:'Pirmoji panorama',desc:'Aplankyk 1 apžvalgos tašką',icon:'🔭',need:1},
-    {id:'vp2',name:'Debesų vaikščiotojas',desc:'Aplankyk 5 apžvalgos taškus',icon:'🌄',need:5},
-    {id:'vp3',name:'Horizontų Meistras',desc:'Aplankyk 12 apžvalgos taškų',icon:'💎',need:12},
-  ]},
-  // ── Urban ──
-  {id:'watertowers',title:'Vandens bokštų medžiotojas',icon:'🗼',cat:'watertower',sub:true,badges:[
-    {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1},
-    {id:'wt2',name:'Bokštų kolekcininkas',desc:'Aplankyk 5 vandens bokštus',icon:'🏗',need:5},
-    {id:'wt3',name:'Miesto Viršūnių Šeimininkas',desc:'Aplankyk 12 vandens bokštų',icon:'💎',need:12},
-  ]},
-  {id:'bridges',title:'Tiltų meistras',icon:'🌉',cat:'bridge',sub:true,badges:[
-    {id:'br1',name:'Pirmasis tiltas',desc:'Aplankyk 1 tiltą',icon:'🌉',need:1},
-    {id:'br2',name:'Tiltų kolekcionierius',desc:'Aplankyk 4 tiltus',icon:'⛵',need:4},
-    {id:'br3',name:'Upių Jungiamoji Ranka',desc:'Aplankyk 8 tiltų',icon:'💎',need:8},
+    {id:'vp1',name:'Pirmoji panorama',desc:'Aplankyk 1 apžvalgos tašką',icon:'🔭',need:1,xpReward:10},
+    {id:'vp2',name:'Debesų vaikščiotojas',desc:'Aplankyk 5 apžvalgos taškus',icon:'🌄',need:5,xpReward:10},
+    {id:'vp3',name:'Horizontų Kolekcionierius',desc:'Aplankyk 12 apžvalgos taškų',icon:'🌅',need:12,xpReward:20},
+    {id:'vp4',name:'Vienas Aukštai — Visi Žemai',desc:'Aplankyk 25 apžvalgos taškų',icon:'💎',need:25,xpReward:50},
   ]},
   // ── Progress ──
   {id:'tiers',title:'Tiero pažanga',icon:'⭐',cat:null,badges:[
-    {id:'t1all',name:'T1 Čempionas',desc:'Visos T1 vietos surinktos',icon:'🥉',tierComplete:1},
-    {id:'t2all',name:'T2 Meistras',desc:'Visos T2 vietos surinktos',icon:'🥈',tierComplete:2},
-    {id:'t3all',name:'Lietuvos Legenda',desc:'Visos T3 vietos surinktos',icon:'🥇',tierComplete:3},
+    {id:'t1all',name:'T1 Čempionas',desc:'Visos T1 vietos surinktos',icon:'🥉',tierComplete:1,xpReward:100},
+    {id:'t2all',name:'T2 Meistras',desc:'Visos T2 vietos surinktos',icon:'🥈',tierComplete:2,xpReward:200},
+    {id:'t3all',name:'Lietuvos Legenda',desc:'Visos T3 vietos surinktos',icon:'🥇',tierComplete:3,xpReward:500},
   ]},
   {id:'general',title:'Bendra pažanga',icon:'🗺',cat:null,badges:[
-    {id:'g1',name:'Pirmasis žingsnis',desc:'1 vieta surinkta',icon:'🗺',need:1,all:true},
-    {id:'g2',name:'Žvalgybininkas',desc:'10 vietų surinkta',icon:'🔭',need:10,all:true},
-    {id:'g3',name:'Rimtas tyrinėtojas',desc:'25 vietos surinktos',icon:'🌟',need:25,all:true},
-    {id:'g4',name:'Krašto ekspertas',desc:'50 vietų surinkta',icon:'🏆',need:50,all:true},
-    {id:'g5',name:'Legendinis keliautojas',desc:'100 vietų surinkta',icon:'👑',need:100,all:true},
-    {id:'g6',name:'Amžinasis Klajoklis',desc:'250 vietų surinkta',icon:'💎',need:250,all:true},
-    {id:'g7',name:'Lietuvos Meistras',desc:'500 vietų surinkta',icon:'🌍',need:500,all:true},
-    {id:'g8',name:'Nemirtingasis Tyrinėtojas',desc:'1000 vietų surinkta',icon:'⚜️',need:1000,all:true},
+    {id:'g1',name:'Pirmasis žingsnis',desc:'1 vieta surinkta',icon:'🗺',need:1,all:true,xpReward:10},
+    {id:'g2',name:'Žvalgybininkas',desc:'10 vietų surinkta',icon:'🔭',need:10,all:true,xpReward:10},
+    {id:'g3',name:'Rimtas tyrinėtojas',desc:'25 vietos surinktos',icon:'🌟',need:25,all:true,xpReward:20},
+    {id:'g4',name:'Profesionalus Klajoklis',desc:'50 vietų surinkta',icon:'🏆',need:50,all:true,xpReward:20},
+    {id:'g5',name:'Šalis — Mano Kiemas',desc:'100 vietų surinkta',icon:'👑',need:100,all:true,xpReward:50},
+    {id:'g6',name:'GPS Žmogus',desc:'250 vietų surinkta',icon:'📡',need:250,all:true,xpReward:50},
+    {id:'g7',name:'Lietuva Atrasta',desc:'500 vietų surinkta',icon:'🌍',need:500,all:true,xpReward:50},
+    {id:'g8',name:'Nemirtingasis Tyrinėtojas',desc:'1000 vietų surinkta',icon:'⚜️',need:1000,all:true,xpReward:50},
   ]},
   {id:'streaks',title:'Serijos',icon:'🔥',cat:null,badges:[
-    {id:'st3',name:'3 dienų serija',desc:'3 dienos iš eilės',icon:'🔥',streak:3},
-    {id:'st7',name:'Savaitinis tyrinėtojas',desc:'7 dienos iš eilės',icon:'⚡',streak:7},
-    {id:'st14',name:'Dviejų savaičių žygis',desc:'14 dienų iš eilės',icon:'🌊',streak:14},
-    {id:'st30',name:'Mėnesio keliautojas',desc:'30 dienų iš eilės',icon:'🏅',streak:30},
-    {id:'st60',name:'Nenugalimas',desc:'60 dienų iš eilės',icon:'💎',streak:60},
-    {id:'st100',name:'Šimto dienų legenda',desc:'100 dienų iš eilės',icon:'👑',streak:100},
+    {id:'st3',name:'Pradedantysis',desc:'3 dienos iš eilės',icon:'🔥',streak:3,xpReward:10},
+    {id:'st7',name:'Savaitinis fanatikas',desc:'7 dienos iš eilės',icon:'⚡',streak:7,xpReward:10},
+    {id:'st14',name:'Dviejų savaičių kankintojis',desc:'14 dienų iš eilės',icon:'🌊',streak:14,xpReward:20},
+    {id:'st30',name:'Mėnesio Ligonis',desc:'30 dienų iš eilės',icon:'🏅',streak:30,xpReward:20},
+    {id:'st60',name:'Telefonas — Mano Kojas',desc:'60 dienų iš eilės',icon:'📱',streak:60,xpReward:50},
+    {id:'st100',name:'Šimto Dienų Legenda',desc:'100 dienų iš eilės',icon:'👑',streak:100,xpReward:50},
+    {id:'st200',name:'Gyvenimas — Žaidimas',desc:'200 dienų iš eilės',icon:'💎',streak:200,xpReward:50},
   ]},
   {id:'hidden',title:'Paslėptų vietų radiniai',icon:'🔮',cat:'hidden',sub:true,badges:[
-    {id:'hid1',name:'Pirmasis radinys',desc:'Surask 1 paslėptą vietą',icon:'🔮',need:1},
-    {id:'hid2',name:'Ieškotojas',desc:'Surask 3 paslėptas vietas',icon:'🗝',need:3},
-    {id:'hid3',name:'Slaptas tyrinėtojas',desc:'Surask 7 paslėptas vietas',icon:'🕵️',need:7},
-    {id:'hid4',name:'Šešėlių Meistras',desc:'Surask 15 paslėptų vietų',icon:'💎',need:15},
+    {id:'hid1',name:'Pirmasis radinys',desc:'Surask 1 paslėptą vietą',icon:'🔮',need:1,xpReward:10},
+    {id:'hid2',name:'Ieškotojas',desc:'Surask 3 paslėptas vietas',icon:'🗝️',need:3,xpReward:20},
+    {id:'hid3',name:'Slaptas tyrinėtojas',desc:'Surask 7 paslėptas vietas',icon:'🕵️',need:7,xpReward:20},
+    {id:'hid4',name:'Šešėlių Meistras',desc:'Surask 15 paslėptų vietų',icon:'🌑',need:15,xpReward:50},
+    {id:'hid5',name:'???',desc:'???',icon:'👁️',need:30,xpReward:50},
   ]},
   {id:'xp',title:'XP pasiekimai',icon:'⭐',cat:null,badges:[
     {id:'xp1',name:'Pirmieji taškai',desc:'Surink 100 XP',icon:'⭐',xpNeed:100},
-    {id:'xp2',name:'Patyręs tyrinėtojas',desc:'Surink 500 XP',icon:'🌟',xpNeed:500},
-    {id:'xp3',name:'XP veteranas',desc:'Surink 1000 XP',icon:'💫',xpNeed:1000},
-    {id:'xp4',name:'Aukso lygio žaidėjas',desc:'Surink 3000 XP',icon:'🏆',xpNeed:3000},
-    {id:'xp5',name:'XP Legenda',desc:'Surink 10000 XP',icon:'👑',xpNeed:10000},
+    {id:'xp2',name:'XP Kolekcionierius',desc:'Surink 500 XP',icon:'🌟',xpNeed:500},
+    {id:'xp3',name:'Taškai Lyja',desc:'Surink 1000 XP',icon:'💫',xpNeed:1000},
+    {id:'xp4',name:'XP Dileris',desc:'Surink 3000 XP',icon:'🏆',xpNeed:3000},
+    {id:'xp5',name:'Gyvas XP Maišas',desc:'Surink 10000 XP',icon:'👑',xpNeed:10000},
+    {id:'xp6',name:'XP Dievas',desc:'Surink 25000 XP',icon:'💎',xpNeed:25000},
   ]},
 ];
 
@@ -2102,7 +2113,6 @@ function openSheet(spot){
         ${avail>0?`<button class="unlock-btn" style="margin-top:0;width:100%" onclick="closeSheet();showUnlockPicker(${tier})">🔓 Atrakkink kategoriją</button>`:''}
       </div>`;
   } else {
-    const bItems=(spot.bring||[]).filter(b=>b&&b.trim());
     const histFull=spot.history||'';
     const histShort=histFull.length>180;
     const histHtml=histShort
@@ -2118,12 +2128,10 @@ function openSheet(spot){
         ${spot.tag?`<span class="chip hi">${spot.tag}</span>`:''}
       </div>
       <div class="sinfo">
-        <div class="ic"><div class="ii">⏱</div><div class="iv">${spot.time||'—'}</div><div class="il">Laikas</div></div>
-        <div class="ic"><div class="ii">💶</div><div class="iv">${spot.price||'—'}</div><div class="il">Kaina</div></div>
         <div class="ic"><div class="ii">${cat.emoji}</div><div class="iv">${cat.label}</div><div class="il">Tipas</div></div>
+        <div class="ic"><div class="ii">🏅</div><div class="iv">${tc.label}</div><div class="il">Lygis</div></div>
       </div>
       ${histHtml}
-      ${bItems.length?`<div class="bring-box"><div class="bring-t">🎒 Ką pasiimti</div><div class="bring-items">${bItems.map(b=>`<span class="bitem">• ${b}</span>`).join('')}</div></div>`:''}
       ${isF?`<div class="note-box"><div class="note-t">📝 Mano pastaba</div><textarea class="note-area" id="noteArea" placeholder="Pridėk savo įspūdžius...">${notes[spot.id]||''}</textarea><button class="note-save" onclick="saveNote()">Išsaugoti</button></div>`:''}
       <div class="area-hint">📡 Surinkimo zona: ${r}m spinduliu nuo vietos</div>
       <div class="crow">
@@ -2218,6 +2226,7 @@ function collectCurrent(){
   addXP(xpGain);
   showXPBurst(xpGain);
   incrementDailyCollect();
+  recordWeeklyCollect(selectedSpot.id);
   save();refreshMarkers();updateAll();
 
   proxDismissedIds.delete(selectedSpot.id);
@@ -2255,6 +2264,8 @@ function updateStreak(){
   lastDate=today;
   oldStreak=streak;
   setTimeout(()=>checkStreakMilestones(),300);
+  addXP(10);
+  setTimeout(()=>showXPBurst(10),150);
 }
 
 // ═══════════ EASTER EGGS ═══════════
@@ -2349,7 +2360,7 @@ function checkBadges(){
       else if(b.xpNeed) e=totalXP>=b.xpNeed;
       else if(b.all) e=found.size>=b.need;
       else e=prog>=b.need;
-      if(e){earnedBadges.add(b.id);newOnes.push(b);}
+      if(e){earnedBadges.add(b.id);newOnes.push(b);const bxp=b.xpReward||10;addXP(bxp);setTimeout(()=>showXPBurst(bxp),600);}
     });
   });
   if(newOnes.length){save();setTimeout(()=>toast(`🎖 Naujas ženklelis: ${newOnes[0].icon} ${newOnes[0].name}`,'gold'),500);}
@@ -2362,7 +2373,7 @@ function renderBadges(){
     const prog=gprog(g);const tot=gtot(g);
     const div=document.createElement('div');div.className='bgr';
     div.innerHTML=`<div class="bgt">${g.icon} ${g.title}</div>
-    ${g.sub?`<div class="bgs">${prog} / ${tot}</div>`:''}
+    ${g.sub?`<div class="bgs">${prog} / ${g.cat==='hidden'?'???':tot}</div>`:''}
     <div class="bgcards">${g.badges.map(b=>{
       let e=earnedBadges.has(b.id);
       if(!e){
@@ -2373,13 +2384,186 @@ function renderBadges(){
         else e=prog>=b.need;
       }
       const pct=b.tierComplete?0:b.streak?Math.min(100,streak/b.streak*100):b.xpNeed?Math.min(100,totalXP/b.xpNeed*100):b.all?Math.min(100,found.size/b.need*100):Math.min(100,prog/(b.need||1)*100);
-      return`<div class="bc ${e?'e':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${b.desc}</div>${!e?`<div class="bprog"><div class="bpf" style="width:${pct}%"></div></div>`:''}</div>`;
+      return`<div class="bc ${e?'e':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${!e&&g.cat==='hidden'?'???':b.desc}</div>${!e?`<div class="bprog"><div class="bpf" style="width:${!e&&g.cat==='hidden'?0:pct}%"></div></div>`:''}</div>`;
     }).join('')}</div>`;
     body.appendChild(div);
   });
 }
 
 // ═══════════ LIST ═══════════
+
+// ═══════════ WEEKLY CHALLENGE ═══════════
+const WEEKLY_CHALLENGES=[
+  {id:'w_church',cat:'church',goal:3,label:'Aplankyk 3 bažnyčias šią savaitę',icon:'⛪',xp:60},
+  {id:'w_nature',cat:'nature',goal:3,label:'Aplankyk 3 gamtos vietas šią savaitę',icon:'🌿',xp:60},
+  {id:'w_fort',cat:'fort',goal:2,label:'Aplankyk 2 fortus šią savaitę',icon:'🏰',xp:80},
+  {id:'w_museum',cat:'museum',goal:2,label:'Aplankyk 2 muziejus šią savaitę',icon:'🏛',xp:60},
+  {id:'w_history',cat:'history',goal:4,label:'Aplankyk 4 istorines vietas šią savaitę',icon:'⚔️',xp:70},
+  {id:'w_viewpoint',cat:'viewpoint',goal:2,label:'Aplankyk 2 apžvalgos taškus šią savaitę',icon:'🔭',xp:60},
+  {id:'w_mound',cat:'mound',goal:2,label:'Aplankyk 2 piliakalnius šią savaitę',icon:'⛰️',xp:80},
+  {id:'w_any5',cat:null,goal:5,label:'Surink bet kokias 5 vietas šią savaitę',icon:'🗺',xp:50},
+  {id:'w_t2',cat:null,goal:2,label:'Surink 2 T2 lygio vietas šią savaitę',icon:'🥈',xp:100,tier:2},
+  {id:'w_mural',cat:'mural',goal:3,label:'Aplankyk 3 gatvės meno kūrinius šią savaitę',icon:'🎨',xp:60},
+];
+
+function getWeekSeed(){
+  const d=new Date();
+  const jan1=new Date(d.getFullYear(),0,1);
+  return Math.floor((d-jan1)/604800000)+d.getFullYear()*100;
+}
+
+function getCurrentWeekChallenge(){
+  const seed=getWeekSeed();
+  return WEEKLY_CHALLENGES[seed%WEEKLY_CHALLENGES.length];
+}
+
+function getWeekStart(){
+  const now=new Date();
+  const day=now.getDay();
+  const diff=now.getDate()-(day===0?6:day-1);
+  const mon=new Date(now.setDate(diff));
+  return mon.toDateString();
+}
+
+function getWeeklyProgress(){
+  const wk=getWeekStart();
+  const ch=getCurrentWeekChallenge();
+  const key='ke7_weekly_'+getWeekSeed();
+  try{
+    const d=JSON.parse(localStorage.getItem(key)||'null');
+    if(d) return d;
+  }catch(e){}
+  // Count spots found since week start — approximate via collected IDs
+  // We track week-collected separately
+  return{done:false,count:0,weekStart:wk};
+}
+
+function updateWeeklyProgress(){
+  const ch=getCurrentWeekChallenge();
+  const key='ke7_weekly_'+getWeekSeed();
+  let d=getWeeklyProgress();
+  if(d.done) return;
+  // Recount from scratch based on current state
+  const wkKey='ke7_weekly_ids_'+getWeekSeed();
+  let ids=[];
+  try{ids=JSON.parse(localStorage.getItem(wkKey)||'[]');}catch(e){}
+  let count=ids.length;
+  d.count=count;
+  if(count>=ch.goal&&!d.done){
+    d.done=true;
+    addXP(ch.xp);
+    setTimeout(()=>{toast(`🏆 Savaitinė užduotis atlikta! +${ch.xp} XP`,'gold');showXPBurst(ch.xp);},600);
+  }
+  try{localStorage.setItem(key,JSON.stringify(d));}catch(e){}
+}
+
+function recordWeeklyCollect(spotId){
+  const ch=getCurrentWeekChallenge();
+  const wkKey='ke7_weekly_ids_'+getWeekSeed();
+  let ids=[];
+  try{ids=JSON.parse(localStorage.getItem(wkKey)||'[]');}catch(e){}
+  if(ids.includes(spotId)) return;
+  const spot=SPOTS.find(s=>s.id==spotId);
+  if(!spot) return;
+  const matches=!ch.cat||(ch.tier?spot.tier===ch.tier:spot.cat===ch.cat);
+  if(matches){ids.push(spotId);try{localStorage.setItem(wkKey,JSON.stringify(ids));}catch(e){}}
+  updateWeeklyProgress();
+}
+
+function renderWeeklyChallenge(){
+  const ch=getCurrentWeekChallenge();
+  const d=getWeeklyProgress();
+  const prog=Math.min(d.count,ch.goal);
+  const pct=Math.round(prog/ch.goal*100);
+  const done=d.done||prog>=ch.goal;
+  // Days left
+  const now=new Date();
+  const day=now.getDay();
+  const daysLeft=day===0?0:(7-day);
+  return`<div class="quest-card ${done?'done':''}" style="border-color:${done?'var(--gold)':'rgba(201,168,76,.2)'}">
+    ${done?'<div class="quest-done-badge">✓ Atlikta</div>':''}
+    <div class="quest-header">
+      <div class="quest-icon">${ch.icon}</div>
+      <div>
+        <div class="quest-label">Savaitinė užduotis ${daysLeft>0?`· ${daysLeft}d liko`:''}</div>
+        <div class="quest-title">${ch.label}</div>
+      </div>
+    </div>
+    <div class="quest-reward">🌟 Atlygis: +${ch.xp} XP</div>
+    <div class="quest-pbar"><div class="quest-pfill" style="width:${done?100:pct}%"></div></div>
+    <div class="quest-status">${done?'Puiku! Nauja užduotis kitą pirmadienį.':`${prog} / ${ch.goal} surinkta`}</div>
+  </div>`;
+}
+
+// ═══════════ CITY COMPLETION ═══════════
+const CITY_BOUNDS={
+  'Kaunas':{sw:[54.84,23.82],ne:[54.95,24.05]},
+  'Vilnius':{sw:[54.63,25.05],ne:[54.74,25.36]},
+  'Klaipėda':{sw:[55.68,21.08],ne:[55.75,21.19]},
+  'Šiauliai':{sw:[55.89,23.26],ne:[55.96,23.38]},
+  'Panevėžys':{sw:[55.70,24.32],ne:[55.76,24.42]},
+  'Alytus':{sw:[54.38,24.02],ne:[54.42,24.08]},
+  'Palanga':{sw:[55.90,21.04],ne:[55.96,21.09]},
+  'Druskininkai':{sw:[53.98,24.02],ne:[54.02,24.06]},
+  'Trakai':{sw:[54.63,24.92],ne:[54.66,24.95]},
+  'Nida':{sw:[55.29,20.98],ne:[55.32,21.01]},
+};
+
+function getCityStats(){
+  return Object.entries(CITY_BOUNDS).map(([city,b])=>{
+    const inCity=SPOTS.filter(s=>s.cat!=='hidden'&&s.lat>=b.sw[0]&&s.lat<=b.ne[0]&&s.lng>=b.sw[1]&&s.lng<=b.ne[1]);
+    const done=inCity.filter(s=>found.has(s.id)).length;
+    return{city,total:inCity.length,done,pct:inCity.length?Math.round(done/inCity.length*100):0};
+  }).filter(x=>x.total>0).sort((a,b)=>b.pct-a.pct||b.total-a.total);
+}
+
+function renderCityCompletion(){
+  const stats=getCityStats();
+  if(!stats.length) return'';
+  const rows=stats.map(s=>{
+    const col=s.pct===100?'var(--gold)':s.pct>50?'#7ac47a':'var(--tm)';
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-family:'DM Mono',monospace;font-size:.68rem;min-width:82px;color:var(--txt)">${s.city}</span>
+      <div style="flex:1;height:5px;background:var(--surf2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${s.pct}%;background:${col};border-radius:3px;transition:width .5s"></div>
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:${col};min-width:52px;text-align:right">${s.done}/${s.total} · ${s.pct}%</span>
+    </div>`;
+  }).join('');
+  return`<div class="streak-card" style="margin-bottom:8px">
+    <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);margin-bottom:10px">🏙 Miestų pažanga</div>
+    ${rows}
+  </div>`;
+}
+
+// ═══════════ NEARBY SUGGESTIONS ═══════════
+function renderNearbySuggestions(){
+  if(userLat===null) return'';
+  const MAX_DIST=800;
+  const nearby=SPOTS
+    .filter(s=>!found.has(s.id)&&isSpotUnlocked(s)&&s.cat!=='hidden')
+    .map(s=>({s,d:dist(userLat,userLng,s.lat,s.lng)}))
+    .filter(x=>x.d<=MAX_DIST)
+    .sort((a,b)=>a.d-b.d)
+    .slice(0,5);
+  if(!nearby.length) return'';
+  const items=nearby.map(({s,d})=>{
+    const cat=CATS[s.cat]||CATS.history;
+    const dm=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
+    return`<div onclick="closeDrawer();goToSpot('${s.id}')" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer">
+      <span style="font-size:1.1rem">${cat.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.72rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name}</div>
+        <div style="font-size:.6rem;color:var(--tm);font-family:'DM Mono',monospace">${cat.label}</div>
+      </div>
+      <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gold)">${dm}</span>
+    </div>`;
+  }).join('');
+  return`<div class="streak-card" style="margin-bottom:8px">
+    <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);margin-bottom:8px">📍 Netoliese (iki ${MAX_DIST}m)</div>
+    ${items}
+  </div>`;
+}
 
 function renderList(){
   const body=document.getElementById('panel-vietos');
@@ -2388,7 +2572,9 @@ function renderList(){
   let h=`${renderTierProgressHTML()}
   ${renderLevelCard()}
   ${renderStreakCard()}
-  ${renderQuestCard()}
+  ${renderWeeklyChallenge()}
+  ${renderCityCompletion()}
+  ${renderNearbySuggestions()}
   <div class="prog-h">
     <div class="prog-row"><div class="prog-cnt">${found.size} / ${SPOTS.length} surinkta</div><div class="streak-t">🔥 ${streak} d. · ⭐ ${totalXP} XP</div></div>
     <div class="pbar"><div class="pbf" style="width:${pct}%"></div></div>
