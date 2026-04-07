@@ -4011,16 +4011,10 @@ function renderEnrichPanel(){
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button onclick="enrichSelectAll()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☑ Puslapį</button>
       <button onclick="enrichSelectNone()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☐ Nė vieno</button>
-<<<<<<< HEAD
       <button id="enrichRunBtn" onclick="runEnrichSelected()" style="flex:2;background:${selCount>0?'var(--gold)':'var(--surf3)'};border:1px solid ${selCount>0?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;color:${selCount>0?'#0e0c09':'var(--tm)'};cursor:${selCount>0?'pointer':'default'}">▶ Vykdyti${selCount>0?` (${selCount})`:''}</button>
     </div>
     <button onclick="runEnrichAll()" style="width:100%;background:var(--surf2);border:1px dashed var(--gold);border-radius:8px;padding:9px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;color:var(--gold);cursor:pointer">⚡ Vykdyti visus ${candidates.length} kandidatus</button>
     <div id="enrichLiveStats" style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);text-align:center;min-height:16px"></div>
-=======
-      <button onclick="runEnrichSelected()" style="flex:2;background:${selCount>0?'var(--gold)':'var(--surf3)'};border:1px solid ${selCount>0?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;color:${selCount>0?'#0e0c09':'var(--tm)'};cursor:${selCount>0?'pointer':'default'}">▶ Vykdyti${selCount>0?` (${selCount})`:''}</button>
-    </div>
-    <button onclick="runEnrichAll()" style="width:100%;background:var(--surf2);border:1px dashed var(--gold);border-radius:8px;padding:9px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;color:var(--gold);cursor:pointer">⚡ Vykdyti visus ${candidates.length} kandidatus</button>
->>>>>>> 516dff562879a2054b0b1a36dfda7293a1605ef6
 
     ${candidates.length?`
     <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">⚡ = Wikidata ID · 🔍 = Paieška pagal pavadinimą · rodoma ${Math.min(visibleCount,candidates.length)} iš ${candidates.length}</div>
@@ -4057,7 +4051,6 @@ async function runEnrichAll(){
   await runEnrichSelected();
 }
 
-<<<<<<< HEAD
 let _enrichRunning=false;
 
 async function runEnrichSelected(){
@@ -4093,27 +4086,11 @@ async function runEnrichSelected(){
 
     const descEl=document.getElementById(`er-desc-${spot.id}`);
     if(descEl){descEl.textContent='⏳ Ieškoma...';descEl.style.color='var(--td)';}
-=======
-async function runEnrichSelected(){
-  if(!_enrichSelected.size){toast('Nepasirinkta nė viena vieta','info');return;}
-  const spots=SPOTS.filter(s=>_enrichSelected.has(String(s.id)));
-  const total=spots.length;
-  let done=0,enriched=0;
-
-  // Update button to show progress inline
-  const runBtn=document.querySelector('[onclick="runEnrichSelected()"]');
-  if(runBtn){runBtn.style.background='var(--surf3)';runBtn.style.color='var(--tm)';runBtn.style.pointerEvents='none';}
-
-  for(const spot of spots){
-    const descEl=document.getElementById(`er-desc-${spot.id}`);
-    if(descEl) descEl.textContent='⏳ Ieškoma...';
->>>>>>> 516dff562879a2054b0b1a36dfda7293a1605ef6
 
     let extract=null;
 
     // Path 1: Wikidata ID → Wikipedia
     if(spot.tag&&spot.tag.startsWith('Q')){
-<<<<<<< HEAD
       for(let attempt=0;attempt<2;attempt++){
         try{
           const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${spot.tag}&props=sitelinks&sitefilter=ltwiki|enwiki&format=json&origin=*`,{signal:AbortSignal.timeout(8000)});
@@ -4141,34 +4118,6 @@ async function runEnrichSelected(){
           const sr=await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(spot.name)}&srlimit=1&format=json&origin=*`,{signal:AbortSignal.timeout(6000)});
           if(sr.ok){
             const title=((await sr.json()).query?.search||[])[0]?.title;
-=======
-      try{
-        const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${spot.tag}&props=sitelinks&sitefilter=ltwiki|enwiki&format=json&origin=*`,{signal:AbortSignal.timeout(8000)});
-        if(r.ok){
-          const d=await r.json();
-          const entity=d.entities?.[spot.tag];
-          const ltTitle=entity?.sitelinks?.ltwiki?.title;
-          const enTitle=entity?.sitelinks?.enwiki?.title;
-          const title=ltTitle||enTitle;
-          const lang=ltTitle?'lt':'en';
-          if(title){
-            const wr=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,{signal:AbortSignal.timeout(8000)});
-            if(wr.ok){const wd=await wr.json();extract=(wd.extract||'').split('. ').slice(0,3).join('. ').trim()||null;}
-          }
-        }
-      }catch(e){}
-    }
-
-    // Path 2: Wikipedia search API by name (lt first, then en)
-    if(!extract){
-      for(const lang of['lt','en']){
-        try{
-          // Search API finds best match even with partial/imperfect names
-          const sr=await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(spot.name)}&srlimit=1&format=json&origin=*`,{signal:AbortSignal.timeout(6000)});
-          if(sr.ok){
-            const sd=await sr.json();
-            const title=sd.query?.search?.[0]?.title;
->>>>>>> 516dff562879a2054b0b1a36dfda7293a1605ef6
             if(title){
               const pr=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,{signal:AbortSignal.timeout(6000)});
               if(pr.ok){
@@ -4185,7 +4134,6 @@ async function runEnrichSelected(){
       const{db,doc,updateDoc}=window._fb;
       try{
         await updateDoc(doc(db,'spots',String(spot.id)),{history:extract+(extract.endsWith('.')?'':'.'),wpEnriched:true});
-<<<<<<< HEAD
         // Update in-memory immediately so restart skips this spot
         spot.history=extract;
         spot.wpEnriched=true;
@@ -4199,17 +4147,10 @@ async function runEnrichSelected(){
       // Mark as failed in memory so restart skips it too
       spot.wpEnriched='failed';
       failed++;
-=======
-        spot.history=extract;enriched++;
-        if(descEl){descEl.textContent='✅ '+extract.slice(0,80)+(extract.length>80?'…':'');descEl.style.color='var(--green)';}
-      }catch(e){if(descEl){descEl.textContent='❌ DB klaida';descEl.style.color='var(--red)';}}
-    } else {
->>>>>>> 516dff562879a2054b0b1a36dfda7293a1605ef6
       if(descEl){descEl.textContent='❌ Wikipedia nerado';descEl.style.color='var(--red)';}
     }
 
     done++;
-<<<<<<< HEAD
     updateBtn();
     updateStats();
     await new Promise(r=>setTimeout(r,400));
@@ -4219,16 +4160,6 @@ async function runEnrichSelected(){
   _enrichSelected.clear();
   toast(`✅ Baigta: ${enriched} papildyta · ${failed} nerasta · ${skipped} praleista`,'gold');
   setTimeout(renderEnrichPanel,800);
-=======
-    if(runBtn) runBtn.textContent=`⏳ ${done}/${total}...`;
-    await new Promise(r=>setTimeout(r,400));
-  }
-
-  _enrichSelected.clear();
-  toast(`✅ Baigta: ${enriched}/${total} papildyta`,'gold');
-  // Refresh panel to show updated statuses
-  setTimeout(renderEnrichPanel,600);
->>>>>>> 516dff562879a2054b0b1a36dfda7293a1605ef6
 }
 
 function osmToggleManual(){
