@@ -829,10 +829,12 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       </div>
     </div>
     <div class="drawer-nav-main">
+      <div class="dnav-main-item" onclick="openSubPanel('aboutme')">
+        <span class="dnmi-icon">🧭</span><span class="dnmi-label">Mano pažanga</span><span class="dnmi-arrow">›</span>
+      </div>
       <div class="dnav-main-item" onclick="openSubPanel('vietos')">
         <span class="dnmi-icon">📋</span><span class="dnmi-label">Vietos</span><span class="dnmi-arrow">›</span>
       </div>
-
       <div class="dnav-main-item" onclick="openSubPanel('zenklai')">
         <span class="dnmi-icon">🏅</span><span class="dnmi-label">Ženkleliai</span><span class="dnmi-arrow">›</span>
       </div>
@@ -853,7 +855,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
       <div class="dbot-btn" id="drawerReviewsBtn" onclick="openSubPanel('reviews')" style="display:none">💬 Atsiliepimai</div>
-      <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="batchEnrichExistingSpots()" style="display:none">📚 Wikipedia Enrich</div>
+      <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="openSubPanel('enrich')" style="display:none">📚 Wikipedia Enrich</div>
     </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v13</div>
   </div>
@@ -865,12 +867,13 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="drawer-sub-title" id="drawerSubTitle"></div>
     </div>
     <div class="drawer-sub-body" id="drawerSubBody">
+      <div class="panel-section" id="panel-aboutme"></div>
       <div class="panel-section" id="panel-vietos"></div>
       <div class="panel-section" id="panel-favs"></div>
-
       <div class="panel-section" id="panel-zenklai"></div>
       <div class="panel-section" id="panel-social"></div>
       <div class="panel-section" id="panel-osm"></div>
+      <div class="panel-section" id="panel-enrich"></div>
       <div class="panel-section" id="panel-reviews"></div>
     </div>
   </div>
@@ -1878,26 +1881,29 @@ function closeDrawer(){
 }
 
 const PANEL_TITLES={
+  aboutme:'🧭 Mano pažanga',
   vietos:'📋 Vietos',
   favs:'♥ Mėgstamiausi',
-
   zenklai:'🏅 Ženkleliai',
   social:'👥 Draugai',
   osm:'🗺 OSM Import',
+  enrich:'📚 Wikipedia Enrich',
   reviews:'💬 Atsiliepimai'
 };
 
 function openSubPanel(name){
-  ['vietos','favs','zenklai','social','osm','reviews'].forEach(p=>{
+  ['aboutme','vietos','favs','zenklai','social','osm','enrich','reviews'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
   document.getElementById('drawerSubPanel').classList.add('open');
+  if(name==='aboutme') renderAboutMe();
   if(name==='vietos') renderList();
   if(name==='favs') renderFavorites();
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
   if(name==='osm') renderOsmImport();
+  if(name==='enrich') renderEnrichPanel();
   if(name==='reviews') renderReviews();
 }
 
@@ -2356,6 +2362,93 @@ function checkBadges(){
     });
   });
   if(newOnes.length){save();setTimeout(()=>toast(`🎖 Naujas ženklelis: ${newOnes[0].icon} ${newOnes[0].name}`,'gold'),500);}
+}
+
+// ═══════════ ABOUT ME PANEL ═══════════
+function renderAboutMe(){
+  const body=document.getElementById('panel-aboutme');
+  if(!body) return;
+
+  const lv=getLevel(totalXP);
+  const nxt=getNextLevel(totalXP);
+  const pct=getLevelProgress(totalXP);
+  const xpLeft=nxt?nxt.xp-totalXP:0;
+
+  const t1tot=SPOTS.filter(s=>s.tier===1).length;
+  const t2tot=SPOTS.filter(s=>s.tier===2).length;
+  const t3tot=SPOTS.filter(s=>s.tier===3).length;
+  const t1c=t1Collected(),t2c=t2Collected(),t3c=t3Collected();
+
+  function statCard(label,value,sub,color){
+    return`<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;flex:1;min-width:0">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${label}</div>
+      <div style="font-size:1.4rem;font-weight:700;color:${color||'var(--txt)'};line-height:1">${value}</div>
+      ${sub?`<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);margin-top:3px">${sub}</div>`:''}
+    </div>`;
+  }
+
+  function tierBar(tier,color,label,collected,total,locked){
+    const pct2=total?Math.round(collected/total*100):0;
+    return`<div style="background:var(--surf2);border:1px solid ${locked?'var(--bdr)':'var(--bdr)'};border-radius:10px;padding:11px 14px;${locked?'opacity:.55':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${locked?'var(--tm)':color};flex-shrink:0"></div>
+          <span style="font-size:.82rem;font-weight:700;color:var(--txt)">${label}</span>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${locked?'var(--tm)':color};font-weight:600">${locked?'🔒 Užrakinta':`${collected} / ${total}`}</span>
+      </div>
+      ${!locked?`<div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct2}%;background:${color};border-radius:3px;transition:width .5s"></div>
+      </div>`:''}
+    </div>`;
+  }
+
+  const t2locked=[...unlockedCats].filter(k=>k.startsWith('2:')).length===0;
+  const t3locked=[...unlockedCats].filter(k=>k.startsWith('3:')).length===0;
+
+  body.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+
+    <!-- XP + Level -->
+    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.06),transparent);pointer-events:none"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="font-size:32px">${lv.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--gold)">Lv.${lv.level} — ${lv.name}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-top:3px">${nxt?`Kitas: Lv.${nxt.level} ${nxt.name} (${xpLeft} XP)`:'Maksimalus lygis! 👑'}</div>
+        </div>
+      </div>
+      <div style="height:7px;background:var(--bdr);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:4px;transition:width .6s"></div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--gold);font-weight:600;margin-top:5px;text-align:right">${totalXP} XP${nxt?` / ${nxt.xp} XP`:''}</div>
+    </div>
+
+    <!-- Quick stats row -->
+    <div style="display:flex;gap:8px">
+      ${statCard('Surinkta',found.size,`iš ${SPOTS.filter(s=>s.cat!=='hidden').length}`,'var(--gold)')}
+      ${statCard('Serija',streak>0?streak+'d':'—',streak>0?'dienų iš eilės':'pradėk šiandien',streak>=2?'var(--gold)':'var(--txt)')}
+    </div>
+
+    <!-- Tier progress -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Tiero pažanga</div>
+    ${tierBar(1,'#c9a84c','T1 — Žinomos',t1c,t1tot,false)}
+    ${tierBar(2,'#7a9cc9','T2 — Paslėptos',t2c,t2tot,t2locked)}
+    ${tierBar(3,'#b07aaa','T3 — Legendos',t3c,t3tot,t3locked)}
+
+    <!-- Daily quest -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Dienos užduotis</div>
+    <div id="aboutMeQuest">${renderQuestCard()}</div>
+
+    <!-- Weekly challenge -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Savaitės iššūkis</div>
+    <div id="aboutMeWeekly">${renderWeeklyChallenge()}</div>
+
+    <!-- City completion -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Miesto užbaigimas</div>
+    <div id="aboutMeCity">${renderCityCompletion()}</div>
+
+  </div>`;
 }
 
 function renderBadges(){
@@ -3853,6 +3946,159 @@ async function batchEnrichExistingSpots(){
   if(resEl){resEl.textContent=`✅ Baigta: ${enriched} aprašymų papildyta iš ${total}`;resEl.style.display='block';}
   const closeBtn=document.getElementById('enrichCloseBtn');
   if(closeBtn) closeBtn.style.display='block';
+}
+
+// ═══════════ ENRICH PANEL ═══════════
+let _enrichSelected=new Set();
+
+function renderEnrichPanel(){
+  const body=document.getElementById('panel-enrich');
+  if(!body) return;
+
+  const allSpots=SPOTS.filter(s=>s.cat!=='hidden');
+  const candidates=allSpots.filter(s=>!s.history||s.history.length<50||s.history.startsWith('Wikidata:'));
+  const enriched=allSpots.filter(s=>s.history&&s.history.length>=50&&!s.history.startsWith('Wikidata:'));
+
+  // Clean up selection: remove ids that no longer exist as candidates
+  const candidateIds=new Set(candidates.map(s=>String(s.id)));
+  [..._enrichSelected].forEach(id=>{ if(!candidateIds.has(id)) _enrichSelected.delete(id); });
+
+  const selCount=_enrichSelected.size;
+
+  function spotRow(s,isCandidate){
+    const hasWD=s.tag&&s.tag.startsWith('Q');
+    const desc=s.history?s.history.slice(0,80)+(s.history.length>80?'…':''):'—';
+    const statusIcon=isCandidate?(hasWD?'⚡':'🔍'):'✅';
+    const statusColor=isCandidate?(hasWD?'var(--gold)':'var(--blue)'):'var(--green)';
+    const checked=_enrichSelected.has(String(s.id));
+    return`<div id="er-row-${s.id}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;${isCandidate?'cursor:pointer':'opacity:.6'}"
+      ${isCandidate?`onclick="toggleEnrichSelect('${s.id}')"`:''}>
+      ${isCandidate?`<div style="width:18px;height:18px;border-radius:5px;border:2px solid ${checked?'var(--gold)':'var(--bdr)'};background:${checked?'var(--gold)':'var(--surf3)'};display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:2px;transition:all .15s">${checked?'✓':''}</div>`:''}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="font-size:.82rem;font-weight:600;color:var(--txt)">${s.name||'—'}</span>
+          <span style="font-size:.65rem;color:${statusColor}">${statusIcon}${hasWD&&isCandidate?' Wikidata':!hasWD&&isCandidate?' Paieška':''}</span>
+        </div>
+        <div id="er-desc-${s.id}" style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);line-height:1.4">${desc}</div>
+      </div>
+    </div>`;
+  }
+
+  body.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+
+    <!-- Stats row -->
+    <div style="display:flex;gap:8px;margin-bottom:2px">
+      <div style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:700;color:var(--green)">${enriched.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)">✅ Aprašyti</div>
+      </div>
+      <div style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:700;color:var(--gold)">${candidates.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)">⚠️ Trūksta</div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px">
+      <button onclick="enrichSelectAll()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☑ Visus</button>
+      <button onclick="enrichSelectNone()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☐ Nė vieno</button>
+      <button onclick="runEnrichSelected()" style="flex:2;background:${selCount>0?'var(--gold)':'var(--surf3)'};border:1px solid ${selCount>0?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;color:${selCount>0?'#0e0c09':'var(--tm)'};cursor:${selCount>0?'pointer':'default'}">▶ Vykdyti${selCount>0?` (${selCount})`:''}</button>
+    </div>
+
+    ${candidates.length?`
+    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">⚡ = Wikidata ID · 🔍 = Paieška pagal pavadinimą</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${candidates.map(s=>spotRow(s,true)).join('')}</div>`:'<div style="text-align:center;padding:20px;color:var(--green);font-size:.85rem">✅ Visos vietos aprašytos!</div>'}
+
+    ${enriched.length?`
+    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-top:4px">Jau aprašytos (${enriched.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px">${enriched.map(s=>spotRow(s,false)).join('')}</div>`:''}
+
+  </div>`;
+}
+
+function toggleEnrichSelect(id){
+  const sid=String(id);
+  if(_enrichSelected.has(sid)) _enrichSelected.delete(sid);
+  else _enrichSelected.add(sid);
+  renderEnrichPanel();
+}
+
+function enrichSelectAll(){
+  const candidates=SPOTS.filter(s=>s.cat!=='hidden'&&(!s.history||s.history.length<50||s.history.startsWith('Wikidata:')));
+  candidates.forEach(s=>_enrichSelected.add(String(s.id)));
+  renderEnrichPanel();
+}
+
+function enrichSelectNone(){
+  _enrichSelected.clear();
+  renderEnrichPanel();
+}
+
+async function runEnrichSelected(){
+  if(!_enrichSelected.size){toast('Nepasirinkta nė viena vieta','info');return;}
+  const spots=SPOTS.filter(s=>_enrichSelected.has(String(s.id)));
+  const total=spots.length;
+  let done=0,enriched=0;
+
+  // Update button to show progress inline
+  const runBtn=document.querySelector('[onclick="runEnrichSelected()"]');
+  if(runBtn){runBtn.style.background='var(--surf3)';runBtn.style.color='var(--tm)';runBtn.style.pointerEvents='none';}
+
+  for(const spot of spots){
+    const descEl=document.getElementById(`er-desc-${spot.id}`);
+    if(descEl) descEl.textContent='⏳ Ieškoma...';
+
+    let extract=null;
+
+    // Path 1: Wikidata ID → Wikipedia
+    if(spot.tag&&spot.tag.startsWith('Q')){
+      try{
+        const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${spot.tag}&props=sitelinks&sitefilter=ltwiki|enwiki&format=json&origin=*`,{signal:AbortSignal.timeout(8000)});
+        if(r.ok){
+          const d=await r.json();
+          const entity=d.entities?.[spot.tag];
+          const ltTitle=entity?.sitelinks?.ltwiki?.title;
+          const enTitle=entity?.sitelinks?.enwiki?.title;
+          const title=ltTitle||enTitle;
+          const lang=ltTitle?'lt':'en';
+          if(title){
+            const wr=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,{signal:AbortSignal.timeout(8000)});
+            if(wr.ok){const wd=await wr.json();extract=(wd.extract||'').split('. ').slice(0,3).join('. ').trim()||null;}
+          }
+        }
+      }catch(e){}
+    }
+
+    // Path 2: Name search on lt.wikipedia, fallback en
+    if(!extract){
+      for(const lang of['lt','en']){
+        try{
+          const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(spot.name)}`,{signal:AbortSignal.timeout(6000)});
+          if(r.ok){const d=await r.json();if(d.extract&&d.extract.length>40){extract=d.extract.split('. ').slice(0,3).join('. ').trim();break;}}
+        }catch(e){}
+      }
+    }
+
+    if(extract&&window._fb){
+      const{db,doc,updateDoc}=window._fb;
+      try{
+        await updateDoc(doc(db,'spots',String(spot.id)),{history:extract+(extract.endsWith('.')?'':'.'),wpEnriched:true});
+        spot.history=extract;enriched++;
+        if(descEl){descEl.textContent='✅ '+extract.slice(0,80)+(extract.length>80?'…':'');descEl.style.color='var(--green)';}
+      }catch(e){if(descEl){descEl.textContent='❌ DB klaida';descEl.style.color='var(--red)';}}
+    } else {
+      if(descEl){descEl.textContent='❌ Wikipedia nerado';descEl.style.color='var(--red)';}
+    }
+
+    done++;
+    if(runBtn) runBtn.textContent=`⏳ ${done}/${total}...`;
+    await new Promise(r=>setTimeout(r,400));
+  }
+
+  _enrichSelected.clear();
+  toast(`✅ Baigta: ${enriched}/${total} papildyta`,'gold');
+  // Refresh panel to show updated statuses
+  setTimeout(renderEnrichPanel,600);
 }
 
 function osmToggleManual(){
