@@ -849,8 +849,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <span class="dnmi-arrow">›</span>
       </div>
     </div>
-    <!-- STATS SECTION in main drawer -->
-    <div id="drawerStats" style="padding:8px 12px;overflow-y:auto;flex:1;min-height:0"></div>
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
@@ -4069,12 +4067,23 @@ async function runEnrichSelected(){
       }catch(e){}
     }
 
-    // Path 2: Name search on lt.wikipedia, fallback en
+    // Path 2: Wikipedia search API by name (lt first, then en)
     if(!extract){
       for(const lang of['lt','en']){
         try{
-          const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(spot.name)}`,{signal:AbortSignal.timeout(6000)});
-          if(r.ok){const d=await r.json();if(d.extract&&d.extract.length>40){extract=d.extract.split('. ').slice(0,3).join('. ').trim();break;}}
+          // Search API finds best match even with partial/imperfect names
+          const sr=await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(spot.name)}&srlimit=1&format=json&origin=*`,{signal:AbortSignal.timeout(6000)});
+          if(sr.ok){
+            const sd=await sr.json();
+            const title=sd.query?.search?.[0]?.title;
+            if(title){
+              const pr=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,{signal:AbortSignal.timeout(6000)});
+              if(pr.ok){
+                const pd=await pr.json();
+                if(pd.extract&&pd.extract.length>40){extract=pd.extract.split('. ').slice(0,3).join('. ').trim();break;}
+              }
+            }
+          }
         }catch(e){}
       }
     }
