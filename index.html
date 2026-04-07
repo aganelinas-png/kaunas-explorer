@@ -1901,7 +1901,7 @@ function openSubPanel(name){
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
   if(name==='osm') renderOsmImport();
-  if(name==='enrich') renderEnrichPanel();
+  if(name==='enrich'){_enrichPage=1;renderEnrichPanel();}
   if(name==='reviews') renderReviews();
 }
 
@@ -3953,20 +3953,23 @@ async function batchEnrichExistingSpots(){
 
 // ═══════════ ENRICH PANEL ═══════════
 let _enrichSelected=new Set();
+let _enrichPage=1;
 
 function renderEnrichPanel(){
   const body=document.getElementById('panel-enrich');
   if(!body) return;
 
   const allSpots=SPOTS.filter(s=>s.cat!=='hidden');
-  const candidates=allSpots.filter(s=>!s.history||s.history.length<50||s.history.startsWith('Wikidata:'));
-  const enriched=allSpots.filter(s=>s.history&&s.history.length>=50&&!s.history.startsWith('Wikidata:'));
+  const candidates=allSpots.filter(s=>!s.wpEnriched);
+  const enriched=allSpots.filter(s=>s.wpEnriched===true);
 
   // Clean up selection: remove ids that no longer exist as candidates
   const candidateIds=new Set(candidates.map(s=>String(s.id)));
   [..._enrichSelected].forEach(id=>{ if(!candidateIds.has(id)) _enrichSelected.delete(id); });
 
   const selCount=_enrichSelected.size;
+  const PAGE=50;
+  const visibleCount=_enrichPage*PAGE;
 
   function spotRow(s,isCandidate){
     const hasWD=s.tag&&s.tag.startsWith('Q');
@@ -3987,6 +3990,8 @@ function renderEnrichPanel(){
     </div>`;
   }
 
+  const visibleCandidates=candidates.slice(0,visibleCount);
+
   body.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:8px">
 
     <!-- Stats row -->
@@ -4003,19 +4008,18 @@ function renderEnrichPanel(){
     <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-align:center">Iš viso: ${allSpots.length} vietų įkelta</div>
 
     <!-- Action buttons -->
-    <div style="display:flex;gap:8px">
-      <button onclick="enrichSelectAll()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☑ Visus</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="enrichSelectAll()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☑ Puslapį</button>
       <button onclick="enrichSelectNone()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☐ Nė vieno</button>
       <button onclick="runEnrichSelected()" style="flex:2;background:${selCount>0?'var(--gold)':'var(--surf3)'};border:1px solid ${selCount>0?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;color:${selCount>0?'#0e0c09':'var(--tm)'};cursor:${selCount>0?'pointer':'default'}">▶ Vykdyti${selCount>0?` (${selCount})`:''}</button>
     </div>
+    <button onclick="runEnrichAll()" style="width:100%;background:var(--surf2);border:1px dashed var(--gold);border-radius:8px;padding:9px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;color:var(--gold);cursor:pointer">⚡ Vykdyti visus ${candidates.length} kandidatus</button>
 
     ${candidates.length?`
-    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">⚡ = Wikidata ID · 🔍 = Paieška pagal pavadinimą</div>
-    <div style="display:flex;flex-direction:column;gap:6px">${candidates.map(s=>spotRow(s,true)).join('')}</div>`:'<div style="text-align:center;padding:20px;color:var(--green);font-size:.85rem">✅ Visos vietos aprašytos!</div>'}
-
-    ${enriched.length?`
-    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-top:4px">Jau aprašytos (${enriched.length})</div>
-    <div style="display:flex;flex-direction:column;gap:6px">${enriched.map(s=>spotRow(s,false)).join('')}</div>`:''}
+    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">⚡ = Wikidata ID · 🔍 = Paieška pagal pavadinimą · rodoma ${Math.min(visibleCount,candidates.length)} iš ${candidates.length}</div>
+    <div style="display:flex;flex-direction:column;gap:6px" id="enrichCandidateList">${visibleCandidates.map(s=>spotRow(s,true)).join('')}</div>
+    ${candidates.length>visibleCount?`<button onclick="_enrichPage++;renderEnrichPanel()" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:9px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);cursor:pointer">↓ Rodyti daugiau (${candidates.length-visibleCount} liko)</button>`:''}
+    `:'<div style="text-align:center;padding:20px;color:var(--green);font-size:.85rem">✅ Visos vietos aprašytos!</div>'}
 
   </div>`;
 }
@@ -4028,14 +4032,22 @@ function toggleEnrichSelect(id){
 }
 
 function enrichSelectAll(){
-  const candidates=SPOTS.filter(s=>s.cat!=='hidden'&&(!s.history||s.history.length<50||s.history.startsWith('Wikidata:')));
-  candidates.forEach(s=>_enrichSelected.add(String(s.id)));
+  const PAGE=50;
+  const candidates=SPOTS.filter(s=>s.cat!=='hidden'&&!s.wpEnriched);
+  candidates.slice(0,_enrichPage*PAGE).forEach(s=>_enrichSelected.add(String(s.id)));
   renderEnrichPanel();
 }
 
 function enrichSelectNone(){
   _enrichSelected.clear();
   renderEnrichPanel();
+}
+
+async function runEnrichAll(){
+  const candidates=SPOTS.filter(s=>s.cat!=='hidden'&&!s.wpEnriched);
+  if(!candidates.length){toast('Nėra kandidatų','info');return;}
+  candidates.forEach(s=>_enrichSelected.add(String(s.id)));
+  await runEnrichSelected();
 }
 
 async function runEnrichSelected(){
