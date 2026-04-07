@@ -152,17 +152,17 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .drawer-sub{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);line-height:1.5}
 
 /* TIER PROGRESS IN DRAWER */
-.tier-progress{padding:12px 14px;border-bottom:1px solid var(--bdr);display:flex;flex-direction:column;gap:10px}
-.tier-row{display:flex;align-items:flex-start;gap:10px}
-.tier-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.tier-progress{padding:10px 14px 12px;border-bottom:1px solid var(--bdr);display:flex;flex-direction:column;gap:8px}
+.tier-row{display:flex;align-items:center;gap:10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px}
+.tier-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .tier-info{flex:1;min-width:0}
-.tier-name{font-size:.82rem;font-weight:600;color:var(--txt);margin-bottom:3px}
-.tier-count{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-bottom:3px}
-.tier-bar{height:4px;background:var(--bdr);border-radius:2px;overflow:hidden;margin-top:3px}
-.tier-fill{height:100%;border-radius:2px;transition:width .5s}
-.tier-lock{font-size:.7rem;color:var(--tm);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px}
+.tier-name{font-size:.8rem;font-weight:700;color:var(--txt);margin-bottom:2px}
+.tier-count{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold);font-weight:600}
+.tier-bar{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden;margin-top:5px}
+.tier-fill{height:100%;border-radius:3px;transition:width .5s}
+.tier-lock{font-size:.72rem;color:var(--tm);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:4px;margin-top:2px}
 /* Unlock hint banner */
-.unlock-hint-banner{margin-top:6px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:7px 10px;font-size:.7rem;color:var(--gold);font-family:'DM Mono',monospace;line-height:1.5}
+.unlock-hint-banner{margin-top:6px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:6px 10px;font-size:.68rem;color:var(--gold);font-family:'DM Mono',monospace;line-height:1.5}
 
 /* DRAWER NAV */
 .drawer-nav{display:flex;flex-direction:column;gap:2px;padding:8px 8px;border-bottom:1px solid var(--bdr)}
@@ -501,31 +501,31 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .level-pill{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);display:flex;align-items:center;gap:4px;box-shadow:0 2px 12px var(--sh);white-space:nowrap;pointer-events:all;cursor:pointer}
 .level-pill .lp-lvl{color:var(--gold);font-weight:600}
 /* ── LEVEL CARD ── */
-.level-card{margin:10px 14px 6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden}
-.level-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.04),transparent);pointer-events:none}
-.lc-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.lc-icon{font-size:28px}
+.level-card{margin:10px 14px 6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.level-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.06),transparent);pointer-events:none}
+.lc-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.lc-icon{font-size:32px}
 .lc-info{flex:1;min-width:0}
-.lc-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);line-height:1.2}
-.lc-sub{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:2px}
-.lc-bar{height:5px;background:var(--bdr);border-radius:3px;overflow:hidden}
-.lc-fill{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:3px;transition:width .6s}
-.lc-xp{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);margin-top:4px;text-align:right}
+.lc-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--gold);line-height:1.2}
+.lc-sub{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-top:3px}
+.lc-bar{height:7px;background:var(--bdr);border-radius:4px;overflow:hidden}
+.lc-fill{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:4px;transition:width .6s}
+.lc-xp{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--gold);font-weight:600;margin-top:5px;text-align:right}
 /* ── STREAK CARD ── */
-.streak-card{margin:0 14px 6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px}
-.streak-card.hot{border-color:rgba(201,168,76,.4);box-shadow:inset 0 0 20px rgba(201,168,76,.04)}
-.sc-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.sc-fire{font-size:22px}
+.streak-card{margin:0 14px 6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px}
+.streak-card.hot{border-color:rgba(201,168,76,.5);box-shadow:inset 0 0 20px rgba(201,168,76,.06)}
+.sc-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sc-fire{font-size:26px}
 .sc-info{flex:1;min-width:0}
-.sc-title{font-size:.85rem;font-weight:600;color:var(--txt)}
-.sc-sub{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:1px}
+.sc-title{font-size:.92rem;font-weight:700;color:var(--txt)}
+.sc-sub{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--gold);margin-top:3px;font-weight:600}
 .sc-miles{display:flex;gap:6px;flex-wrap:wrap}
-.sc-m{background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:6px 8px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-align:center;flex:1;min-width:52px}
-.sc-m.done{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+.sc-m{background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:7px 8px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-align:center;flex:1;min-width:52px}
+.sc-m.done{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.1)}
 .sc-m.next{border-color:var(--gd);color:var(--gd);border-style:dashed}
-.sc-m .sm-i{font-size:15px;display:block;margin-bottom:2px}
-.sc-m .sm-d{font-weight:600;font-size:.68rem}
-.sc-m .sm-r{font-size:.52rem;color:var(--tm);margin-top:1px}
+.sc-m .sm-i{font-size:16px;display:block;margin-bottom:2px}
+.sc-m .sm-d{font-weight:700;font-size:.7rem}
+.sc-m .sm-r{font-size:.54rem;color:var(--tm);margin-top:1px}
 .sc-m.done .sm-r{color:var(--gold)}
 /* ── LEVEL UP OVERLAY ── */
 .levelup-overlay{position:fixed;inset:0;z-index:1100;background:rgba(14,12,9,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px}
@@ -605,7 +605,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   .mob-filter-btn{display:flex;bottom:calc(80px + env(safe-area-inset-bottom))}
 
   /* ── PROX POPUP: wider, above bottom nav ── */
-  .prox-popup{left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom))}
+  .prox-popup{left:10px;right:10px;bottom:calc(80px + env(safe-area-inset-bottom));transform:translateY(20px);max-width:calc(100% - 20px)}
+  .prox-popup.show{transform:translateY(0)}
 
   /* ── ZOOM CONTROLS: above bottom nav, left side to avoid dice ── */
   .leaflet-control-zoom{bottom:calc(80px + env(safe-area-inset-bottom))!important;right:auto!important;left:10px!important}
@@ -828,10 +829,12 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       </div>
     </div>
     <div class="drawer-nav-main">
+      <div class="dnav-main-item" onclick="openSubPanel('aboutme')">
+        <span class="dnmi-icon">🧭</span><span class="dnmi-label">Mano pažanga</span><span class="dnmi-arrow">›</span>
+      </div>
       <div class="dnav-main-item" onclick="openSubPanel('vietos')">
         <span class="dnmi-icon">📋</span><span class="dnmi-label">Vietos</span><span class="dnmi-arrow">›</span>
       </div>
-
       <div class="dnav-main-item" onclick="openSubPanel('zenklai')">
         <span class="dnmi-icon">🏅</span><span class="dnmi-label">Ženkleliai</span><span class="dnmi-arrow">›</span>
       </div>
@@ -846,13 +849,11 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <span class="dnmi-arrow">›</span>
       </div>
     </div>
-    <!-- STATS SECTION in main drawer -->
-    <div id="drawerStats" style="padding:8px 12px;overflow-y:auto;flex:1;min-height:0"></div>
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
       <div class="dbot-btn" id="drawerReviewsBtn" onclick="openSubPanel('reviews')" style="display:none">💬 Atsiliepimai</div>
-      <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="batchEnrichExistingSpots()" style="display:none">📚 Wikipedia Enrich</div>
+      <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="openSubPanel('enrich')" style="display:none">📚 Wikipedia Enrich</div>
     </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v13</div>
   </div>
@@ -864,12 +865,13 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="drawer-sub-title" id="drawerSubTitle"></div>
     </div>
     <div class="drawer-sub-body" id="drawerSubBody">
+      <div class="panel-section" id="panel-aboutme"></div>
       <div class="panel-section" id="panel-vietos"></div>
       <div class="panel-section" id="panel-favs"></div>
-
       <div class="panel-section" id="panel-zenklai"></div>
       <div class="panel-section" id="panel-social"></div>
       <div class="panel-section" id="panel-osm"></div>
+      <div class="panel-section" id="panel-enrich"></div>
       <div class="panel-section" id="panel-reviews"></div>
     </div>
   </div>
@@ -907,13 +909,11 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           </optgroup>
           <optgroup label="— Gamta —">
           <option value="nature">🌿 Gamta</option>
-          <option value="trail">🥾 Takai</option>
           <option value="viewpoint">🔭 Apžvalgos</option>
           </optgroup>
           <optgroup label="— Miestas —">
           <option value="mural">🎨 Gatvės menas</option>
           <option value="watertower">🗼 Vandens bokštai</option>
-          <option value="bridge">🌉 Tiltai</option>
           </optgroup>
           <optgroup label="— Paslėptos —">
           <option value="hidden">🔮 Paslėpta vieta</option>
@@ -1089,20 +1089,18 @@ const CATS={
   cemetery:{label:'Kapinės',emoji:'⚱️',color:'#5a5a6a'},
   // — Nature —
   nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
-  trail:{label:'Takai',emoji:'🥾',color:'#3a7a5a'},
   viewpoint:{label:'Apžvalgos',emoji:'🔭',color:'#1a6b8a'},
   // — Urban / City —
   mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
-  bridge:{label:'Tiltai',emoji:'🌉',color:'#3a5a7a'},
   // — Hidden —
   hidden:{label:'Paslėpta',emoji:'🔮',color:'#6a3a8a'},
 };
 
 const FILTER_GROUPS=[
   {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['fort','church','museum','history','monument','mound','cemetery']},
-  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','trail','viewpoint']},
-  {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower','bridge']},
+  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint']},
+  {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower']},
 ];
 
 const TIER_CONFIG={
@@ -1122,12 +1120,10 @@ const CAT_DEFAULT_RADIUS={
   church:65,
   museum:65,
   watertower:70,
-  bridge:80,
   history:80,
   fort:130,
   nature:150,
   mound:160,
-  trail:200,
   cemetery:220,
 };
 
@@ -1218,24 +1214,12 @@ const BADGE_GROUPS=[
     {id:'wt2',name:'Bokštų kolekcininkas',desc:'Aplankyk 5 vandens bokštus',icon:'🏗️',need:5,xpReward:20},
     {id:'wt3',name:'Hidroinžinierius Entuziastas',desc:'Aplankyk 12 vandens bokštų',icon:'💎',need:12,xpReward:50},
   ]},
-  {id:'bridges',title:'Tiltų meistras',icon:'🌉',cat:'bridge',sub:true,badges:[
-    {id:'br1',name:'Pirmasis tiltas',desc:'Aplankyk 1 tiltą',icon:'🌉',need:1,xpReward:10},
-    {id:'br2',name:'Tiltų kolekcionierius',desc:'Aplankyk 4 tiltus',icon:'⛵',need:4,xpReward:10},
-    {id:'br3',name:'Niekada Negrimzdantis',desc:'Aplankyk 8 tiltų',icon:'⚓',need:8,xpReward:20},
-    {id:'br4',name:'Tiltas Tarp Pasaulių',desc:'Aplankyk 15 tiltų',icon:'💎',need:15,xpReward:50},
-  ]},
   // ── Nature ──
   {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
     {id:'n1',name:'Žaliasis miestas',desc:'Aplankyk 3 gamtos vietas',icon:'🌿',need:3,xpReward:10},
     {id:'n2',name:'Miško dvasia',desc:'Aplankyk 8 gamtos vietų',icon:'🌳',need:8,xpReward:10},
     {id:'n3',name:'Medžių Kalbėtojas',desc:'Aplankyk 20 gamtos vietų',icon:'🍃',need:20,xpReward:20},
     {id:'n4',name:'Gamtos Žmogus',desc:'Aplankyk 40 gamtos vietų',icon:'💎',need:40,xpReward:50},
-  ]},
-  {id:'trails',title:'Takų ieškotojas',icon:'🥾',cat:'trail',sub:true,badges:[
-    {id:'tr1',name:'Pirmas takas',desc:'Aplankyk 1 taką',icon:'🥾',need:1,xpReward:10},
-    {id:'tr2',name:'Takų veteranas',desc:'Aplankyk 4 takus',icon:'🏕️',need:4,xpReward:10},
-    {id:'tr3',name:'Bateliai Neišdžiūsta',desc:'Aplankyk 8 takų',icon:'👟',need:8,xpReward:20},
-    {id:'tr4',name:'Laukinių Kelių Valdovas',desc:'Aplankyk 15 takų',icon:'💎',need:15,xpReward:50},
   ]},
   {id:'viewpoints',title:'Panoramų medžiotojas',icon:'🔭',cat:'viewpoint',sub:true,badges:[
     {id:'vp1',name:'Pirmoji panorama',desc:'Aplankyk 1 apžvalgos tašką',icon:'🔭',need:1,xpReward:10},
@@ -1584,12 +1568,12 @@ function makeIcon(spot){
 }
 
 function addMarker(spot){
-  if(spot.cat==='hidden') return; // hidden spots never show on map
+  if(spot.cat==='hidden') return;
+  if(!isSpotUnlocked(spot)) return; // locked T2/T3 — not shown on map
   const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
   m._isMarker=true;
   m.on('click',()=>openSheet(spot));
   markers[spot.id]=m;
-  // Only add to cluster if it should be visible
   const show=activeFilter==='all'||activeFilter===spot.cat;
   if(show&&clusterGroup) clusterGroup.addLayer(m);
   else if(!show) m._hiddenFromCluster=true;
@@ -1602,7 +1586,12 @@ function refreshMarkers(){
   clusterGroup.clearLayers();
 
   SPOTS.forEach(s=>{
-    if(s.cat==='hidden') return; // never on map
+    if(s.cat==='hidden') return;
+    if(!isSpotUnlocked(s)){
+      // remove from map if it was previously shown (e.g. just re-locked — shouldn't happen, but safety)
+      if(markers[s.id]){clusterGroup.removeLayer(markers[s.id]);delete markers[s.id];}
+      return;
+    }
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(markers[s.id]){
       markers[s.id].setIcon(makeIcon(s));
@@ -1890,27 +1879,35 @@ function closeDrawer(){
 }
 
 const PANEL_TITLES={
+  aboutme:'🧭 Mano pažanga',
   vietos:'📋 Vietos',
   favs:'♥ Mėgstamiausi',
-
   zenklai:'🏅 Ženkleliai',
   social:'👥 Draugai',
   osm:'🗺 OSM Import',
+  enrich:'📚 Wikipedia Enrich',
   reviews:'💬 Atsiliepimai'
 };
 
 function openSubPanel(name){
-  ['vietos','favs','zenklai','social','osm','reviews'].forEach(p=>{
+  ['aboutme','vietos','favs','zenklai','social','osm','enrich','reviews'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
   document.getElementById('drawerSubPanel').classList.add('open');
+  if(name==='aboutme') renderAboutMe();
   if(name==='vietos') renderList();
   if(name==='favs') renderFavorites();
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
   if(name==='osm') renderOsmImport();
+  if(name==='enrich'){_enrichPage=1;renderEnrichPanel();}
   if(name==='reviews') renderReviews();
+}
+
+function isPanelOpen(name){
+  const el=document.getElementById('panel-'+name);
+  return el&&el.classList.contains('active')&&document.getElementById('drawerSubPanel')?.classList.contains('open');
 }
 
 function closeSubPanel(instant){
@@ -2368,6 +2365,93 @@ function checkBadges(){
     });
   });
   if(newOnes.length){save();setTimeout(()=>toast(`🎖 Naujas ženklelis: ${newOnes[0].icon} ${newOnes[0].name}`,'gold'),500);}
+}
+
+// ═══════════ ABOUT ME PANEL ═══════════
+function renderAboutMe(){
+  const body=document.getElementById('panel-aboutme');
+  if(!body) return;
+
+  const lv=getLevel(totalXP);
+  const nxt=getNextLevel(totalXP);
+  const pct=getLevelProgress(totalXP);
+  const xpLeft=nxt?nxt.xp-totalXP:0;
+
+  const t1tot=SPOTS.filter(s=>s.tier===1).length;
+  const t2tot=SPOTS.filter(s=>s.tier===2).length;
+  const t3tot=SPOTS.filter(s=>s.tier===3).length;
+  const t1c=t1Collected(),t2c=t2Collected(),t3c=t3Collected();
+
+  function statCard(label,value,sub,color){
+    return`<div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;flex:1;min-width:0">
+      <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${label}</div>
+      <div style="font-size:1.4rem;font-weight:700;color:${color||'var(--txt)'};line-height:1">${value}</div>
+      ${sub?`<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);margin-top:3px">${sub}</div>`:''}
+    </div>`;
+  }
+
+  function tierBar(tier,color,label,collected,total,locked){
+    const pct2=total?Math.round(collected/total*100):0;
+    return`<div style="background:var(--surf2);border:1px solid ${locked?'var(--bdr)':'var(--bdr)'};border-radius:10px;padding:11px 14px;${locked?'opacity:.55':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${locked?'var(--tm)':color};flex-shrink:0"></div>
+          <span style="font-size:.82rem;font-weight:700;color:var(--txt)">${label}</span>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${locked?'var(--tm)':color};font-weight:600">${locked?'🔒 Užrakinta':`${collected} / ${total}`}</span>
+      </div>
+      ${!locked?`<div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct2}%;background:${color};border-radius:3px;transition:width .5s"></div>
+      </div>`:''}
+    </div>`;
+  }
+
+  const t2locked=[...unlockedCats].filter(k=>k.startsWith('2:')).length===0;
+  const t3locked=[...unlockedCats].filter(k=>k.startsWith('3:')).length===0;
+
+  body.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+
+    <!-- XP + Level -->
+    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,.06),transparent);pointer-events:none"></div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="font-size:32px">${lv.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--gold)">Lv.${lv.level} — ${lv.name}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-top:3px">${nxt?`Kitas: Lv.${nxt.level} ${nxt.name} (${xpLeft} XP)`:'Maksimalus lygis! 👑'}</div>
+        </div>
+      </div>
+      <div style="height:7px;background:var(--bdr);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:4px;transition:width .6s"></div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--gold);font-weight:600;margin-top:5px;text-align:right">${totalXP} XP${nxt?` / ${nxt.xp} XP`:''}</div>
+    </div>
+
+    <!-- Quick stats row -->
+    <div style="display:flex;gap:8px">
+      ${statCard('Surinkta',found.size,`iš ${SPOTS.filter(s=>s.cat!=='hidden').length}`,'var(--gold)')}
+      ${statCard('Serija',streak>0?streak+'d':'—',streak>0?'dienų iš eilės':'pradėk šiandien',streak>=2?'var(--gold)':'var(--txt)')}
+    </div>
+
+    <!-- Tier progress -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Tiero pažanga</div>
+    ${tierBar(1,'#c9a84c','T1 — Žinomos',t1c,t1tot,false)}
+    ${tierBar(2,'#7a9cc9','T2 — Paslėptos',t2c,t2tot,t2locked)}
+    ${tierBar(3,'#b07aaa','T3 — Legendos',t3c,t3tot,t3locked)}
+
+    <!-- Daily quest -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Dienos užduotis</div>
+    <div id="aboutMeQuest">${renderQuestCard()}</div>
+
+    <!-- Weekly challenge -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Savaitės iššūkis</div>
+    <div id="aboutMeWeekly">${renderWeeklyChallenge()}</div>
+
+    <!-- City completion -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Miesto užbaigimas</div>
+    <div id="aboutMeCity">${renderCityCompletion()}</div>
+
+  </div>`;
 }
 
 function renderBadges(){
@@ -3265,7 +3349,7 @@ function resolveOsmCat(t){
 const OSM_CAT_EMOJI={
   church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',
   monument:'🗿',mound:'⛰',viewpoint:'🔭',watertower:'🗼',
-  trail:'🥾',mural:'🎨',cemetery:'⚱️',bridge:'🌉',
+  trail:'🥾',mural:'🎨',cemetery:'⚱️',
 };
 
 let _osmImportData=[];
@@ -3570,8 +3654,8 @@ let _importTab='osm'; // 'osm' | 'wikidata'
 function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
-  const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery','bridge','trail'];
-  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės',bridge:'🌉 Tiltai',trail:'🥾 Takai'};
+  const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery'];
+  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės'};
   if(_importTab==='wikidata'){
     body.innerHTML=`<div class="osm-wrap">
     <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
@@ -3647,7 +3731,7 @@ function renderWikidataPanel(){
   const cached=JSON.parse(localStorage.getItem(WIKI_CACHE_KEY)||'null');
   const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_wikiData.length} iš talpyklos (${new Date(cached.ts).toLocaleDateString('lt-LT')})</span>`:'';
   const wcats=['all','church','museum','fort','mound','history','monument','nature','viewpoint','bridge','cemetery'];
-  const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',bridge:'🌉',cemetery:'⚱️'};
+  const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',cemetery:'⚱️'};
   return`<div>
     <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">Vietos iš Wikidata. Nemokama. ${cacheInfo}</div>
     <div class="osm-controls">
@@ -3805,12 +3889,31 @@ async function enrichWithWikipedia(items,setS){
 // ── Batch enrich existing spots that have wdId tag but no description ──
 async function batchEnrichExistingSpots(){
   const candidates=SPOTS.filter(s=>s.tag&&s.tag.startsWith('Q')&&(!s.history||s.history.startsWith('Wikidata:')||s.history.length<10));
-  if(!candidates.length){toast('Nerasta vietų su Wikidata ID ir tuščiu aprašu','info');return;}
-  toast(`⏳ Pradedama ${candidates.length} vietų Wikipedia paieška...`,'gold');
+  const total=candidates.length;
+  if(!total){toast('Nerasta vietų su Wikidata ID ir tuščiu aprašu','info');return;}
+
+  // Show live progress overlay
+  let progressEl=document.getElementById('enrichProgressOverlay');
+  if(!progressEl){
+    progressEl=document.createElement('div');
+    progressEl.id='enrichProgressOverlay';
+    progressEl.style.cssText='position:fixed;inset:0;z-index:2100;background:rgba(14,12,9,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:30px';
+    progressEl.innerHTML=`<div style="font-size:40px">📚</div>
+      <div style="font-family:\'Playfair Display\',serif;font-size:1.2rem;color:var(--gold)">Wikipedia Enrich</div>
+      <div id="enrichStatus" style="font-family:\'DM Mono\',monospace;font-size:.78rem;color:var(--td);text-align:center"></div>
+      <div style="width:260px;height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
+        <div id="enrichBar" style="height:100%;background:var(--gold);border-radius:3px;width:0%;transition:width .3s"></div>
+      </div>
+      <div id="enrichResult" style="font-family:\'DM Mono\',monospace;font-size:.72rem;color:var(--gold);display:none"></div>
+      <button onclick="document.getElementById('enrichProgressOverlay').remove()" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:9px 20px;color:var(--td);cursor:pointer;font-family:\'DM Sans\',sans-serif;display:none" id="enrichCloseBtn">Uždaryti</button>`;
+    document.body.appendChild(progressEl);
+  }
+  const setS=m=>{ const e=document.getElementById('enrichStatus'); if(e) e.textContent=m; };
+  const setBar=pct=>{ const e=document.getElementById('enrichBar'); if(e) e.style.width=pct+'%'; };
+
   let done=0,enriched=0;
   for(const spot of candidates){
     const wdId=spot.tag;
-    // First get Wikipedia title from Wikidata
     try{
       const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wdId}&props=sitelinks&sitefilter=ltwiki|enwiki&format=json&origin=*`,
         {signal:AbortSignal.timeout(8000)});
@@ -3838,10 +3941,225 @@ async function batchEnrichExistingSpots(){
       }
     }catch(e){}
     done++;
+    setS(`${done} / ${total} tikrinta · ${enriched} papildyta`);
+    setBar(Math.round(done/total*100));
     await new Promise(r=>setTimeout(r,400));
-    if(done%10===0) toast(`⏳ Wikipedia: ${done}/${candidates.length} (${enriched} pridėta)...`,'info');
   }
-  toast(`✅ Wikipedia baigta: ${enriched} aprašymų pridėta iš ${candidates.length}!`,'gold');
+  const resEl=document.getElementById('enrichResult');
+  if(resEl){resEl.textContent=`✅ Baigta: ${enriched} aprašymų papildyta iš ${total}`;resEl.style.display='block';}
+  const closeBtn=document.getElementById('enrichCloseBtn');
+  if(closeBtn) closeBtn.style.display='block';
+}
+
+// ═══════════ ENRICH PANEL ═══════════
+let _enrichSelected=new Set();
+let _enrichPage=1;
+
+function renderEnrichPanel(){
+  const body=document.getElementById('panel-enrich');
+  if(!body) return;
+
+  const allSpots=SPOTS.filter(s=>s.cat!=='hidden');
+  const candidates=allSpots.filter(s=>!s.wpEnriched);
+  const enriched=allSpots.filter(s=>s.wpEnriched===true);
+
+  // Clean up selection: remove ids that no longer exist as candidates
+  const candidateIds=new Set(candidates.map(s=>String(s.id)));
+  [..._enrichSelected].forEach(id=>{ if(!candidateIds.has(id)) _enrichSelected.delete(id); });
+
+  const selCount=_enrichSelected.size;
+  const PAGE=50;
+  const visibleCount=_enrichPage*PAGE;
+
+  function spotRow(s,isCandidate){
+    const hasWD=s.tag&&s.tag.startsWith('Q');
+    const desc=s.history?s.history.slice(0,80)+(s.history.length>80?'…':''):'—';
+    const statusIcon=isCandidate?(hasWD?'⚡':'🔍'):'✅';
+    const statusColor=isCandidate?(hasWD?'var(--gold)':'var(--blue)'):'var(--green)';
+    const checked=_enrichSelected.has(String(s.id));
+    return`<div id="er-row-${s.id}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;${isCandidate?'cursor:pointer':'opacity:.6'}"
+      ${isCandidate?`onclick="toggleEnrichSelect('${s.id}')"`:''}>
+      ${isCandidate?`<div style="width:18px;height:18px;border-radius:5px;border:2px solid ${checked?'var(--gold)':'var(--bdr)'};background:${checked?'var(--gold)':'var(--surf3)'};display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:2px;transition:all .15s">${checked?'✓':''}</div>`:''}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="font-size:.82rem;font-weight:600;color:var(--txt)">${s.name||'—'}</span>
+          <span style="font-size:.65rem;color:${statusColor}">${statusIcon}${hasWD&&isCandidate?' Wikidata':!hasWD&&isCandidate?' Paieška':''}</span>
+        </div>
+        <div id="er-desc-${s.id}" style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);line-height:1.4">${desc}</div>
+      </div>
+    </div>`;
+  }
+
+  const visibleCandidates=candidates.slice(0,visibleCount);
+
+  body.innerHTML=`<div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+
+    <!-- Stats row -->
+    <div style="display:flex;gap:8px;margin-bottom:2px">
+      <div style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:700;color:var(--green)">${enriched.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)">✅ Aprašyti</div>
+      </div>
+      <div style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:1.3rem;font-weight:700;color:var(--gold)">${candidates.length}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)">⚠️ Trūksta</div>
+      </div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-align:center">Iš viso: ${allSpots.length} vietų įkelta</div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="enrichSelectAll()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☑ Puslapį</button>
+      <button onclick="enrichSelectNone()" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);cursor:pointer">☐ Nė vieno</button>
+      <button id="enrichRunBtn" onclick="runEnrichSelected()" style="flex:2;background:${selCount>0?'var(--gold)':'var(--surf3)'};border:1px solid ${selCount>0?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;color:${selCount>0?'#0e0c09':'var(--tm)'};cursor:${selCount>0?'pointer':'default'}">▶ Vykdyti${selCount>0?` (${selCount})`:''}</button>
+    </div>
+    <button onclick="runEnrichAll()" style="width:100%;background:var(--surf2);border:1px dashed var(--gold);border-radius:8px;padding:9px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;color:var(--gold);cursor:pointer">⚡ Vykdyti visus ${candidates.length} kandidatus</button>
+    <div id="enrichLiveStats" style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);text-align:center;min-height:16px"></div>
+
+    ${candidates.length?`
+    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">⚡ = Wikidata ID · 🔍 = Paieška pagal pavadinimą · rodoma ${Math.min(visibleCount,candidates.length)} iš ${candidates.length}</div>
+    <div style="display:flex;flex-direction:column;gap:6px" id="enrichCandidateList">${visibleCandidates.map(s=>spotRow(s,true)).join('')}</div>
+    ${candidates.length>visibleCount?`<button onclick="_enrichPage++;renderEnrichPanel()" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:9px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);cursor:pointer">↓ Rodyti daugiau (${candidates.length-visibleCount} liko)</button>`:''}
+    `:'<div style="text-align:center;padding:20px;color:var(--green);font-size:.85rem">✅ Visos vietos aprašytos!</div>'}
+
+  </div>`;
+}
+
+function toggleEnrichSelect(id){
+  const sid=String(id);
+  if(_enrichSelected.has(sid)) _enrichSelected.delete(sid);
+  else _enrichSelected.add(sid);
+  renderEnrichPanel();
+}
+
+function enrichSelectAll(){
+  const PAGE=50;
+  const candidates=SPOTS.filter(s=>s.cat!=='hidden'&&!s.wpEnriched);
+  candidates.slice(0,_enrichPage*PAGE).forEach(s=>_enrichSelected.add(String(s.id)));
+  renderEnrichPanel();
+}
+
+function enrichSelectNone(){
+  _enrichSelected.clear();
+  renderEnrichPanel();
+}
+
+async function runEnrichAll(){
+  const candidates=SPOTS.filter(s=>s.cat!=='hidden'&&!s.wpEnriched);
+  if(!candidates.length){toast('Nėra kandidatų','info');return;}
+  candidates.forEach(s=>_enrichSelected.add(String(s.id)));
+  await runEnrichSelected();
+}
+
+let _enrichRunning=false;
+
+async function runEnrichSelected(){
+  if(_enrichRunning){toast('Jau vykdoma...','info');return;}
+  // Filter out already-enriched from selection (skip in memory)
+  [..._enrichSelected].forEach(id=>{
+    const s=SPOTS.find(x=>String(x.id)===id);
+    if(s&&s.wpEnriched) _enrichSelected.delete(id);
+  });
+  if(!_enrichSelected.size){toast('Visi pasirinkti jau aprašyti','info');return;}
+
+  const spots=SPOTS.filter(s=>_enrichSelected.has(String(s.id)));
+  const total=spots.length;
+  let done=0,enriched=0,skipped=0,failed=0;
+  _enrichRunning=true;
+
+  // Update run button
+  const updateBtn=()=>{
+    const btn=document.getElementById('enrichRunBtn');
+    if(btn) btn.textContent=`⏳ ${done}/${total} · ✅${enriched} · ❌${failed}`;
+  };
+  updateBtn();
+
+  // Update top stats live
+  const updateStats=()=>{
+    const el=document.getElementById('enrichLiveStats');
+    if(el) el.textContent=`Vykdoma: ${done}/${total} · papildyta: ${enriched} · nerasta: ${failed}`;
+  };
+
+  for(const spot of spots){
+    // Double-check in-memory — skip if already enriched since run started
+    if(spot.wpEnriched){skipped++;done++;updateBtn();continue;}
+
+    const descEl=document.getElementById(`er-desc-${spot.id}`);
+    if(descEl){descEl.textContent='⏳ Ieškoma...';descEl.style.color='var(--td)';}
+
+    let extract=null;
+
+    // Path 1: Wikidata ID → Wikipedia
+    if(spot.tag&&spot.tag.startsWith('Q')){
+      for(let attempt=0;attempt<2;attempt++){
+        try{
+          const r=await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${spot.tag}&props=sitelinks&sitefilter=ltwiki|enwiki&format=json&origin=*`,{signal:AbortSignal.timeout(8000)});
+          if(r.ok){
+            const d=await r.json();
+            const entity=d.entities?.[spot.tag];
+            const ltTitle=entity?.sitelinks?.ltwiki?.title;
+            const enTitle=entity?.sitelinks?.enwiki?.title;
+            const title=ltTitle||enTitle;
+            const lang=ltTitle?'lt':'en';
+            if(title){
+              const wr=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,{signal:AbortSignal.timeout(8000)});
+              if(wr.ok){extract=(await wr.json()).extract?.split('. ').slice(0,3).join('. ').trim()||null;}
+            }
+            break;
+          }
+        }catch(e){if(attempt===0) await new Promise(r=>setTimeout(r,600));}
+      }
+    }
+
+    // Path 2: Wikipedia search API (lt then en)
+    if(!extract){
+      for(const lang of['lt','en']){
+        try{
+          const sr=await fetch(`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(spot.name)}&srlimit=1&format=json&origin=*`,{signal:AbortSignal.timeout(6000)});
+          if(sr.ok){
+            const title=((await sr.json()).query?.search||[])[0]?.title;
+            if(title){
+              const pr=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,{signal:AbortSignal.timeout(6000)});
+              if(pr.ok){
+                const pd=await pr.json();
+                if(pd.extract&&pd.extract.length>40){extract=pd.extract.split('. ').slice(0,3).join('. ').trim();break;}
+              }
+            }
+          }
+        }catch(e){}
+      }
+    }
+
+    if(extract&&window._fb){
+      const{db,doc,updateDoc}=window._fb;
+      try{
+        await updateDoc(doc(db,'spots',String(spot.id)),{history:extract+(extract.endsWith('.')?'':'.'),wpEnriched:true});
+        // Update in-memory immediately so restart skips this spot
+        spot.history=extract;
+        spot.wpEnriched=true;
+        enriched++;
+        if(descEl){descEl.textContent='✅ '+extract.slice(0,80)+(extract.length>80?'…':'');descEl.style.color='var(--green)';}
+      }catch(e){
+        failed++;
+        if(descEl){descEl.textContent='❌ DB klaida';descEl.style.color='var(--red)';}
+      }
+    } else {
+      // Mark as failed in memory so restart skips it too
+      spot.wpEnriched='failed';
+      failed++;
+      if(descEl){descEl.textContent='❌ Wikipedia nerado';descEl.style.color='var(--red)';}
+    }
+
+    done++;
+    updateBtn();
+    updateStats();
+    await new Promise(r=>setTimeout(r,400));
+  }
+
+  _enrichRunning=false;
+  _enrichSelected.clear();
+  toast(`✅ Baigta: ${enriched} papildyta · ${failed} nerasta · ${skipped} praleista`,'gold');
+  setTimeout(renderEnrichPanel,800);
 }
 
 function osmToggleManual(){
@@ -4361,6 +4679,7 @@ async function fbLoadSpots(){
       setSyncDot('synced');
       const sub=document.getElementById('authSub');
       if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
+      if(isPanelOpen('enrich')) renderEnrichPanel();
     });
   } catch(e){
     console.error('fbLoadSpots',e);
