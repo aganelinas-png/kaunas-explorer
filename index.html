@@ -1905,6 +1905,11 @@ function openSubPanel(name){
   if(name==='reviews') renderReviews();
 }
 
+function isPanelOpen(name){
+  const el=document.getElementById('panel-'+name);
+  return el&&el.classList.contains('active')&&document.getElementById('drawerSubPanel')?.classList.contains('open');
+}
+
 function closeSubPanel(instant){
   const sp=document.getElementById('drawerSubPanel');
   if(instant) sp.style.transition='none';
@@ -4627,6 +4632,7 @@ async function fbLoadSpots(){
       setSyncDot('synced');
       const sub=document.getElementById('authSub');
       if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
+      if(isPanelOpen('enrich')) renderEnrichPanel();
     });
   } catch(e){
     console.error('fbLoadSpots',e);
