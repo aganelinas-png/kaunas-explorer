@@ -748,9 +748,98 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .lb-login-prompt{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px}
 .lb-login-prompt .lp-icon{font-size:2rem;margin-bottom:8px}
 .lb-login-prompt .lp-text{font-size:.82rem;color:var(--td);margin-bottom:12px;line-height:1.6}
+/* ── USERNAME PROMPT MODAL ── */
+.uname-overlay{position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:20px}
+.uname-overlay.show{display:flex;animation:fadeIn .25s}
+.uname-sheet{background:var(--surf);border-radius:20px;padding:32px 24px 24px;width:100%;max-width:340px;box-shadow:0 8px 40px var(--sh);text-align:center}
+.uname-glyph{font-size:48px;margin-bottom:12px}
+.uname-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--txt);margin-bottom:6px}
+.uname-sub{font-size:.82rem;color:var(--td);margin-bottom:20px;line-height:1.55}
+.uname-input{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;margin-bottom:12px;transition:border-color .2s;text-align:center}
+.uname-input:focus{border-color:var(--gold)}
+.uname-input::placeholder{color:var(--tm)}
+.uname-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer}
+.uname-btn:active{opacity:.85}
+.uname-skip{margin-top:10px;font-size:.75rem;color:var(--td);cursor:pointer;text-decoration:underline}
+/* ── SUGGESTION MODAL ── */
+.suggest-overlay{position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center}
+.suggest-overlay.show{display:flex;animation:fadeIn .25s}
+.suggest-sheet{background:var(--surf);border-radius:20px 20px 0 0;width:100%;max-width:540px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px var(--sh)}
+.suggest-header{padding:16px 18px 12px;border-bottom:1px solid var(--bdr);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.suggest-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt)}
+.suggest-close{background:none;border:none;color:var(--td);font-size:1.3rem;cursor:pointer}
+.suggest-body{padding:16px 18px;overflow-y:auto;flex:1}
+.suggest-coords{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--gold);text-align:center;margin-bottom:12px;min-height:18px}
+.suggest-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+.suggest-input{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;margin-bottom:12px;transition:border-color .2s}
+.suggest-input:focus{border-color:var(--gold)}
+.suggest-select{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;margin-bottom:12px}
+.suggest-textarea{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;margin-bottom:12px;resize:vertical;min-height:72px;transition:border-color .2s}
+.suggest-textarea:focus{border-color:var(--gold)}
+.suggest-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;margin-bottom:8px}
+.suggest-btn:active{opacity:.85}
+.suggest-btn:disabled{opacity:.5;cursor:default}
+.suggest-err{font-size:.75rem;color:var(--red);text-align:center;min-height:16px;margin-bottom:6px}
+.suggest-use-gps{background:none;border:1px solid var(--bdr);border-radius:8px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer;margin-bottom:10px;width:100%}
+/* ── ADMIN SUGGESTIONS PANEL ── */
+.sug-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:10px}
+.sug-card-name{font-size:.92rem;font-weight:600;color:var(--txt);margin-bottom:4px}
+.sug-card-meta{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px}
+.sug-card-desc{font-size:.8rem;color:var(--td);line-height:1.5;margin-bottom:10px}
+.sug-card-btns{display:flex;gap:8px}
+.sug-approve{flex:1;background:var(--green);color:#fff;border:none;border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer}
+.sug-reject{flex:1;background:var(--surf3);border:1px solid var(--bdr);color:var(--td);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer}
 </style>
 </head>
 <body>
+
+<!-- USERNAME PROMPT MODAL -->
+<div class="uname-overlay" id="unameOverlay">
+  <div class="uname-sheet">
+    <div class="uname-glyph">🧭</div>
+    <div class="uname-title">Kaip tave vadinti?</div>
+    <div class="uname-sub">Tavo vardas bus matomas žemėlapyje ir lyderių lentelėje.</div>
+    <input class="uname-input" id="unameInput" maxlength="24" placeholder="Tavo vardas...">
+    <button class="uname-btn" onclick="submitUsername()">Pradėti tyrinėti →</button>
+    <div class="uname-skip" onclick="skipUsername()">Praleisti</div>
+  </div>
+</div>
+
+<!-- SUGGEST SPOT MODAL -->
+<div class="suggest-overlay" id="suggestOverlay">
+  <div class="suggest-sheet">
+    <div class="suggest-header">
+      <div class="suggest-title">📍 Siūlyti vietą</div>
+      <button class="suggest-close" onclick="closeSuggestModal()">✕</button>
+    </div>
+    <div class="suggest-body">
+      <div class="suggest-label">Vietos pavadinimas</div>
+      <input class="suggest-input" id="sugName" maxlength="80" placeholder="Pvz. Napoleono tiltas">
+      <div class="suggest-label">Kategorija</div>
+      <select class="suggest-select" id="sugCat">
+        <option value="history">⚔️ Istorija</option>
+        <option value="church">⛪ Bažnyčia</option>
+        <option value="museum">🏛 Muziejus</option>
+        <option value="fort">🏰 Fortas</option>
+        <option value="monument">🗿 Monumentas</option>
+        <option value="mound">⛰️ Piliakalnis</option>
+        <option value="nature">🌿 Gamta</option>
+        <option value="viewpoint">🔭 Apžvalgos taškas</option>
+        <option value="mural">🎨 Gatvės menas</option>
+        <option value="cemetery">⚱️ Kapinės</option>
+        <option value="watertower">🗼 Vandens bokštas</option>
+        <option value="bridge">🌉 Tiltas</option>
+      </select>
+      <div class="suggest-label">Koordinatės</div>
+      <button class="suggest-use-gps" onclick="suggestUseGPS()">📡 Naudoti mano dabartinę vietą</button>
+      <div class="suggest-coords" id="sugCoords">Vieta nepasirinkta</div>
+      <div class="suggest-label">Trumpas aprašymas</div>
+      <textarea class="suggest-textarea" id="sugDesc" maxlength="300" placeholder="Kodėl ši vieta verta dėmesio? (iki 300 simbolių)"></textarea>
+      <div class="suggest-err" id="sugErr"></div>
+      <button class="suggest-btn" id="sugSubmitBtn" onclick="submitSuggestion()">Siųsti siūlymą →</button>
+    </div>
+  </div>
+</div>
 
 <div id="map"></div>
 
@@ -868,12 +957,21 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <span class="dnav-badge" id="socialBadge" style="display:none">!</span>
         <span class="dnmi-arrow">›</span>
       </div>
+      <!-- Suggest spot — authenticated users only -->
+      <div class="dnav-main-item" id="suggestNavItem" style="display:none" onclick="closeDrawer();openSuggestModal()">
+        <span class="dnmi-icon">📍</span><span class="dnmi-label">Siūlyti vietą</span><span class="dnmi-arrow">›</span>
+      </div>
+      <!-- My suggestions — authenticated users only -->
+      <div class="dnav-main-item" id="mySuggestionsNavItem" style="display:none" onclick="openSubPanel('mysuggestions')">
+        <span class="dnmi-icon">🗂</span><span class="dnmi-label">Mano siūlymai</span><span class="dnmi-arrow">›</span>
+      </div>
     </div>
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
       <div class="dbot-btn" id="drawerOsmBtn" onclick="openSubPanel('osm')" style="display:none">🗺 OSM Import</div>
       <div class="dbot-btn" id="drawerReviewsBtn" onclick="openSubPanel('reviews')" style="display:none">💬 Atsiliepimai</div>
       <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="openSubPanel('enrich')" style="display:none">📚 Wikipedia Enrich</div>
+      <div class="dbot-btn" id="drawerSuggestionsBtn" onclick="openSubPanel('suggestions')" style="display:none">📬 Siūlymai</div>
     </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v13</div>
   </div>
@@ -893,6 +991,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="panel-section" id="panel-osm"></div>
       <div class="panel-section" id="panel-enrich"></div>
       <div class="panel-section" id="panel-reviews"></div>
+      <div class="panel-section" id="panel-suggestions"></div>
+      <div class="panel-section" id="panel-mysuggestions"></div>
     </div>
   </div>
 
@@ -1296,6 +1396,12 @@ const BADGE_GROUPS=[
     {id:'hid4',name:'Šešėlių Meistras',desc:'Surask 15 paslėptų vietų',icon:'🌑',need:15,xpReward:50},
     {id:'hid5',name:'???',desc:'???',icon:'👁️',need:30,xpReward:50},
   ]},
+  {id:'contributor',title:'Bendruomenės kūrėjas',icon:'🗺️',cat:null,badges:[
+    {id:'con1',name:'Vietovės kūrėjas',desc:'1 siūlyta vieta patvirtinta',icon:'📍',contribNeed:1,xpReward:50},
+    {id:'con2',name:'Bendruomenės tyrinėtojas',desc:'3 siūlytos vietos patvirtintos',icon:'🗺️',contribNeed:3,xpReward:100},
+    {id:'con3',name:'Vietos žinovas',desc:'10 siūlytų vietų patvirtinta',icon:'🏅',contribNeed:10,xpReward:200},
+    {id:'con4',name:'Lietuvos kartografas',desc:'25 siūlytos vietos patvirtintos',icon:'💎',contribNeed:25,xpReward:500},
+  ]},
   {id:'xp',title:'XP pasiekimai',icon:'⭐',cat:null,badges:[
     {id:'xp1',name:'Pirmieji taškai',desc:'Surink 100 XP',icon:'⭐',xpNeed:100},
     {id:'xp2',name:'XP Kolekcionierius',desc:'Surink 500 XP',icon:'🌟',xpNeed:500},
@@ -1364,6 +1470,7 @@ let oldStreak=0;
 // Suggest state
 let nextSuggestId=null;
 let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
+let approvedSuggestions=0; // loaded from Firestore user doc
 
 // ═══════════ TIER UNLOCK ═══════════
 
@@ -1923,11 +2030,13 @@ const PANEL_TITLES={
   social:'👥 Draugai',
   osm:'🗺 OSM Import',
   enrich:'📚 Wikipedia Enrich',
-  reviews:'💬 Atsiliepimai'
+  reviews:'💬 Atsiliepimai',
+  suggestions:'📬 Vartotojų siūlymai',
+  mysuggestions:'🗂 Mano siūlymai',
 };
 
 function openSubPanel(name){
-  ['aboutme','vietos','favs','zenklai','social','osm','enrich','reviews'].forEach(p=>{
+  ['aboutme','vietos','favs','zenklai','social','osm','enrich','reviews','suggestions','mysuggestions'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
@@ -1940,6 +2049,8 @@ function openSubPanel(name){
   if(name==='osm') renderOsmImport();
   if(name==='enrich'){_enrichPage=1;renderEnrichPanel();}
   if(name==='reviews') renderReviews();
+  if(name==='suggestions') renderAdminSuggestions();
+  if(name==='mysuggestions') renderMySuggestions();
 }
 
 function isPanelOpen(name){
@@ -2053,9 +2164,9 @@ function incrementDailyCollect(){
 }
 
 function awardDailyQuest(){
-  const bonusXP=50;
+  const bonusXP=10;
   addXP(bonusXP);
-  toast('🎯 Dienos užduotis atlikta! +50 XP','gold');
+  toast('🎯 Dienos užduotis atlikta! +10 XP','gold');
   showXPBurst(bonusXP);
   document.getElementById('socialBadge').style.display='';
 }
@@ -2074,7 +2185,7 @@ function renderQuestCard(){
         <div class="quest-title">Aplankyk ${target} viet${target===1?'ą':'as'} šiandien</div>
       </div>
     </div>
-    <div class="quest-reward">🌟 Atlygis: +50 XP</div>
+    <div class="quest-reward">🌟 Atlygis: +10 XP</div>
     <div class="quest-pbar"><div class="quest-pfill" style="width:${done?100:pct}%"></div></div>
     <div class="quest-status">${done?'Nuostabu! Grįžk rytoj.':`${prog} / ${target} surinkta šiandien`}</div>
   </div>`;
@@ -2176,7 +2287,7 @@ function openSheet(spot){
         <div class="dbadge" id="distBadge">—</div>
         <button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button>
         <button class="editbtn" id="favBtn" onclick="toggleFavorite()" title="Mėgstamiausi" style="font-size:18px;padding:10px 12px">${favorites.has(String(spot.id))||favorites.has(spot.id)?'♥':'♡'}</button>
-        ${(window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1')?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
+        ${(window._fbUser&&window._fbUser.uid==='YOUR_UID_HERE')?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
       </div>
     `;
   }
@@ -2260,7 +2371,7 @@ function collectCurrent(){
   found.add(selectedSpot.id);
   updateStreak();
   // XP for collecting
-  const xpGain=selectedSpot.tier===3?30:selectedSpot.tier===2?20:10;
+  const xpGain=20;
   addXP(xpGain);
   showXPBurst(xpGain);
   incrementDailyCollect();
@@ -2397,6 +2508,7 @@ function checkBadges(){
       else if(b.streak) e=streak>=b.streak;
       else if(b.xpNeed) e=totalXP>=b.xpNeed;
       else if(b.all) e=found.size>=b.need;
+      else if(b.contribNeed) e=approvedSuggestions>=b.contribNeed;
       else e=prog>=b.need;
       if(e){earnedBadges.add(b.id);newOnes.push(b);const bxp=b.xpReward||10;addXP(bxp);setTimeout(()=>showXPBurst(bxp),600);}
     });
@@ -2506,9 +2618,10 @@ function renderBadges(){
         else if(b.streak)e=streak>=b.streak;
         else if(b.xpNeed)e=totalXP>=b.xpNeed;
         else if(b.all)e=found.size>=b.need;
+        else if(b.contribNeed)e=approvedSuggestions>=b.contribNeed;
         else e=prog>=b.need;
       }
-      const pct=b.tierComplete?0:b.streak?Math.min(100,streak/b.streak*100):b.xpNeed?Math.min(100,totalXP/b.xpNeed*100):b.all?Math.min(100,found.size/b.need*100):Math.min(100,prog/(b.need||1)*100);
+      const pct=b.tierComplete?0:b.streak?Math.min(100,streak/b.streak*100):b.xpNeed?Math.min(100,totalXP/b.xpNeed*100):b.all?Math.min(100,found.size/b.need*100):b.contribNeed?Math.min(100,approvedSuggestions/b.contribNeed*100):Math.min(100,prog/(b.need||1)*100);
       return`<div class="bc ${e?'e':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${!e&&g.cat==='hidden'?'???':b.desc}</div>${!e?`<div class="bprog"><div class="bpf" style="width:${!e&&g.cat==='hidden'?0:pct}%"></div></div>`:''}</div>`;
     }).join('')}</div>`;
     body.appendChild(div);
@@ -4204,7 +4317,242 @@ function osmToggleManual(){
   renderOsmImport();
 }
 
-// ═══════════ INTRO ═══════════
+// ═══════════ ADMIN HELPER ═══════════
+function isAdmin(){return window._fbUser&&window._fbUser.uid==='YOUR_UID_HERE';}
+
+// ═══════════ USERNAME PROMPT ═══════════
+function maybePromptUsername(){
+  // Only show if user is logged in and name is still default or empty
+  if(!window._fbUser) return;
+  if(playerName&&playerName!=='Tu'&&playerName.trim().length>0) return;
+  // Only show once per session
+  if(sessionStorage.getItem('kex_uname_prompted')) return;
+  sessionStorage.setItem('kex_uname_prompted','1');
+  const inp=document.getElementById('unameInput');
+  if(inp) inp.value='';
+  document.getElementById('unameOverlay').classList.add('show');
+}
+
+function submitUsername(){
+  const inp=document.getElementById('unameInput');
+  const n=(inp?.value||'').trim();
+  if(!n){inp&&(inp.style.borderColor='var(--red)');return;}
+  playerName=n;
+  save();
+  document.getElementById('unameOverlay').classList.remove('show');
+  toast(`👤 Sveiki, ${n}!`,'success');
+}
+
+function skipUsername(){
+  document.getElementById('unameOverlay').classList.remove('show');
+}
+
+// ═══════════ SUGGEST SPOT SYSTEM ═══════════
+let _sugLat=null,_sugLng=null;
+
+function openSuggestModal(){
+  if(!window._fbUser){toast('⚠ Prisijunk norėdamas siūlyti vietas','info');return;}
+  _sugLat=null;_sugLng=null;
+  document.getElementById('sugName').value='';
+  document.getElementById('sugCat').value='history';
+  document.getElementById('sugDesc').value='';
+  document.getElementById('sugCoords').textContent='Vieta nepasirinkta';
+  document.getElementById('sugErr').textContent='';
+  document.getElementById('sugSubmitBtn').disabled=false;
+  document.getElementById('suggestOverlay').classList.add('show');
+}
+
+function closeSuggestModal(){
+  document.getElementById('suggestOverlay').classList.remove('show');
+}
+
+function suggestUseGPS(){
+  if(userLat!==null&&userLng!==null){
+    _sugLat=userLat;_sugLng=userLng;
+    document.getElementById('sugCoords').textContent=`📍 ${_sugLat.toFixed(5)}, ${_sugLng.toFixed(5)}`;
+    toast('📡 GPS koordinatės panaudotos','success');
+  } else {
+    toast('⚠ GPS dar nepasiekiamas','info');
+  }
+}
+
+async function submitSuggestion(){
+  const user=window._fbUser;
+  if(!user){toast('⚠ Prisijunk norėdamas siūlyti vietas','info');return;}
+  const name=document.getElementById('sugName').value.trim();
+  const cat=document.getElementById('sugCat').value;
+  const desc=document.getElementById('sugDesc').value.trim();
+  const errEl=document.getElementById('sugErr');
+  errEl.textContent='';
+  if(!name){errEl.textContent='Įveskite vietos pavadinimą.';return;}
+  if(_sugLat===null){errEl.textContent='Pasirinkite vietą (naudok GPS mygtuką).';return;}
+  if(!desc){errEl.textContent='Parašykite trumpą aprašymą.';return;}
+  const btn=document.getElementById('sugSubmitBtn');
+  btn.disabled=true;btn.textContent='Siunčiama...';
+  try{
+    const{db,collection,addDoc,serverTimestamp}=window._fb;
+    await addDoc(collection(db,'suggestions'),{
+      uid:user.uid,
+      displayName:playerName||user.displayName||'Anon',
+      name,cat,lat:_sugLat,lng:_sugLng,
+      description:desc,
+      status:'pending',
+      createdAt:serverTimestamp(),
+      rejectionReason:null,
+    });
+    closeSuggestModal();
+    toast('✅ Siūlymas išsiųstas! Laukite patvirtinimo.','success');
+  } catch(e){
+    errEl.textContent='Klaida. Bandykite vėliau.';
+    console.error('submitSuggestion',e);
+  }
+  btn.disabled=false;btn.textContent='Siųsti siūlymą →';
+}
+
+// ═══════════ MY SUGGESTIONS PANEL ═══════════
+async function renderMySuggestions(){
+  const body=document.getElementById('panel-mysuggestions');
+  const user=window._fbUser;
+  if(!user){
+    body.innerHTML=`<div style="padding:40px 20px;text-align:center;color:var(--td);font-size:.85rem">Prisijunk norėdamas matyti savo siūlymus.</div>`;
+    return;
+  }
+  body.innerHTML=`<div style="padding:20px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)">⏳ Kraunama...</div>`;
+  try{
+    const{db,collection,getDocs,query,where,orderBy}=window._fb;
+    const q=query(collection(db,'suggestions'),where('uid','==',user.uid),orderBy('createdAt','desc'));
+    const snap=await getDocs(q);
+    if(snap.empty){
+      body.innerHTML=`<div style="padding:40px 20px;text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">📍</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt);margin-bottom:8px">Dar nėra siūlymų</div>
+        <div style="font-size:.8rem;color:var(--td);line-height:1.6">Siūlyk vietas naudodamas mygtuką žemėlapyje.</div>
+        <button onclick="closeSuggestModal();closeDrawer();openSuggestModal()" style="margin-top:16px;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer">📍 Siūlyti vietą</button>
+      </div>`;
+      return;
+    }
+    const statusLabel={pending:'⏳ Laukiama',approved:'✅ Patvirtinta',rejected:'❌ Atmesta'};
+    const statusColor={pending:'var(--gold)',approved:'var(--green)',rejected:'var(--red)'};
+    let html='<div style="padding:12px 14px">';
+    snap.forEach(d=>{
+      const s=d.data();
+      const cat=CATS[s.cat]||CATS.history;
+      const d2=s.createdAt?.toDate?s.createdAt.toDate():new Date();
+      const dateStr=d2.toLocaleDateString('lt-LT',{month:'short',day:'numeric'});
+      html+=`<div class="sug-card">
+        <div class="sug-card-name">${cat.emoji} ${s.name}</div>
+        <div class="sug-card-meta">${cat.label} · ${dateStr} · <span style="color:${statusColor[s.status]||'var(--td)'}">${statusLabel[s.status]||s.status}</span></div>
+        <div class="sug-card-desc">${s.description||''}</div>
+        ${s.rejectionReason?`<div style="font-size:.75rem;color:var(--red);font-family:'DM Mono',monospace">Priežastis: ${s.rejectionReason}</div>`:''}
+      </div>`;
+    });
+    html+='</div>';
+    body.innerHTML=html;
+  } catch(e){
+    body.innerHTML=`<div style="padding:20px;text-align:center;font-size:.8rem;color:var(--td)">Klaida: ${e.message}</div>`;
+  }
+}
+
+// ═══════════ ADMIN SUGGESTIONS PANEL ═══════════
+async function renderAdminSuggestions(){
+  const body=document.getElementById('panel-suggestions');
+  if(!isAdmin()){body.innerHTML='';return;}
+  body.innerHTML=`<div style="padding:20px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)">⏳ Kraunama...</div>`;
+  try{
+    const{db,collection,getDocs,query,where,orderBy}=window._fb;
+    const q=query(collection(db,'suggestions'),where('status','==','pending'),orderBy('createdAt','desc'));
+    const snap=await getDocs(q);
+    if(snap.empty){
+      body.innerHTML=`<div style="padding:30px 16px;text-align:center;color:var(--td);font-size:.85rem">✅ Nėra laukiančių siūlymų</div>`;
+      return;
+    }
+    let html=`<div style="padding:12px 14px"><div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:10px">${snap.size} laukia patvirtinimo</div>`;
+    snap.forEach(d=>{
+      const s=d.data();
+      const cat=CATS[s.cat]||CATS.history;
+      const d2=s.createdAt?.toDate?s.createdAt.toDate():new Date();
+      const dateStr=d2.toLocaleDateString('lt-LT',{month:'short',day:'numeric'});
+      html+=`<div class="sug-card">
+        <div class="sug-card-name">${cat.emoji} ${s.name}</div>
+        <div class="sug-card-meta">Siūlė: ${s.displayName||'Anon'} · ${cat.label} · ${dateStr}</div>
+        <div class="sug-card-meta" style="color:var(--gold)">📍 ${s.lat?.toFixed(5)}, ${s.lng?.toFixed(5)}</div>
+        <div class="sug-card-desc">${s.description||''}</div>
+        <div class="sug-card-btns">
+          <button class="sug-approve" onclick="approveSuggestion('${d.id}','${s.uid}',this)">✅ Patvirtinti</button>
+          <button class="sug-reject" onclick="rejectSuggestion('${d.id}','${s.uid}',this)">❌ Atmesti</button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+    body.innerHTML=html;
+  } catch(e){
+    body.innerHTML=`<div style="padding:20px;text-align:center;font-size:.8rem;color:var(--td)">Klaida: ${e.message}</div>`;
+  }
+}
+
+async function approveSuggestion(suggId,suggUid,btn){
+  if(!isAdmin()) return;
+  btn.disabled=true;btn.textContent='...';
+  try{
+    const{db,collection,addDoc,doc,updateDoc,getDoc,setDoc,serverTimestamp}=window._fb;
+    // Get suggestion data
+    const suggSnap=await getDoc(doc(db,'suggestions',suggId));
+    if(!suggSnap.exists()){toast('Siūlymas nerastas','info');return;}
+    const s=suggSnap.data();
+    // Publish to spots
+    await addDoc(collection(db,'spots'),{
+      name:s.name,cat:s.cat,lat:s.lat,lng:s.lng,
+      history:s.description||'',
+      tier:1,radius:CAT_DEFAULT_RADIUS[s.cat]||DEFAULT_RADIUS,
+      time:'',price:'',year:'',tag:'Vartotojo siūlymas',bring:[],
+      suggestedBy:s.uid,
+      suggestedByName:s.displayName||'Anon',
+      createdAt:serverTimestamp(),
+    });
+    // Mark suggestion approved
+    await updateDoc(doc(db,'suggestions',suggId),{status:'approved',approvedAt:serverTimestamp()});
+    // Increment approvedSuggestions on user doc
+    const userRef=doc(db,'users',suggUid);
+    const userSnap=await getDoc(userRef);
+    const prev=userSnap.exists()?(userSnap.data().approvedSuggestions||0):0;
+    await setDoc(userRef,{approvedSuggestions:prev+1},{merge:true});
+    toast('✅ Vieta patvirtinta ir paskelbta!','success');
+    renderAdminSuggestions();
+    checkContributorBadges(prev+1,suggUid===window._fbUser?.uid);
+  } catch(e){
+    toast('Klaida: '+e.message,'info');
+    btn.disabled=false;btn.textContent='✅ Patvirtinti';
+  }
+}
+
+async function rejectSuggestion(suggId,suggUid,btn){
+  if(!isAdmin()) return;
+  const reason=prompt('Atmetimo priežastis (neprivaloma):');
+  if(reason===null) return; // user pressed Cancel
+  btn.disabled=true;btn.textContent='...';
+  try{
+    const{db,doc,updateDoc,serverTimestamp}=window._fb;
+    await updateDoc(doc(db,'suggestions',suggId),{
+      status:'rejected',
+      rejectionReason:reason||'',
+      rejectedAt:serverTimestamp(),
+    });
+    toast('❌ Siūlymas atmestas','info');
+    renderAdminSuggestions();
+  } catch(e){
+    toast('Klaida: '+e.message,'info');
+    btn.disabled=false;btn.textContent='❌ Atmesti';
+  }
+}
+
+// ═══════════ CONTRIBUTOR BADGE CHECK ═══════════
+function checkContributorBadges(count,isCurrentUser){
+  if(!isCurrentUser) return;
+  // Recheck badges — approvedSuggestions-based badges will now pass
+  checkBadges();
+}
+
+
 const INTRO_STEPS=[
   {glyph:'🗺',title:'Sveiki į Lithuania Explorer',sub:'Tyrinėk Lietuvą realiu laiku. Surink vietas fiziškai apsilankydamas.'},
   {glyph:'📍',title:'Kaip surinkti vietą?',sub:'Prieik prie žymeklio žemėlapyje — sistema automatiškai aptiks tavo buvimo vietą.'},
@@ -4528,6 +4876,22 @@ async function submitReview(){
 
 // ═══════════ INIT ═══════════
 
+// ═══════════ AUTO THEME (time-based, first load only) ═══════════
+(function(){
+  const saved=localStorage.getItem('ke7_theme');
+  if(!saved){
+    const h=new Date().getHours();
+    // Light mode 6:00–20:59, dark otherwise
+    if(h>=6&&h<21){
+      document.documentElement.classList.add('light');
+      // isDark will be set correctly by load() → but theme not saved yet, so set flag
+      localStorage.setItem('ke7_theme','light');
+    } else {
+      localStorage.setItem('ke7_theme','dark');
+    }
+  }
+})();
+
 load();initMap();updateAll();startGPS();
 
 // ═══════════ PWA SETUP ═══════════
@@ -4589,13 +4953,17 @@ self.addEventListener('fetch',e=>{
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=function(user){
   document.getElementById('authBar').classList.remove('hidden');
-  const isAdmin=user&&user.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
+  const isAdmin=user&&user.uid==='YOUR_UID_HERE';
   // Show admin-only UI
   document.getElementById('adminFab').style.display=isAdmin?'flex':'none';
   document.getElementById('drawerAddBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerOsmBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerReviewsBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerWikiEnrichBtn').style.display=isAdmin?'':'none';
+  document.getElementById('drawerSuggestionsBtn').style.display=isAdmin?'':'none';
+  // Show suggest nav for authenticated users
+  document.getElementById('suggestNavItem').style.display=user?'':'none';
+  document.getElementById('mySuggestionsNavItem').style.display=user?'':'none';
   if(user){
     updateAuthUI(user);
     fbLoadSpots();
@@ -4603,6 +4971,8 @@ window.onFbAuthReady=function(user){
     // Re-render social panel so leaderboard shows immediately after login
     const socialPanel=document.getElementById('panel-social');
     if(socialPanel&&socialPanel.innerHTML) renderSocial();
+    // Prompt for username if still default
+    setTimeout(()=>maybePromptUsername(),1200);
   } else {
     updateAuthUI(null);
     fbLoadSpots();
@@ -4766,7 +5136,7 @@ async function fbLoadSpots(){
   try{
     onSnapshot(collection(db,'spots'),async snapshot=>{
       if(snapshot.empty){
-        const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
+        const isAdmin=window._fbUser&&window._fbUser.uid==='YOUR_UID_HERE';
         if(!isAdmin||_fbSeeding) return;
         _fbSeeding=true;
         const flagRef=doc(db,'_meta','seeded');
@@ -4870,6 +5240,7 @@ async function fbLoadUserProgress(uid){
       if(d.earnedBadges) earnedBadges=new Set(d.earnedBadges);
       if(d.unlockedCats) unlockedCats=new Set(d.unlockedCats);
       if(d.playerName) playerName=d.playerName;
+      if(d.approvedSuggestions!==undefined) approvedSuggestions=d.approvedSuggestions;
       prevLevel=getLevel(totalXP).level;
       updateAll();refreshMarkers();
       toast('☁️ Pažanga sinchronizuota','success');
@@ -4922,7 +5293,7 @@ save=function(){
 
 const _origSaveSpot=saveSpot;
 saveSpot=async function(){
-  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
+  if(!window._fbUser||window._fbUser.uid!=='YOUR_UID_HERE'){
     toast('⚠ Tik administratorius gali pridėti vietas','info');return;
   }
   const name=document.getElementById('eName').value.trim();
@@ -4958,7 +5329,7 @@ saveSpot=async function(){
 
 const _origDeleteSpot=deleteSpot;
 deleteSpot=async function(){
-  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
+  if(!window._fbUser||window._fbUser.uid!=='YOUR_UID_HERE'){
     toast('⚠ Tik administratorius gali trinti vietas','info');return;
   }
   const id=document.getElementById('eId').value;if(!id)return;
