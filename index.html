@@ -27,7 +27,7 @@
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp,query,orderBy,limit}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
@@ -47,7 +47,8 @@ const gProvider=new GoogleAuthProvider();
 window._fb={db,auth,gProvider,
   doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp,
   query,orderBy,limit,
-  signInWithPopup,signOut,onAuthStateChanged
+  signInWithPopup,signOut,onAuthStateChanged,
+  createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
 };
 
 // Auth state listener — runs as soon as Firebase initialises
@@ -689,6 +690,25 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .osm-tier-label{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);flex-shrink:0}
 .osm-tier-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:5px 10px;font-size:.7rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;-webkit-user-select:none;user-select:none}
 .osm-tier-btn.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
+/* ── EMAIL AUTH MODAL ── */
+.eauth-overlay{position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:20px}
+.eauth-overlay.show{display:flex;animation:fadeIn .25s}
+.eauth-sheet{background:var(--surf);border-radius:20px;padding:28px 24px;width:100%;max-width:360px;box-shadow:0 8px 40px var(--sh);position:relative}
+.eauth-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--txt);margin-bottom:20px;text-align:center}
+.eauth-input{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;margin-bottom:10px;transition:border-color .2s}
+.eauth-input:focus{border-color:var(--gold)}
+.eauth-input::placeholder{color:var(--tm)}
+.eauth-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;margin-top:4px;margin-bottom:12px}
+.eauth-btn:active{opacity:.85}
+.eauth-google{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--txt);cursor:pointer;margin-bottom:10px}
+.eauth-google:active{opacity:.75}
+.eauth-toggle{text-align:center;font-size:.8rem;color:var(--td)}
+.eauth-toggle span{color:var(--gold);cursor:pointer;font-weight:600}
+.eauth-sep{display:flex;align-items:center;gap:10px;margin:10px 0}
+.eauth-sep::before,.eauth-sep::after{content:'';flex:1;height:1px;background:var(--bdr)}
+.eauth-sep-txt{font-size:.72rem;color:var(--tm);font-family:'DM Mono',monospace}
+.eauth-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--td);font-size:1.4rem;cursor:pointer;line-height:1}
+.eauth-error{font-size:.78rem;color:var(--red);text-align:center;margin-bottom:8px;min-height:18px}
 .auth-bar{position:fixed;bottom:0;left:0;right:0;z-index:190;background:var(--surf);border-top:1px solid var(--bdr);padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 -4px 20px var(--sh)}
 .auth-bar.hidden{display:none}
 .auth-avatar{width:32px;height:32px;border-radius:50%;border:2px solid var(--gold);object-fit:cover;flex-shrink:0}
@@ -757,7 +777,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="ib" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS" style="position:relative"><span id="gpsRefreshIcon">↻</span><span class="gd" id="gpsDot" style="position:absolute;top:8px;right:8px;width:6px;height:6px"></span></div>
     <div class="ib" onclick="centerUser()">📍</div>
     <!-- Mobile login pill — only visible on mobile when not logged in -->
-    <div class="mob-login-pill" id="mobLoginPill" onclick="fbLogin()" style="display:none">Prisijungti</div>
+    <div class="mob-login-pill" id="mobLoginPill" onclick="openEmailModal()" style="display:none">Prisijungti</div>
   </div>
 </div>
 
@@ -1070,6 +1090,23 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="auth-sub" id="authSub">Prisijunk norėdamas sinchronizuoti</div>
   </div>
   <button class="auth-btn" id="authBtn" onclick="fbLogin()">Google</button>
+  <button class="auth-btn" id="authEmailBtn" onclick="openEmailModal()" style="background:var(--surf2);border:1px solid var(--bdr);color:var(--txt)">El. paštas</button>
+</div>
+
+<!-- EMAIL AUTH MODAL -->
+<div class="eauth-overlay" id="eauthOverlay" onclick="if(event.target===this)closeEmailModal()">
+  <div class="eauth-sheet">
+    <button class="eauth-close" onclick="closeEmailModal()">✕</button>
+    <div class="eauth-title" id="eauthTitle">Prisijungti</div>
+    <div class="eauth-error" id="eauthError"></div>
+    <input class="eauth-input" id="eauthName" type="text" placeholder="Tavo vardas (rodomas lyderiu lentoje)" style="display:none" maxlength="30">
+    <input class="eauth-input" id="eauthEmail" type="email" placeholder="El. paštas" autocomplete="email">
+    <input class="eauth-input" id="eauthPass" type="password" placeholder="Slaptažodis" autocomplete="current-password">
+    <button class="eauth-btn" id="eauthSubmit" onclick="fbLoginEmail()">Prisijungti</button>
+    <div class="eauth-sep"><span class="eauth-sep-txt">arba</span></div>
+    <button class="eauth-google" onclick="closeEmailModal();fbLogin()">🔵 Prisijungti su Google</button>
+    <div class="eauth-toggle" id="eauthToggle">Neturi paskyros? <span onclick="toggleEmailMode()">Registruotis</span></div>
+  </div>
 </div>
 
 <!-- TOASTS -->
@@ -4595,11 +4632,12 @@ function updateAuthUI(user){
     if(nameEl) nameEl.textContent=user.displayName||user.email||'Vartotojas';
     if(subEl) subEl.textContent='Sinchronizuota ✓';
     if(btn){btn.textContent='Atsijungti';btn.className='auth-btn out';btn.onclick=fbLogout;}
+    const emailBtn=document.getElementById('authEmailBtn');
+    if(emailBtn) emailBtn.style.display='none';
     if(avatar){
       if(user.photoURL) avatar.innerHTML=`<img class="auth-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`;
       else avatar.textContent='👤';
     }
-    // Drawer button — show user name + logout
     if(drawerAvatar) drawerAvatar.textContent=user.photoURL?'':'👤';
     if(drawerLabel) drawerLabel.textContent=`${user.displayName||'Vartotojas'} · Atsijungti`;
     if(drawerBtn) drawerBtn.style.borderColor='var(--green)';
@@ -4607,12 +4645,13 @@ function updateAuthUI(user){
   } else {
     if(nameEl) nameEl.textContent='Neprisijungęs';
     if(subEl) subEl.textContent='Prisijunk norėdamas sinchronizuoti';
-    if(btn){btn.textContent='Prisijungti su Google';btn.className='auth-btn';btn.onclick=fbLogin;}
+    if(btn){btn.textContent='Google';btn.className='auth-btn';btn.onclick=fbLogin;}
+    const emailBtn=document.getElementById('authEmailBtn');
+    if(emailBtn) emailBtn.style.display='';
     if(avatar) avatar.innerHTML='👤';
-    // Drawer button — show login
     if(drawerAvatar) drawerAvatar.textContent='👤';
-    if(drawerLabel) drawerLabel.textContent='Prisijungti su Google';
-    if(drawerBtn) drawerBtn.style.borderColor='var(--bdr)';
+    if(drawerLabel) drawerLabel.textContent='Prisijungti';
+    if(drawerBtn){drawerBtn.style.borderColor='var(--bdr)';drawerBtn.onclick=openEmailModal;}
     if(mobPill&&window.innerWidth<=600) mobPill.style.display='block';
   }
 }
@@ -4628,6 +4667,76 @@ function fbLogin(){
       console.error(e);
       toast('Prisijungimas nepavyko','info');
     });
+}
+
+// ── EMAIL AUTH ──
+let _emailRegisterMode=false;
+
+function openEmailModal(){
+  _emailRegisterMode=false;
+  document.getElementById('eauthTitle').textContent='Prisijungti';
+  document.getElementById('eauthSubmit').textContent='Prisijungti';
+  document.getElementById('eauthName').style.display='none';
+  document.getElementById('eauthToggle').innerHTML='Neturi paskyros? <span onclick="toggleEmailMode()">Registruotis</span>';
+  document.getElementById('eauthError').textContent='';
+  document.getElementById('eauthEmail').value='';
+  document.getElementById('eauthPass').value='';
+  document.getElementById('eauthName').value='';
+  document.getElementById('eauthOverlay').classList.add('show');
+}
+
+function closeEmailModal(){
+  document.getElementById('eauthOverlay').classList.remove('show');
+}
+
+function toggleEmailMode(){
+  _emailRegisterMode=!_emailRegisterMode;
+  const nameEl=document.getElementById('eauthName');
+  document.getElementById('eauthTitle').textContent=_emailRegisterMode?'Registruotis':'Prisijungti';
+  document.getElementById('eauthSubmit').textContent=_emailRegisterMode?'Sukurti paskyrą':'Prisijungti';
+  nameEl.style.display=_emailRegisterMode?'block':'none';
+  document.getElementById('eauthToggle').innerHTML=_emailRegisterMode
+    ?'Jau turi paskyrą? <span onclick="toggleEmailMode()">Prisijungti</span>'
+    :'Neturi paskyros? <span onclick="toggleEmailMode()">Registruotis</span>';
+  document.getElementById('eauthError').textContent='';
+}
+
+async function fbLoginEmail(){
+  const{auth,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile}=window._fb||{};
+  if(!auth){toast('Firebase dar kraunasi...','info');return;}
+  const email=document.getElementById('eauthEmail').value.trim();
+  const pass=document.getElementById('eauthPass').value;
+  const name=document.getElementById('eauthName').value.trim();
+  const errEl=document.getElementById('eauthError');
+  errEl.textContent='';
+  if(!email||!pass){errEl.textContent='Įvesk el. paštą ir slaptažodį.';return;}
+  if(_emailRegisterMode&&!name){errEl.textContent='Įvesk savo vardą.';return;}
+  if(_emailRegisterMode&&pass.length<6){errEl.textContent='Slaptažodis turi būti bent 6 simboliai.';return;}
+  const btn=document.getElementById('eauthSubmit');
+  btn.disabled=true;btn.textContent='...';
+  try{
+    if(_emailRegisterMode){
+      const cred=await createUserWithEmailAndPassword(auth,email,pass);
+      await updateProfile(cred.user,{displayName:name});
+      toast(`👋 Sveiki, ${name}!`,'success');
+    } else {
+      const cred=await signInWithEmailAndPassword(auth,email,pass);
+      toast(`👋 Sveiki, ${cred.user.displayName||cred.user.email}!`,'success');
+    }
+    closeEmailModal();
+  } catch(e){
+    const msgs={
+      'auth/invalid-email':'Neteisingas el. pašto formatas.',
+      'auth/user-not-found':'Vartotojas nerastas.',
+      'auth/wrong-password':'Neteisingas slaptažodis.',
+      'auth/email-already-in-use':'Šis el. paštas jau naudojamas.',
+      'auth/weak-password':'Slaptažodis per silpnas.',
+      'auth/invalid-credential':'Neteisingi prisijungimo duomenys.',
+    };
+    errEl.textContent=msgs[e.code]||'Klaida. Bandyk dar kartą.';
+  }
+  btn.disabled=false;
+  btn.textContent=_emailRegisterMode?'Sukurti paskyrą':'Prisijungti';
 }
 
 function fbLogout(){
