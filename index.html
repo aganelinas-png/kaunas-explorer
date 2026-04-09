@@ -3750,24 +3750,30 @@ async function fetchOsmRegion(cityName, bbox, btnId){
   const body=makeOsmQuery(bbox);
   let text=null;
   for(let mi=0;mi<MIRRORS.length;mi++){
-    osmSetStatus(`⏳ ${cityName} · mirror ${mi+1}...`);
+    osmSetStatus(`⏳ ${cityName} · mirror ${mi+1}/${MIRRORS.length}...`);
     try{
       const r=await fetch(MIRRORS[mi],{method:'POST',body,signal:AbortSignal.timeout(22000)});
       const t=await r.text();
-      if(r.status===504||(t.trim().startsWith('<')&&r.status>=500)) throw new Error('504');
-      text=t; break;
+      // Throw on ANY error — status>=400 OR XML response (Overpass errors come as 200+XML)
+      if(r.status>=400) throw new Error(`HTTP ${r.status}`);
+      if(t.trim().startsWith('<')) throw new Error('XML error response');
+      // Valid JSON response
+      text=t;
+      break;
     }catch(e){
-      if(mi<MIRRORS.length-1){ await new Promise(r=>setTimeout(r,1500)); }
-      else{
-        osmSetStatus(`❌ ${cityName}: visi serveriai nepasiekiami`);
-        if(btn){ btn.disabled=false; btn.textContent='🔄 Fetch'; }
+      console.warn(`OSM mirror ${mi+1} failed for ${cityName}:`,e.message);
+      if(mi<MIRRORS.length-1){
+        osmSetStatus(`⚠ ${cityName} · mirror ${mi+1} klaida, bandau mirror ${mi+2}...`);
+        await new Promise(r=>setTimeout(r,1500));
+      } else {
+        osmSetStatus(`❌ ${cityName}: visi ${MIRRORS.length} serveriai nepasiekiami`);
+        if(btn){ btn.disabled=false; btn.textContent='🔄 Retry'; }
         return;
       }
     }
   }
-  if(text.trim().startsWith('<')){
-    const msg=text.includes('Too Many Requests')?'429 — palaukite ~2 min 🕐':(text.match(/<remark>(.*?)<\/remark>/s)?.[1]?.trim()||'Serverio klaida');
-    osmSetStatus(`❌ ${cityName}: ${msg}`);
+  if(!text){
+    osmSetStatus(`❌ ${cityName}: negauta atsakymo`);
     if(btn){ btn.disabled=false; btn.textContent='🔄 Retry'; }
     return;
   }
@@ -4063,11 +4069,20 @@ function wikidataCat(instanceIds){
   return 'history';
 }
 
+let _wikiCityFilter='all'; // 'all' or city name
+
 function renderWikidataPanel(){
   const cached=JSON.parse(localStorage.getItem(WIKI_CACHE_KEY)||'null');
   const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_wikiData.length} iš talpyklos (${new Date(cached.ts).toLocaleDateString('lt-LT')})</span>`:'';
   const wcats=['all','church','museum','fort','mound','history','monument','nature','viewpoint','bridge','cemetery'];
   const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',cemetery:'⚱️'};
+  // Only show cities with actual wiki spots
+  const citiesWithWiki=_wikiData.length>0
+    ?Object.keys(CITY_BOUNDS).filter(city=>{
+        const b=CITY_BOUNDS[city];
+        return _wikiData.some(x=>x.lat>=b.sw[0]&&x.lat<=b.ne[0]&&x.lng>=b.sw[1]&&x.lng<=b.ne[1]);
+      }).sort()
+    :[];
   return`<div>
     <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">Vietos iš Wikidata. Nemokama. ${cacheInfo}</div>
     <div class="osm-controls">
@@ -4077,6 +4092,12 @@ function renderWikidataPanel(){
       <button class="osm-ctrl-btn" onclick="wikiSelectNone()">☐ Nė viena</button>
       <button class="osm-ctrl-btn pri" onclick="wikiImportSelected()">✅ Importuoti</button>
     </div>
+    ${citiesWithWiki.length>0?`
+    <div style="margin:8px 0 4px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.07em">Filtruoti miestą</div>
+    <div class="osm-filter-row" style="flex-wrap:wrap;gap:4px">
+      <div class="osm-fchip ${_wikiCityFilter==='all'?'on':''}" onclick="_wikiCityFilter='all';renderOsmImport()">🇱🇹 Visi</div>
+      ${citiesWithWiki.map(c=>`<div class="osm-fchip ${_wikiCityFilter===c?'on':''}" onclick="_wikiCityFilter='${c}';renderOsmImport()">${c}</div>`).join('')}
+    </div>`:''}
     <div class="osm-filter-row" style="margin-top:6px">
       ${wcats.map(wc=>`<div class="osm-fchip ${_wikiFilter===wc?'on':''}" onclick="_wikiFilter='${wc}';renderOsmImport()">${wcatLabels[wc]||wc}</div>`).join('')}
     </div>
@@ -4146,7 +4167,16 @@ async function fetchWikidataLT(forceRefresh){
 
 function renderWikidataList(){
   const el=document.getElementById('wikiList');if(!el) return;
-  const filtered=_wikiData.filter(x=>_wikiFilter==='all'||x.cat===_wikiFilter);
+  const filtered=_wikiData.filter(x=>{
+    if(_wikiFilter!=='all'&&x.cat!==_wikiFilter) return false;
+    if(_wikiCityFilter!=='all'){
+      const b=CITY_BOUNDS[_wikiCityFilter];
+      if(!b) return false;
+      if(x.lat<b.sw[0]||x.lat>b.ne[0]||x.lng<b.sw[1]||x.lng>b.ne[1]) return false;
+    }
+    return true;
+  });
+  const visible=filtered.filter(x=>!x.alreadyIn);
   el.innerHTML=filtered.map((item,i)=>{
     if(item.alreadyIn) return'';
     const sel=_wikiSelected.has(i);
@@ -4162,7 +4192,18 @@ function renderWikidataList(){
   }).join('');
 }
 function wikiToggleItem(idx){if(_wikiSelected.has(idx))_wikiSelected.delete(idx);else _wikiSelected.add(idx);renderWikidataList();}
-function wikiSelectAll(){_wikiData.forEach((x,i)=>{if(!x.alreadyIn&&(_wikiFilter==='all'||x.cat===_wikiFilter))_wikiSelected.add(i);});renderWikidataList();}
+function wikiSelectAll(){
+  _wikiData.forEach((x,i)=>{
+    if(x.alreadyIn) return;
+    if(_wikiFilter!=='all'&&x.cat!==_wikiFilter) return;
+    if(_wikiCityFilter!=='all'){
+      const b=CITY_BOUNDS[_wikiCityFilter];
+      if(!b||x.lat<b.sw[0]||x.lat>b.ne[0]||x.lng<b.sw[1]||x.lng>b.ne[1]) return;
+    }
+    _wikiSelected.add(i);
+  });
+  renderWikidataList();
+}
 function wikiSelectNone(){_wikiSelected.clear();renderWikidataList();}
 async function wikiImportSelected(){
   if(!_wikiSelected.size){toast('Nieko nepasirinkta','info');return;}
