@@ -4158,7 +4158,10 @@ function renderWikidataPanel(){
   const citiesWithWiki=total>0
     ?Object.keys(CITY_BOUNDS).filter(city=>{
         const b=CITY_BOUNDS[city];
-        return _wikiData.some(x=>x.lat>=b.sw[0]&&x.lat<=b.ne[0]&&x.lng>=b.sw[1]&&x.lng<=b.ne[1]);
+        return _wikiData.some(x=>
+          x.lat>=b.sw[0]-0.05&&x.lat<=b.ne[0]+0.05&&
+          x.lng>=b.sw[1]-0.05&&x.lng<=b.ne[1]+0.05
+        );
       }).sort()
     :[];
   // Count for current city filter
@@ -4270,38 +4273,60 @@ async function fetchWikidataLT(forceRefresh){
 
 function renderWikidataList(){
   const el=document.getElementById('wikiList');if(!el) return;
-  const filtered=_wikiData.filter(x=>{
-    if(_wikiFilter!=='all'&&x.cat!==_wikiFilter) return false;
+  // Build filtered list keeping original _wikiData indices
+  const filtered=[];
+  _wikiData.forEach((item,i)=>{
+    if(_wikiFilter!=='all'&&item.cat!==_wikiFilter) return;
     if(_wikiCityFilter!=='all'){
       const b=CITY_BOUNDS[_wikiCityFilter];
-      if(!b) return false;
-      if(x.lat<b.sw[0]||x.lat>b.ne[0]||x.lng<b.sw[1]||x.lng>b.ne[1]) return false;
+      if(!b) return;
+      // Add 0.05° padding so spots just outside city bbox aren't missed
+      if(item.lat<b.sw[0]-0.05||item.lat>b.ne[0]+0.05||item.lng<b.sw[1]-0.05||item.lng>b.ne[1]+0.05) return;
     }
-    return true;
+    filtered.push({item,i});
   });
-  const visible=filtered.filter(x=>!x.alreadyIn);
-  el.innerHTML=filtered.map((item,i)=>{
-    if(item.alreadyIn) return'';
-    const sel=_wikiSelected.has(i);
-    const cat=CATS[item.cat]||CATS.history;
-    return`<div class="osm-item ${sel?'sel':''}" onclick="wikiToggleItem(${i})">
-      <div class="osm-chk">${sel?'☑':'☐'}</div>
-      <div style="flex:1;min-width:0">
-        <div class="osm-name">${item.name}</div>
-        <div class="osm-meta">${cat.emoji} ${cat.label}${item.wdDesc?' · '+item.wdDesc:''}</div>
-        <div class="osm-meta" style="margin-top:1px"><a href="https://www.wikidata.org/wiki/${item.wdId}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">WD ↗</a>${item.wpLT?` <a href="https://lt.wikipedia.org/wiki/${item.wpLT}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">LT Wiki ↗</a>`:item.wpEN?` <a href="https://en.wikipedia.org/wiki/${item.wpEN}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">EN Wiki ↗</a>`:''}</div>
-      </div>
-    </div>`;
-  }).join('');
+  const newOnes=filtered.filter(({item})=>!item.alreadyIn);
+  if(!filtered.length){
+    el.innerHTML=`<div style="padding:24px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)">${_wikiData.length?'Nerasta vietų pagal šiuos filtrus':'Spausk "Įkelti" norėdamas gauti Wikidata duomenis'}</div>`;
+    return;
+  }
+  if(!newOnes.length){
+    el.innerHTML=`<div style="padding:24px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--green)">✅ Visos ${filtered.length} vietos jau yra DB!</div>`;
+    return;
+  }
+  el.innerHTML=`
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);padding:6px 0">${newOnes.length} naujų · ${filtered.length-newOnes.length} jau DB</div>
+    ${filtered.map(({item,i})=>{
+      if(item.alreadyIn) return'';
+      const sel=_wikiSelected.has(i);
+      const cat=CATS[item.cat]||CATS.history;
+      return`<div class="osm-item ${sel?'selected':''}" onclick="wikiToggleItem(${i})">
+        <div class="osm-check">${sel?'✓':''}</div>
+        <div class="osm-emoji">${cat.emoji}</div>
+        <div class="osm-info">
+          <div class="osm-name">${item.name}</div>
+          <div class="osm-meta">${cat.label}${item.wdDesc?' · '+item.wdDesc.substring(0,60):''}
+            <a href="https://www.wikidata.org/wiki/${item.wdId}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none;margin-left:6px">WD↗</a>
+            ${item.wpLT?`<a href="https://lt.wikipedia.org/wiki/${item.wpLT}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none;margin-left:4px">LT↗</a>`:''}
+            ${item.wpEN&&!item.wpLT?`<a href="https://en.wikipedia.org/wiki/${item.wpEN}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none;margin-left:4px">EN↗</a>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
 }
-function wikiToggleItem(idx){if(_wikiSelected.has(idx))_wikiSelected.delete(idx);else _wikiSelected.add(idx);renderWikidataList();}
+function wikiToggleItem(idx){
+  if(_wikiSelected.has(idx))_wikiSelected.delete(idx);
+  else _wikiSelected.add(idx);
+  renderWikidataList();
+}
 function wikiSelectAll(){
   _wikiData.forEach((x,i)=>{
     if(x.alreadyIn) return;
     if(_wikiFilter!=='all'&&x.cat!==_wikiFilter) return;
     if(_wikiCityFilter!=='all'){
       const b=CITY_BOUNDS[_wikiCityFilter];
-      if(!b||x.lat<b.sw[0]||x.lat>b.ne[0]||x.lng<b.sw[1]||x.lng>b.ne[1]) return;
+      if(!b||x.lat<b.sw[0]-0.05||x.lat>b.ne[0]+0.05||x.lng<b.sw[1]-0.05||x.lng>b.ne[1]+0.05) return;
     }
     _wikiSelected.add(i);
   });
