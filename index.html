@@ -4023,6 +4023,7 @@ function renderOsmImport(){
       <button class="osm-ctrl-btn" onclick="osmSelectAll()">☑ Visos</button>
       <button class="osm-ctrl-btn" onclick="osmSelectNone()">☐ Nė viena</button>
       <button class="osm-ctrl-btn pri" id="osmImportBtn" onclick="osmImportSelected()">✅ Importuoti</button>
+      <button class="osm-ctrl-btn" style="border-color:var(--red);color:var(--red)" onclick="findDuplicateSpots()">🔍 Dublikatai</button>
     </div>
     ${_osmManualMode?`<div id="osmManualGrid" style="margin:8px 0;max-height:260px;overflow-y:auto;padding:0 2px"></div>`:''}
     <div class="osm-filter-row">
@@ -4037,11 +4038,81 @@ function renderOsmImport(){
   </div>`;
   if(_osmImportData.length) renderOsmList();
   if(_osmManualMode) renderOsmManualUI();
+  if(_importTab==='wikidata'&&_wikiData.length) setTimeout(()=>renderWikidataList(),0);
   }
 }
 
 
-// ═══════════ WIKIDATA IMPORT ═══════════
+// ═══════════ DUPLICATE FINDER ═══════════
+const DEG_50M=0.00045; // ~50 metres in degrees
+
+function findDuplicateSpots(){
+  osmSetStatus('🔍 Ieškoma dublikatų...');
+  const groups=[];
+  const used=new Set();
+  for(let i=0;i<SPOTS.length;i++){
+    if(used.has(i)) continue;
+    const a=SPOTS[i];
+    const group=[a];
+    for(let j=i+1;j<SPOTS.length;j++){
+      if(used.has(j)) continue;
+      const b=SPOTS[j];
+      if(b.cat!==a.cat) continue;
+      const dlat=Math.abs(a.lat-b.lat);
+      const dlng=Math.abs(a.lng-b.lng);
+      if(dlat<DEG_50M&&dlng<DEG_50M){
+        group.push(b);
+        used.add(j);
+      }
+    }
+    if(group.length>1){
+      used.add(i);
+      groups.push(group);
+    }
+  }
+  if(!groups.length){
+    osmSetStatus('✅ Dublikatų nerasta!');
+    return;
+  }
+  osmSetStatus(`⚠ Rasta ${groups.length} dublikatų grupių — pažymėtos žemiau`);
+  // Show results in osmList
+  const list=document.getElementById('osmList');
+  if(!list) return;
+  const cat=s=>CATS[s.cat]||CATS.history;
+  list.innerHTML=`
+    <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--red);padding:8px 0;margin-bottom:4px">
+      ⚠ ${groups.length} dublikatų grupių · Spausk 🗑 norėdamas ištrinti
+    </div>
+    ${groups.map((group,gi)=>`
+      <div style="background:rgba(140,74,74,.1);border:1px solid var(--red);border-radius:10px;padding:10px;margin-bottom:8px">
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--red);margin-bottom:6px">Grupė ${gi+1} · ${cat(group[0]).emoji} ${cat(group[0]).label}</div>
+        ${group.map(s=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(140,74,74,.2)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.8rem;font-weight:600;color:var(--txt)">${s.name||'—'}</div>
+              <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm)">${s.lat?.toFixed(5)}, ${s.lng?.toFixed(5)} · T${s.tier||1}</div>
+              ${s.history?`<div style="font-size:.7rem;color:var(--td);margin-top:2px">${s.history.substring(0,60)}${s.history.length>60?'…':''}</div>`:''}
+            </div>
+            <button onclick="deleteDuplicateSpot('${s._fid||s.id}')" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer;flex-shrink:0">🗑</button>
+          </div>`).join('')}
+      </div>`).join('')}
+  `;
+}
+
+async function deleteDuplicateSpot(fid){
+  if(!isAdmin()) return;
+  if(!confirm('Ištrinti šią vietą?')) return;
+  try{
+    await fbDeleteSpot(fid);
+    SPOTS=SPOTS.filter(s=>s._fid!==fid&&s.id!==fid);
+    refreshMarkers();updateAll();
+    toast('🗑 Vieta ištrinta','success');
+    // Re-run duplicate scan
+    findDuplicateSpots();
+  }catch(e){
+    toast('Klaida: '+e.message,'info');
+  }
+}
 let _wikiData=[];
 let _wikiSelected=new Set();
 let _wikiLoading=false;
@@ -4076,15 +4147,35 @@ function renderWikidataPanel(){
   const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_wikiData.length} iš talpyklos (${new Date(cached.ts).toLocaleDateString('lt-LT')})</span>`:'';
   const wcats=['all','church','museum','fort','mound','history','monument','nature','viewpoint','bridge','cemetery'];
   const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',cemetery:'⚱️'};
-  // Only show cities with actual wiki spots
-  const citiesWithWiki=_wikiData.length>0
+  // Recheck alreadyIn against current SPOTS each render
+  _wikiData.forEach(x=>{
+    x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);
+  });
+  const total=_wikiData.length;
+  const alreadyIn=_wikiData.filter(x=>x.alreadyIn).length;
+  const newOnes=total-alreadyIn;
+  // Cities with wiki spots
+  const citiesWithWiki=total>0
     ?Object.keys(CITY_BOUNDS).filter(city=>{
         const b=CITY_BOUNDS[city];
         return _wikiData.some(x=>x.lat>=b.sw[0]&&x.lat<=b.ne[0]&&x.lng>=b.sw[1]&&x.lng<=b.ne[1]);
       }).sort()
     :[];
+  // Count for current city filter
+  const filteredCount=total>0?_wikiData.filter(x=>{
+    if(_wikiCityFilter==='all') return !x.alreadyIn;
+    const b=CITY_BOUNDS[_wikiCityFilter];
+    if(!b) return false;
+    return !x.alreadyIn&&x.lat>=b.sw[0]&&x.lat<=b.ne[0]&&x.lng>=b.sw[1]&&x.lng<=b.ne[1];
+  }).length:0;
   return`<div>
-    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">Vietos iš Wikidata. Nemokama. ${cacheInfo}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:6px">Vietos iš Wikidata. ${cacheInfo}</div>
+    ${total>0?`<div style="background:var(--surf2);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:'DM Mono',monospace;font-size:.68rem;display:flex;gap:16px">
+      <span>📦 Viso: <strong style="color:var(--txt)">${total}</strong></span>
+      <span>✅ Jau DB: <strong style="color:var(--green)">${alreadyIn}</strong></span>
+      <span>🆕 Nauja: <strong style="color:var(--gold)">${newOnes}</strong></span>
+      ${_wikiCityFilter!=='all'?`<span>📍 Rodoma: <strong style="color:var(--gold)">${filteredCount}</strong></span>`:''}
+    </div>`:''}
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchWikidataLT(false)">🔄 Įkelti</button>
       <button class="osm-ctrl-btn" onclick="fetchWikidataLT(true)">♻️ Atnaujinti</button>
@@ -4095,15 +4186,26 @@ function renderWikidataPanel(){
     ${citiesWithWiki.length>0?`
     <div style="margin:8px 0 4px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.07em">Filtruoti miestą</div>
     <div class="osm-filter-row" style="flex-wrap:wrap;gap:4px">
-      <div class="osm-fchip ${_wikiCityFilter==='all'?'on':''}" onclick="_wikiCityFilter='all';renderOsmImport()">🇱🇹 Visi</div>
-      ${citiesWithWiki.map(c=>`<div class="osm-fchip ${_wikiCityFilter===c?'on':''}" onclick="_wikiCityFilter='${c}';renderOsmImport()">${c}</div>`).join('')}
+      <div class="osm-fchip ${_wikiCityFilter==='all'?'on':''}" onclick="setWikiCityFilter('all')">🇱🇹 Visi</div>
+      ${citiesWithWiki.map(c=>`<div class="osm-fchip ${_wikiCityFilter===c?'on':''}" onclick="setWikiCityFilter('${c}')">${c}</div>`).join('')}
     </div>`:''}
     <div class="osm-filter-row" style="margin-top:6px">
-      ${wcats.map(wc=>`<div class="osm-fchip ${_wikiFilter===wc?'on':''}" onclick="_wikiFilter='${wc}';renderOsmImport()">${wcatLabels[wc]||wc}</div>`).join('')}
+      ${wcats.map(wc=>`<div class="osm-fchip ${_wikiFilter===wc?'on':''}" onclick="setWikiCatFilter('${wc}')">${wcatLabels[wc]||wc}</div>`).join('')}
     </div>
-    <div class="osm-status" id="wikiStatus">${_wikiData.length?`${_wikiData.length} vietų · ${_wikiData.filter(x=>x.alreadyIn).length} jau pridėta`:'Spausk "Įkelti" pradėti'}</div>
+    <div class="osm-status" id="wikiStatus">${total?`${total} vietų rasta · ${alreadyIn} jau DB · ${newOnes} naujų`:'Spausk "Įkelti" pradėti'}</div>
     <div class="osm-list" id="wikiList"></div>
   </div>`;
+}
+
+function setWikiCityFilter(city){
+  _wikiCityFilter=city;
+  renderOsmImport();
+  setTimeout(()=>renderWikidataList(),0);
+}
+function setWikiCatFilter(cat){
+  _wikiFilter=cat;
+  renderOsmImport();
+  setTimeout(()=>renderWikidataList(),0);
 }
 
 async function fetchWikidataLT(forceRefresh){
@@ -4159,8 +4261,9 @@ async function fetchWikidataLT(forceRefresh){
       .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
     _wikiData=processed;
     try{localStorage.setItem(WIKI_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_wikiData}));}catch(e){}
-    setS(`✅ ${_wikiData.length} vietų. Jau pridėta: ${_wikiData.filter(x=>x.alreadyIn).length}`);
-    renderWikidataList();
+    setS(`✅ ${_wikiData.length} vietų rasta · ${_wikiData.filter(x=>x.alreadyIn).length} jau DB · ${_wikiData.filter(x=>!x.alreadyIn).length} naujų`);
+    renderOsmImport(); // rebuild panel to show stats
+    setTimeout(()=>renderWikidataList(),0);
   }catch(e){setS('❌ Klaida: '+e.message);}
   _wikiLoading=false;
 }
