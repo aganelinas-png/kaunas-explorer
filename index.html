@@ -862,6 +862,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="fgroup" data-group="heritage" onclick="toggleFilterGroup('heritage')">🏛 Paveldas <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="nature" onclick="toggleFilterGroup('nature')">🌿 Gamta <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="urban" onclick="toggleFilterGroup('urban')">🏙 Miestas <span class="fg-arr">▾</span></div>
+    <div class="fgroup" id="cityFilterPill" onclick="toggleCityFilter()">🏙 Miestas <span class="fg-arr" id="cityFilterArr">▾</span></div>
   </div>
   <div class="tb-right">
     <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
@@ -1492,6 +1493,7 @@ function tokensAvailable(tier){return Math.max(0,tokensEarned(tier)-tokensSpent(
 
 function isTierUnlocked(tier,cat){
   if(tier===1) return true;
+  if(isAdmin()) return true; // admin sees all spots
   return unlockedCats.has(tier+':'+(cat||''));
 }
 function isSpotUnlocked(spot){return isTierUnlocked(spot.tier||1,spot.cat);}
@@ -1601,6 +1603,8 @@ function initMap(){
   [100,400,900,1800].forEach(ms=>setTimeout(()=>map.invalidateSize(),ms));
   window.addEventListener('resize',()=>map.invalidateSize());
   map.on('click',e=>{
+    // Close city filter if open
+    if(_cityFilterOpen) closeCityFilterSheet();
     // Suggest spot pick mode
     if(_sugPickMode){
       _handleSuggestMapPick(e);
@@ -1728,29 +1732,34 @@ function addMarker(spot){
   m.on('click',()=>openSheet(spot));
   markers[spot.id]=m;
   const show=activeFilter==='all'||activeFilter===spot.cat;
-  if(show&&clusterGroup) clusterGroup.addLayer(m);
-  else if(!show) m._hiddenFromCluster=true;
+  const cityOk=activeCity==='all'||spotInCity(spot,activeCity);
+  if(show&&cityOk&&clusterGroup) clusterGroup.addLayer(m);
+  else if(!show||!cityOk) m._hiddenFromCluster=true;
+}
+
+function spotInCity(spot,city){
+  const b=CITY_BOUNDS[city];
+  if(!b) return true;
+  return spot.lat>=b.sw[0]&&spot.lat<=b.ne[0]&&spot.lng>=b.sw[1]&&spot.lng<=b.ne[1];
 }
 
 function refreshMarkers(){
   if(!clusterGroup) return;
-  // Batch update: rebuild cluster group entirely when filter changes
-  // This is faster than updating individual markers
   clusterGroup.clearLayers();
 
   SPOTS.forEach(s=>{
     if(s.cat==='hidden') return;
     if(!isSpotUnlocked(s)){
-      // remove from map if it was previously shown (e.g. just re-locked — shouldn't happen, but safety)
       if(markers[s.id]){clusterGroup.removeLayer(markers[s.id]);delete markers[s.id];}
       return;
     }
     const show=activeFilter==='all'||activeFilter===s.cat;
+    const cityOk=activeCity==='all'||spotInCity(s,activeCity);
     if(markers[s.id]){
       markers[s.id].setIcon(makeIcon(s));
-      if(show) clusterGroup.addLayer(markers[s.id]);
+      if(show&&cityOk) clusterGroup.addLayer(markers[s.id]);
     } else {
-      addMarkerToCluster(s,show);
+      addMarkerToCluster(s,show&&cityOk);
     }
   });
 
@@ -1815,18 +1824,14 @@ function renderFilterSub(){
 
 function setFilter(cat){
   activeFilter=cat;
-  // top bar: only "Visos" lights up when all, group pills highlight if a child is active
   document.querySelector('.fcap[data-cat="all"]')?.classList.toggle('on',cat==='all');
-  // mark group as has-active if one of its cats is selected
   document.querySelectorAll('.fgroup').forEach(el=>{
     const grp=FILTER_GROUPS.find(g=>g.id===el.dataset.group);
     const childActive=grp&&grp.cats.includes(cat);
     el.classList.toggle('has-active',childActive&&activeGroup!==el.dataset.group);
     el.classList.toggle('on',el.dataset.group===activeGroup);
   });
-  // re-render sub-row to update active states
   renderFilterSub();
-  // sync mobile button
   const mobLabel=document.getElementById('mobFilterLabel');
   const mobBtn=document.getElementById('mobFilterBtn');
   if(mobLabel&&mobBtn){
@@ -1834,6 +1839,62 @@ function setFilter(cat){
     else{const c=CATS[cat];mobLabel.textContent=c?c.emoji+' '+c.label:'Filtruota';mobBtn.classList.add('active-filter');}
   }
   refreshMarkers();
+}
+
+// ═══════════ CITY FILTER ═══════════
+let activeCity='all'; // 'all' or city name string
+let _cityFilterOpen=false;
+
+function toggleCityFilter(){
+  _cityFilterOpen=!_cityFilterOpen;
+  const arr=document.getElementById('cityFilterArr');
+  const pill=document.getElementById('cityFilterPill');
+  if(arr) arr.style.transform=_cityFilterOpen?'rotate(180deg)':'';
+  if(_cityFilterOpen) showCityFilterSheet();
+  else closeCityFilterSheet();
+  if(pill) pill.classList.toggle('on',_cityFilterOpen||activeCity!=='all');
+}
+
+function showCityFilterSheet(){
+  let el=document.getElementById('cityFilterSheet');
+  if(!el){
+    el=document.createElement('div');
+    el.id='cityFilterSheet';
+    el.style.cssText='position:fixed;top:calc(60px + env(safe-area-inset-top));left:0;right:0;z-index:199;background:var(--surf);border-bottom:1px solid var(--bdr);padding:10px 12px;display:flex;flex-wrap:wrap;gap:6px;box-shadow:0 4px 16px var(--sh);max-height:180px;overflow-y:auto';
+    document.body.appendChild(el);
+  }
+  const cities=Object.keys(CITY_BOUNDS).sort();
+  el.innerHTML=`
+    <div class="fcap ${activeCity==='all'?'on':''}" onclick="setCityFilter('all')">🇱🇹 Visos</div>
+    ${cities.map(c=>`<div class="fcap ${activeCity===c?'on':''}" onclick="setCityFilter('${c}')">${c}</div>`).join('')}
+  `;
+  el.style.display='flex';
+}
+
+function closeCityFilterSheet(){
+  const el=document.getElementById('cityFilterSheet');
+  if(el) el.style.display='none';
+  _cityFilterOpen=false;
+  const arr=document.getElementById('cityFilterArr');
+  if(arr) arr.style.transform='';
+}
+
+function setCityFilter(city){
+  activeCity=city;
+  const pill=document.getElementById('cityFilterPill');
+  if(pill){
+    pill.innerHTML=city==='all'?`🏙 Miestas <span class="fg-arr" id="cityFilterArr">▾</span>`:`📍 ${city} <span class="fg-arr" id="cityFilterArr">▾</span>`;
+    pill.classList.toggle('on',city!=='all');
+  }
+  closeCityFilterSheet();
+  refreshMarkers();
+  // Fly to city if selected
+  if(city!=='all'&&CITY_BOUNDS[city]){
+    const b=CITY_BOUNDS[city];
+    const clat=(b.sw[0]+b.ne[0])/2;
+    const clng=(b.sw[1]+b.ne[1])/2;
+    map.setView([clat,clng],13);
+  }
 }
 
 // ═══════════ GPS ═══════════
@@ -2750,10 +2811,50 @@ const CITY_BOUNDS={
   'Šiauliai':{sw:[55.89,23.26],ne:[55.96,23.38]},
   'Panevėžys':{sw:[55.70,24.32],ne:[55.76,24.42]},
   'Alytus':{sw:[54.38,24.02],ne:[54.42,24.08]},
+  'Marijampolė':{sw:[54.55,23.33],ne:[54.57,23.37]},
+  'Mažeikiai':{sw:[56.30,22.33],ne:[56.34,22.38]},
+  'Jonava':{sw:[55.07,24.27],ne:[55.10,24.30]},
+  'Utena':{sw:[55.49,25.59],ne:[55.52,25.63]},
+  'Kėdainiai':{sw:[55.27,23.96],ne:[55.30,24.02]},
+  'Tauragė':{sw:[55.25,22.27],ne:[55.28,22.32]},
+  'Telšiai':{sw:[55.97,22.23],ne:[56.00,22.27]},
+  'Ukmergė':{sw:[55.24,24.75],ne:[55.27,24.79]},
+  'Visaginas':{sw:[55.59,26.42],ne:[55.62,26.45]},
+  'Plungė':{sw:[55.91,21.84],ne:[55.94,21.88]},
+  'Kretinga':{sw:[55.88,21.22],ne:[55.91,21.25]},
+  'Šilutė':{sw:[55.34,21.46],ne:[55.37,21.50]},
+  'Radviliškis':{sw:[55.79,23.53],ne:[55.82,23.57]},
   'Palanga':{sw:[55.90,21.04],ne:[55.96,21.09]},
   'Druskininkai':{sw:[53.98,24.02],ne:[54.02,24.06]},
   'Trakai':{sw:[54.63,24.92],ne:[54.66,24.95]},
+  'Anykščiai':{sw:[55.52,25.09],ne:[55.54,25.12]},
+  'Molėtai':{sw:[55.22,25.41],ne:[55.24,25.44]},
+  'Biržai':{sw:[56.19,24.75],ne:[56.22,24.79]},
+  'Rokiškis':{sw:[55.96,25.58],ne:[55.99,25.62]},
+  'Skuodas':{sw:[56.27,21.52],ne:[56.30,21.56]},
+  'Jurbarkas':{sw:[55.07,22.76],ne:[55.10,22.80]},
+  'Raseiniai':{sw:[55.37,23.11],ne:[55.40,23.14]},
+  'Elektrėnai':{sw:[54.77,24.64],ne:[54.80,24.67]},
+  'Varėna':{sw:[54.21,24.56],ne:[54.24,24.60]},
+  'Zarasai':{sw:[55.73,26.25],ne:[55.75,26.28]},
+  'Lazdijai':{sw:[54.23,23.51],ne:[54.26,23.54]},
+  'Švenčionys':{sw:[55.13,26.15],ne:[55.15,26.18]},
+  'Ignalina':{sw:[55.34,26.16],ne:[55.37,26.19]},
   'Nida':{sw:[55.29,20.98],ne:[55.32,21.01]},
+  'Neringa':{sw:[55.29,20.98],ne:[55.50,21.05]},
+  'Kuršėnai':{sw:[55.99,22.91],ne:[56.02,22.95]},
+  'Garliava':{sw:[54.82,23.86],ne:[54.84,23.90]},
+  'Lentvaris':{sw:[54.64,25.05],ne:[54.66,25.08]},
+  'Prienai':{sw:[54.63,23.94],ne:[54.65,23.97]},
+  'Joniškis':{sw:[56.23,23.61],ne:[56.26,23.65]},
+  'Šakiai':{sw:[54.95,23.04],ne:[54.98,23.08]},
+  'Kazlų Rūda':{sw:[54.77,23.49],ne:[54.79,23.52]},
+  'Vilkaviškis':{sw:[54.65,23.03],ne:[54.67,23.06]},
+  'Kudirkos Naumiestis':{sw:[54.78,22.87],ne:[54.80,22.90]},
+  'Širvintos':{sw:[55.04,24.95],ne:[55.06,24.98]},
+  'Šalčininkai':{sw:[54.30,25.38],ne:[54.33,25.42]},
+  'Eišiškės':{sw:[54.18,24.99],ne:[54.20,25.02]},
+  'Vievis':{sw:[54.77,24.79],ne:[54.79,24.82]},
 };
 
 function getCityStats(){
@@ -3584,15 +3685,49 @@ const CITY_BBOXES_GLOBAL=[
   ['Panevėžys','55.70,24.32,55.76,24.42'],
   ['Alytus','54.38,24.02,54.42,24.08'],
   ['Marijampolė','54.55,23.33,54.57,23.37'],
+  ['Mažeikiai','56.30,22.33,56.34,22.38'],
+  ['Jonava','55.07,24.27,55.10,24.30'],
   ['Utena','55.49,25.59,55.52,25.63'],
-  ['Telšiai','55.97,22.23,56.00,22.27'],
   ['Kėdainiai','55.27,23.96,55.30,24.02'],
+  ['Tauragė','55.25,22.27,55.28,22.32'],
+  ['Telšiai','55.97,22.23,56.00,22.27'],
+  ['Ukmergė','55.24,24.75,55.27,24.79'],
+  ['Visaginas','55.59,26.42,55.62,26.45'],
+  ['Plungė','55.91,21.84,55.94,21.88'],
+  ['Kretinga','55.88,21.22,55.91,21.25'],
+  ['Šilutė','55.34,21.46,55.37,21.50'],
+  ['Radviliškis','55.79,23.53,55.82,23.57'],
+  ['Palanga','55.90,21.04,55.96,21.09'],
+  ['Druskininkai','53.98,24.02,54.02,24.06'],
   ['Trakai','54.63,24.92,54.66,24.95'],
   ['Anykščiai','55.52,25.09,55.54,25.12'],
   ['Molėtai','55.22,25.41,55.24,25.44'],
-  ['Druskininkai','53.98,24.02,54.02,24.06'],
-  ['Palanga','55.90,21.04,55.96,21.09'],
+  ['Biržai','56.19,24.75,56.22,24.79'],
+  ['Rokiškis','55.96,25.58,55.99,25.62'],
+  ['Skuodas','56.27,21.52,56.30,21.56'],
+  ['Jurbarkas','55.07,22.76,55.10,22.80'],
+  ['Raseiniai','55.37,23.11,55.40,23.14'],
+  ['Elektrėnai','54.77,24.64,54.80,24.67'],
+  ['Varėna','54.21,24.56,54.24,24.60'],
+  ['Zarasai','55.73,26.25,55.75,26.28'],
+  ['Lazdijai','54.23,23.51,54.26,23.54'],
+  ['Švenčionys','55.13,26.15,55.15,26.18'],
+  ['Ignalina','55.34,26.16,55.37,26.19'],
   ['Nida','55.29,20.98,55.32,21.01'],
+  ['Neringa','55.29,20.98,55.50,21.05'],
+  ['Kuršėnai','55.99,22.91,56.02,22.95'],
+  ['Garliava','54.82,23.86,54.84,23.90'],
+  ['Prienai','54.63,23.94,54.65,23.97'],
+  ['Joniškis','56.23,23.61,56.26,23.65'],
+  ['Šakiai','54.95,23.04,54.98,23.08'],
+  ['Kazlų Rūda','54.77,23.49,54.79,23.52'],
+  ['Vilkaviškis','54.65,23.03,54.67,23.06'],
+  ['Širvintos','55.04,24.95,55.06,24.98'],
+  ['Šalčininkai','54.30,25.38,54.33,25.42'],
+  ['Birštonas','54.61,24.02,54.63,24.05'],
+  ['Vievis','54.77,24.79,54.79,24.82'],
+  ['Lentvaris','54.64,25.05,54.66,25.08'],
+  ['Elektrėnai','54.77,24.64,54.80,24.67'],
 ];
 
 const OSM_CACHE_KEY_MANUAL='kex_osm_manual_regions_v1';
