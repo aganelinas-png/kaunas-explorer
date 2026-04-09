@@ -3991,27 +3991,36 @@ async function osmImportSelected(){
   renderOsmList();
 }
 
-let _importTab='osm'; // 'osm' | 'wikidata'
+let _importTab='osm'; // 'osm' | 'wikidata' | 'kpd'
+
+function _tabBar(){
+  const tabs=[['osm','🗺 OSM'],['wikidata','📚 Wikidata'],['kpd','🏛 KPD']];
+  return`<div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
+    ${tabs.map(([id,label])=>`<button onclick="_importTab='${id}';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab===id?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab===id?'var(--gold)':'var(--tm)'};cursor:pointer">${label}</button>`).join('')}
+  </div>`;
+}
 
 function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
   const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery'];
   const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės'};
+
   if(_importTab==='wikidata'){
-    body.innerHTML=`<div class="osm-wrap">
-    <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
-      <button onclick="_importTab='osm';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='osm'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='osm'?'var(--gold)':'var(--tm)'};cursor:pointer">🗺 OSM</button>
-      <button onclick="_importTab='wikidata';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='wikidata'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='wikidata'?'var(--gold)':'var(--tm)'};cursor:pointer">📚 Wikidata</button>
-    </div>
-    ${renderWikidataPanel()}
-  </div>`;
-  } else {
+    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderWikidataPanel()}</div>`;
+    if(_wikiData.length) setTimeout(()=>renderWikidataList(),0);
+    return;
+  }
+
+  if(_importTab==='kpd'){
+    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderKpdPanel()}</div>`;
+    if(_kpdData.length) setTimeout(()=>renderKpdList(),0);
+    return;
+  }
+
+  // OSM tab
   body.innerHTML=`<div class="osm-wrap">
-    <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
-      <button onclick="_importTab='osm';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='osm'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='osm'?'var(--gold)':'var(--tm)'};cursor:pointer">🗺 OSM</button>
-      <button onclick="_importTab='wikidata';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab==='wikidata'?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab==='wikidata'?'var(--gold)':'var(--tm)'};cursor:pointer">📚 Wikidata</button>
-    </div>
+    ${_tabBar()}
     <div style="margin-bottom:10px">
       <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">🇱🇹 Visa Lietuva · area filtrais</div>
       <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">⚠ Greitesnis užklausimas nei anksčiau. Patikrink dublikatus prieš pridedant.</div>
@@ -4033,17 +4042,420 @@ function renderOsmImport(){
       <span class="osm-tier-label">Tier:</span>
       ${[1,2,3].map(t=>`<button class="osm-tier-btn ${_osmTier===t?'on':''}" data-t="${t}" onclick="osmSetTier(${t})">T${t}</button>`).join('')}
     </div>
-    <div class="osm-status" id="osmStatus">${_osmImportData.length?`${_osmImportData.length} vietų įkeltos (${_osmImportData.filter(x=>x.alreadyIn).length} jau pridėtos)`:'Spausk "Įkelti iš OSM" pradėti (area filtrais, be timeout)'}</div>
+    <div class="osm-status" id="osmStatus">${_osmImportData.length?`${_osmImportData.length} vietų įkeltos (${_osmImportData.filter(x=>x.alreadyIn).length} jau pridėtos)`:'Spausk "Įkelti iš OSM" pradėti'}</div>
     <div class="osm-list" id="osmList"></div>
   </div>`;
   if(_osmImportData.length) renderOsmList();
   if(_osmManualMode) renderOsmManualUI();
-  if(_importTab==='wikidata'&&_wikiData.length) setTimeout(()=>renderWikidataList(),0);
-  }
 }
 
 
-// ═══════════ DUPLICATE FINDER ═══════════
+// ═══════════ KPD IMPORT (Kultūros vertybių registras) ═══════════
+
+const KPD_CACHE_KEY='kex_kpd_cache_v1';
+const KPD_CACHE_TTL=7*24*60*60*1000; // 7 days
+const KPD_URL='https://osp-sdg.stat.gov.lt/arcgis/rest/services/KPD/kvr_taskai_enriched/FeatureServer/0/query';
+const KPD_BATCH=1000;
+
+let _kpdData=[];
+let _kpdSelected=new Set();
+let _kpdLoading=false;
+let _kpdFilter='all';       // category filter
+let _kpdSigFilter='all';    // significance filter
+let _kpdCityFilter='all';   // city filter
+
+// ── LKS94 (EPSG:3346) → WGS84 conversion ──
+// LKS94 is a Transverse Mercator projection used in Lithuania
+function lks94toWGS84(x,y){
+  // Constants for LKS94 / Lithuania TM
+  const a=6378137.0;
+  const f=1/298.257223563;
+  const k0=0.9998;
+  const e2=2*f-f*f;
+  const e4=e2*e2;
+  const e6=e4*e2;
+  const lon0=24*Math.PI/180; // central meridian 24°E
+  const lat0=0;
+  const FE=500000;
+  const FN=-6000000;
+
+  const xm=x-FE;
+  const ym=y-FN;
+
+  const M0=a*((1-e2/4-3*e4/64-5*e6/256)*lat0-(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*lat0)+(15*e4/256+45*e6/1024)*Math.sin(4*lat0)-(35*e6/3072)*Math.sin(6*lat0));
+  const M=M0+ym/k0;
+  const mu=M/(a*(1-e2/4-3*e4/64-5*e6/256));
+  const e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2));
+  const lat1=mu+(3*e1/2-27*e1*e1*e1/32)*Math.sin(2*mu)+(21*e1*e1/16-55*e1*e1*e1*e1/32)*Math.sin(4*mu)+(151*e1*e1*e1/96)*Math.sin(6*mu)+(1097*e1*e1*e1*e1/512)*Math.sin(8*mu);
+  const N1=a/Math.sqrt(1-e2*Math.sin(lat1)*Math.sin(lat1));
+  const T1=Math.tan(lat1)*Math.tan(lat1);
+  const C1=e2/(1-e2)*Math.cos(lat1)*Math.cos(lat1);
+  const R1=a*(1-e2)/Math.pow(1-e2*Math.sin(lat1)*Math.sin(lat1),1.5);
+  const D=xm/(N1*k0);
+  const lat=lat1-(N1*Math.tan(lat1)/R1)*(D*D/2-(5+3*T1+10*C1-4*C1*C1-9*e2/(1-e2))*D*D*D*D/24+(61+90*T1+298*C1+45*T1*T1-252*e2/(1-e2)-3*C1*C1)*D*D*D*D*D*D/720);
+  const lng=lon0+(D-(1+2*T1+C1)*D*D*D/6+(5-2*C1+28*T1-3*C1*C1+8*e2/(1-e2)+24*T1*T1)*D*D*D*D*D/120)/Math.cos(lat1);
+  return{lat:lat*180/Math.PI,lng:lng*180/Math.PI};
+}
+
+// ── Map KPD klasifikatorius → app category ──
+const KPD_CAT_MAP={
+  // Churches / sacred
+  'bažnyčia':'church','koplyčia':'church','koplytėlė':'church',
+  'cerkvė':'church','sinagoga':'church','mečetė':'church',
+  'vienuolynas':'church','bažnyčios kompleksas':'church',
+  // Museums
+  'muziejus':'museum','muziejaus pastatas':'museum',
+  // Forts / castles / military
+  'pilis':'fort','pilies griuvėsiai':'fort','fortas':'fort',
+  'tvirtovė':'fort','bunkeris':'fort','gynybinis įrenginys':'fort',
+  'pilies bokštas':'fort','pilies kompleksas':'fort',
+  // Mounds
+  'piliakalnis':'mound','gynybinis piliakalnis':'mound',
+  'piliakalnio kompleksas':'mound',
+  // Monuments / sculptures
+  'paminklas':'monument','skulptūra':'monument','obeliskas':'monument',
+  'stela':'monument','kolona':'monument','varpinė':'monument',
+  // History / heritage
+  'sodyba':'history','dvaro sodyba':'history','dvaras':'history',
+  'palivarkas':'history','malūnas':'history','karčema':'history',
+  'kalvė':'history','smuklė':'history','spirito varykla':'history',
+  'lentpjūvė':'history','vandens malūnas':'history','vėjo malūnas':'history',
+  'alaus darykla':'history','aliejinė':'history',
+  // Cemeteries
+  'kapinės':'cemetery','kapinynas':'cemetery','kapas':'cemetery',
+  'senosios kapinės':'cemetery','žydų kapinės':'cemetery',
+  'karių kapinės':'cemetery','karo kapinės':'cemetery',
+  // Nature / parks
+  'parkas':'nature','dendrologinis parkas':'nature',
+  'botanikos sodas':'nature','gamtos paminklas':'nature',
+  // Archaeological
+  'gyvenvietė':'history','pilkapiai':'history','pilkapis':'history',
+  'senkapis':'cemetery','akmuo':'monument','riedulys':'monument',
+  // Urban / architecture
+  'namas':'history','pastatas':'history','rūmai':'history',
+  'rezidencija':'history','viešbutis':'history','teatro pastatas':'museum',
+  'mokyklos pastatas':'history','ligoninės pastatas':'history',
+  // Bridges
+  'tiltas':'bridge',
+  // Viewpoints
+  'apžvalgos bokštas':'viewpoint',
+  // Water towers
+  'vandens bokštas':'watertower',
+};
+
+function kpdMapCat(klasifikatorius){
+  if(!klasifikatorius) return 'history';
+  const k=klasifikatorius.toLowerCase().trim();
+  // Exact match first
+  if(KPD_CAT_MAP[k]) return KPD_CAT_MAP[k];
+  // Partial match
+  for(const[key,val] of Object.entries(KPD_CAT_MAP)){
+    if(k.includes(key)||key.includes(k)) return val;
+  }
+  // Fallback by heritage type flags (set during processing)
+  return 'history';
+}
+
+function kpdMapTier(reiksmingumas){
+  if(!reiksmingumas) return 1;
+  const r=reiksmingumas.toLowerCase();
+  if(r.includes('nacionalinis')||r.includes('national')) return 3;
+  if(r.includes('regioninis')||r.includes('regional')) return 2;
+  return 1; // Vietinis / local
+}
+
+function kpdProcessFeature(f){
+  const a=f.attributes;
+  const g=f.geometry;
+  if(!g||!a.pavadinimas) return null;
+  // Convert LKS94 → WGS84
+  let lat,lng;
+  try{
+    const wgs=lks94toWGS84(g.x,g.y);
+    lat=wgs.lat;lng=wgs.lng;
+  }catch(e){return null;}
+  // Sanity check — must be inside Lithuania bbox
+  if(lat<53.5||lat>56.6||lng<20.5||lng>27.0) return null;
+  const cat=kpdMapCat(a.klasifikatorius);
+  const tier=kpdMapTier(a.reiksmingumas);
+  // Build description from available fields
+  const desc=[];
+  if(a.klasifikatorius) desc.push(a.klasifikatorius.charAt(0).toUpperCase()+a.klasifikatorius.slice(1));
+  if(a.reiksmingumas) desc.push(`${a.reiksmingumas} reikšmingumo objektas`);
+  if(a.adresas) desc.push(a.adresas);
+  return{
+    name:a.pavadinimas,
+    cat,tier,
+    lat:Math.round(lat*100000)/100000,
+    lng:Math.round(lng*100000)/100000,
+    year:a.amzius||'',
+    tag:a.unikalus_kodas?`KPD-${a.unikalus_kodas}`:'',
+    history:desc.join('. ')+'.',
+    address:a.adresas||'',
+    kpdCode:a.unikalus_kodas||'',
+    kpdUrl:a.nuoroda||'',
+    reiksmingumas:a.reiksmingumas||'',
+    klasifikatorius:a.klasifikatorius||'',
+    radius:CAT_DEFAULT_RADIUS[cat]||DEFAULT_RADIUS,
+    bring:[],
+    alreadyIn:false,
+  };
+}
+
+async function fetchKpdData(forceRefresh){
+  if(_kpdLoading) return;
+  _kpdLoading=true;
+  const setS=m=>{const e=document.getElementById('kpdStatus');if(e)e.textContent=m;};
+
+  // Check cache
+  if(!forceRefresh){
+    try{
+      const c=JSON.parse(localStorage.getItem(KPD_CACHE_KEY)||'null');
+      if(c&&Date.now()-c.ts<KPD_CACHE_TTL&&c.data?.length){
+        _kpdData=c.data;
+        // Recheck alreadyIn
+        _kpdData.forEach(x=>{x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);});
+        setS(`✅ ${_kpdData.length} objektų (talpykla · ${new Date(c.ts).toLocaleDateString('lt-LT')})`);
+        renderOsmImport();
+        setTimeout(()=>renderKpdList(),0);
+        _kpdLoading=false;
+        return;
+      }
+    }catch(e){}
+  }
+
+  setS('⏳ Kraunama iš KPD registro...');
+  const allFeatures=[];
+  let offset=0;
+  let total=null;
+
+  try{
+    while(true){
+      const url=`${KPD_URL}?where=1%3D1&outFields=objectid,unikalus_kodas,pavadinimas,klasifikatorius,statusas,adresas,tipas,istorinis,architekturinis,sakralinis,archeologinis,memorialinis,amzius,reiksmingumas,nuoroda,sav_pav&returnGeometry=true&resultRecordCount=${KPD_BATCH}&resultOffset=${offset}&f=json`;
+      setS(`⏳ Kraunama... ${allFeatures.length} objektų (batch ${Math.floor(offset/KPD_BATCH)+1})`);
+      const r=await fetch(url,{signal:AbortSignal.timeout(30000)});
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const json=await r.json();
+      if(json.error) throw new Error(json.error.message||'ArcGIS error');
+      const features=json.features||[];
+      allFeatures.push(...features);
+      if(total===null&&json.count) total=json.count;
+      // Stop if we got fewer than batch size (last page)
+      if(features.length<KPD_BATCH) break;
+      offset+=KPD_BATCH;
+      // Safety limit — 30 batches = 30,000 records max
+      if(offset>30000) break;
+      await new Promise(r=>setTimeout(r,300));
+    }
+
+    setS(`⏳ Apdorojama ${allFeatures.length} objektų...`);
+    const processed=allFeatures
+      .map(f=>kpdProcessFeature(f))
+      .filter(Boolean)
+      // Dedupe by coords + name
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002&&y.name===x.name)===i);
+
+    // Check alreadyIn against current SPOTS
+    processed.forEach(x=>{
+      x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);
+    });
+
+    _kpdData=processed;
+    // Save cache
+    try{localStorage.setItem(KPD_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_kpdData}));}catch(e){
+      console.warn('KPD cache too large, skipping localStorage');
+    }
+    const newCount=_kpdData.filter(x=>!x.alreadyIn).length;
+    setS(`✅ ${_kpdData.length} objektų · ${_kpdData.filter(x=>x.alreadyIn).length} jau DB · ${newCount} naujų`);
+    renderOsmImport();
+    setTimeout(()=>renderKpdList(),0);
+  }catch(e){
+    setS(`❌ Klaida: ${e.message}`);
+    console.error('KPD fetch error',e);
+  }
+  _kpdLoading=false;
+}
+
+function renderKpdPanel(){
+  const total=_kpdData.length;
+  const alreadyIn=_kpdData.filter(x=>x.alreadyIn).length;
+  const newOnes=total-alreadyIn;
+
+  // Significance options present in data
+  const sigs=['all','Nacionalinis','Regioninis','Vietinis'];
+  // Categories present
+  const cats=['all','church','fort','mound','history','monument','cemetery','nature','museum','bridge','viewpoint','watertower'];
+  const catLabels={all:'Visos',church:'⛪',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',cemetery:'⚱️',nature:'🌿',museum:'🏛',bridge:'🌉',viewpoint:'🔭',watertower:'🗼'};
+
+  // Cities with KPD spots
+  const citiesWithKpd=total>0
+    ?Object.keys(CITY_BOUNDS).filter(city=>{
+        const b=CITY_BOUNDS[city];
+        return _kpdData.some(x=>x.lat>=b.sw[0]-0.05&&x.lat<=b.ne[0]+0.05&&x.lng>=b.sw[1]-0.05&&x.lng<=b.ne[1]+0.05);
+      }).sort()
+    :[];
+
+  // Filtered count
+  const filteredNew=total>0?_kpdData.filter(x=>{
+    if(x.alreadyIn) return false;
+    if(_kpdFilter!=='all'&&x.cat!==_kpdFilter) return false;
+    if(_kpdSigFilter!=='all'&&x.reiksmingumas!==_kpdSigFilter) return false;
+    if(_kpdCityFilter!=='all'){
+      const b=CITY_BOUNDS[_kpdCityFilter];
+      if(!b||x.lat<b.sw[0]-0.05||x.lat>b.ne[0]+0.05||x.lng<b.sw[1]-0.05||x.lng>b.ne[1]+0.05) return false;
+    }
+    return true;
+  }).length:0;
+
+  return`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:6px">
+      Kultūros vertybių registras · osp-sdg.stat.gov.lt · Nekomerciniam naudojimui
+    </div>
+    ${total>0?`<div style="background:var(--surf2);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:'DM Mono',monospace;font-size:.68rem;display:flex;gap:12px;flex-wrap:wrap">
+      <span>📦 Viso: <strong style="color:var(--txt)">${total}</strong></span>
+      <span>✅ DB: <strong style="color:var(--green)">${alreadyIn}</strong></span>
+      <span>🆕 Nauja: <strong style="color:var(--gold)">${newOnes}</strong></span>
+      ${_kpdFilter!=='all'||_kpdSigFilter!=='all'||_kpdCityFilter!=='all'?`<span>🔍 Filtruota: <strong style="color:var(--gold)">${filteredNew}</strong></span>`:''}
+    </div>`:''}
+    <div class="osm-controls">
+      <button class="osm-ctrl-btn" onclick="fetchKpdData(false)">🔄 Įkelti</button>
+      <button class="osm-ctrl-btn" onclick="fetchKpdData(true)">♻️ Atnaujinti</button>
+      <button class="osm-ctrl-btn" onclick="kpdSelectAll()">☑ Visos</button>
+      <button class="osm-ctrl-btn" onclick="kpdSelectNone()">☐ Nė viena</button>
+      <button class="osm-ctrl-btn pri" onclick="kpdImportSelected()">✅ Importuoti</button>
+    </div>
+    ${total>0?`
+    <div style="margin:8px 0 4px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.07em">Reikšmingumas</div>
+    <div class="osm-filter-row" style="flex-wrap:wrap;gap:4px;margin-bottom:6px">
+      ${sigs.map(s=>`<div class="osm-fchip ${_kpdSigFilter===s?'on':''}" onclick="setKpdSigFilter('${s}')">${s==='all'?'Visi':s}</div>`).join('')}
+    </div>
+    <div style="margin:8px 0 4px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.07em">Kategorija</div>
+    <div class="osm-filter-row" style="flex-wrap:wrap;gap:4px;margin-bottom:6px">
+      ${cats.map(c=>`<div class="osm-fchip ${_kpdFilter===c?'on':''}" onclick="setKpdCatFilter('${c}')">${catLabels[c]||c}</div>`).join('')}
+    </div>
+    ${citiesWithKpd.length>0?`
+    <div style="margin:8px 0 4px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.07em">Miestas</div>
+    <div class="osm-filter-row" style="flex-wrap:wrap;gap:4px;margin-bottom:6px">
+      <div class="osm-fchip ${_kpdCityFilter==='all'?'on':''}" onclick="setKpdCityFilter('all')">🇱🇹 Visi</div>
+      ${citiesWithKpd.map(c=>`<div class="osm-fchip ${_kpdCityFilter===c?'on':''}" onclick="setKpdCityFilter('${c}')">${c}</div>`).join('')}
+    </div>`:''}
+    `:''}
+    <div class="osm-status" id="kpdStatus">${total?`${total} objektų · ${alreadyIn} jau DB · ${newOnes} naujų`:'Spausk "Įkelti" pradėti — kraunama ~10-20k objektų'}</div>
+    <div class="osm-list" id="kpdList"></div>
+  </div>`;
+}
+
+function setKpdSigFilter(v){_kpdSigFilter=v;renderOsmImport();setTimeout(()=>renderKpdList(),0);}
+function setKpdCatFilter(v){_kpdFilter=v;renderOsmImport();setTimeout(()=>renderKpdList(),0);}
+function setKpdCityFilter(v){_kpdCityFilter=v;renderOsmImport();setTimeout(()=>renderKpdList(),0);}
+
+function _kpdFiltered(){
+  const result=[];
+  _kpdData.forEach((item,i)=>{
+    if(_kpdFilter!=='all'&&item.cat!==_kpdFilter) return;
+    if(_kpdSigFilter!=='all'&&item.reiksmingumas!==_kpdSigFilter) return;
+    if(_kpdCityFilter!=='all'){
+      const b=CITY_BOUNDS[_kpdCityFilter];
+      if(!b||item.lat<b.sw[0]-0.05||item.lat>b.ne[0]+0.05||item.lng<b.sw[1]-0.05||item.lng>b.ne[1]+0.05) return;
+    }
+    result.push({item,i});
+  });
+  return result;
+}
+
+function renderKpdList(){
+  const el=document.getElementById('kpdList');if(!el) return;
+  const filtered=_kpdFiltered();
+  const newOnes=filtered.filter(({item})=>!item.alreadyIn);
+
+  if(!filtered.length){
+    el.innerHTML=`<div style="padding:24px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)">${_kpdData.length?'Nerasta objektų pagal šiuos filtrus':'Spausk "Įkelti" norėdamas gauti KPD duomenis'}</div>`;
+    return;
+  }
+  if(!newOnes.length){
+    el.innerHTML=`<div style="padding:24px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--green)">✅ Visi ${filtered.length} objektai jau yra DB!</div>`;
+    return;
+  }
+
+  const sigColor={Nacionalinis:'var(--t3)',Regioninis:'var(--t2)',Vietinis:'var(--t1)'};
+
+  el.innerHTML=`
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);padding:6px 0">${newOnes.length} naujų · ${filtered.length-newOnes.length} jau DB</div>
+    ${filtered.map(({item,i})=>{
+      if(item.alreadyIn) return'';
+      const sel=_kpdSelected.has(i);
+      const cat=CATS[item.cat]||CATS.history;
+      return`<div class="osm-item ${sel?'selected':''}" onclick="kpdToggleItem(${i})">
+        <div class="osm-check">${sel?'✓':''}</div>
+        <div class="osm-emoji">${cat.emoji}</div>
+        <div class="osm-info">
+          <div class="osm-name">${item.name}</div>
+          <div class="osm-meta">
+            ${cat.label} · <span style="color:${sigColor[item.reiksmingumas]||'var(--td)'}">${item.reiksmingumas||''}</span>
+            ${item.klasifikatorius?` · ${item.klasifikatorius}`:''}
+            ${item.year?` · ${item.year}`:''}
+            ${item.kpdUrl?`<a href="${item.kpdUrl}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none;margin-left:6px">KPD↗</a>`:''}
+          </div>
+          ${item.address?`<div class="osm-meta" style="color:var(--tm)">${item.address}</div>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function kpdToggleItem(idx){
+  if(_kpdSelected.has(idx))_kpdSelected.delete(idx);
+  else _kpdSelected.add(idx);
+  renderKpdList();
+}
+
+function kpdSelectAll(){
+  _kpdFiltered().forEach(({item,i})=>{
+    if(!item.alreadyIn) _kpdSelected.add(i);
+  });
+  renderKpdList();
+}
+
+function kpdSelectNone(){_kpdSelected.clear();renderKpdList();}
+
+async function kpdImportSelected(){
+  if(!_kpdSelected.size){toast('Nieko nepasirinkta','info');return;}
+  const setS=m=>{const e=document.getElementById('kpdStatus');if(e)e.textContent=m;};
+  let imported=0;
+  const items=[..._kpdSelected].map(i=>_kpdData[i]).filter(x=>x&&!x.alreadyIn);
+  setS(`⏳ Importuojama 0/${items.length}...`);
+  for(let i=0;i<items.length;i++){
+    const item=items[i];
+    const spot={
+      name:item.name,cat:item.cat,tier:item.tier,
+      lat:item.lat,lng:item.lng,
+      history:item.history,year:item.year,
+      tag:item.tag,bring:[],
+      radius:item.radius,
+      kpdCode:item.kpdCode,
+      kpdUrl:item.kpdUrl,
+      address:item.address,
+    };
+    try{
+      const fid=await fbSaveSpot(spot);
+      if(fid){
+        spot.id=fid;spot._fid=fid;
+        SPOTS.push(spot);
+        item.alreadyIn=true;
+        imported++;
+        setS(`⏳ Importuojama ${imported}/${items.length}...`);
+      }
+    }catch(e){console.error('kpdImport',e);}
+    // Small delay to avoid hammering Firestore
+    if(i%50===49) await new Promise(r=>setTimeout(r,500));
+  }
+  _kpdSelected.clear();
+  if(imported>0){refreshMarkers();updateAll();}
+  setS(`✅ Importuota ${imported} objektų! Nepamirškite atnaujinti KV talpyklą.`);
+  renderKpdList();
+  // Update cache with new alreadyIn states
+  try{localStorage.setItem(KPD_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_kpdData}));}catch(e){}
+}
 const DEG_50M=0.00045; // ~50 metres in degrees
 
 function findDuplicateSpots(){
