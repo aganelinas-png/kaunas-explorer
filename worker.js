@@ -1,9 +1,7 @@
 // Lithuania Explorer — Cloudflare Worker
-// Serves the app + spots from KV cache
+// Serves index.html directly from GitHub — upload index.html to GitHub to deploy
 
-import html from './index.html';
-
-// Hardcoded admin secret — change this to something only you know
+const GITHUB_HTML = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
 const ADMIN_SECRET = 'lithuania2026';
 
 export default {
@@ -28,7 +26,7 @@ export default {
       });
     }
 
-    // ── POST /api/admin/rebuild — admin writes fresh spots JSON to KV ──
+    // ── POST /api/admin/rebuild ──
     if (url.pathname === '/api/admin/rebuild' && request.method === 'POST') {
       const secret = request.headers.get('X-Admin-Secret');
       if (secret !== ADMIN_SECRET) {
@@ -36,7 +34,6 @@ export default {
       }
       try {
         const body = await request.text();
-        // Validate it's real JSON array before storing
         const parsed = JSON.parse(body);
         if (!Array.isArray(parsed)) throw new Error('Expected array');
         await env.SPOTS_KV.put('spots_v1', body);
@@ -45,13 +42,12 @@ export default {
         });
       } catch(e) {
         return new Response(JSON.stringify({ error: e.message }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          status: 400, headers: { 'Content-Type': 'application/json' }
         });
       }
     }
 
-    // ── GET /api/spots/status — check cache status (admin only) ──
+    // ── GET /api/spots/status ──
     if (url.pathname === '/api/spots/status') {
       const spots = await env.SPOTS_KV.get('spots_v1');
       if (!spots) return new Response(JSON.stringify({ cached: false }), {
@@ -63,7 +59,11 @@ export default {
       });
     }
 
-    // ── Default — serve the app HTML ──
+    // ── Default — fetch index.html from GitHub ──
+    const htmlRes = await fetch(GITHUB_HTML, {
+      cf: { cacheTtl: 60, cacheEverything: true }
+    });
+    const html = await htmlRes.text();
     return new Response(html, {
       headers: { 'Content-Type': 'text/html;charset=utf-8' }
     });
