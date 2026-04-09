@@ -26,7 +26,7 @@
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp,query,orderBy,limit}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
@@ -45,8 +45,8 @@ const gProvider=new GoogleAuthProvider();
 
 // Expose to global scope so non-module code can use them
 window._fb={db,auth,gProvider,
-  doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,onSnapshot,serverTimestamp,
-  query,orderBy,limit,
+  doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
+  query,orderBy,limit,where,
   signInWithPopup,signOut,onAuthStateChanged,
   createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
 };
@@ -831,7 +831,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <option value="bridge">🌉 Tiltas</option>
       </select>
       <div class="suggest-label">Koordinatės</div>
-      <button class="suggest-use-gps" onclick="suggestUseGPS()">📡 Naudoti mano dabartinę vietą</button>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="suggest-use-gps" style="flex:1;margin-bottom:0" onclick="suggestUseGPS()">📡 Mano vieta</button>
+        <button class="suggest-use-gps" style="flex:1;margin-bottom:0;border-color:var(--gold);color:var(--gold)" onclick="suggestPickOnMap()">🗺 Pasirinkti žemėlapyje</button>
+      </div>
       <div class="suggest-coords" id="sugCoords">Vieta nepasirinkta</div>
       <div class="suggest-label">Trumpas aprašymas</div>
       <textarea class="suggest-textarea" id="sugDesc" maxlength="300" placeholder="Kodėl ši vieta verta dėmesio? (iki 300 simbolių)"></textarea>
@@ -972,6 +975,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn" id="drawerReviewsBtn" onclick="openSubPanel('reviews')" style="display:none">💬 Atsiliepimai</div>
       <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="openSubPanel('enrich')" style="display:none">📚 Wikipedia Enrich</div>
       <div class="dbot-btn" id="drawerSuggestionsBtn" onclick="openSubPanel('suggestions')" style="display:none">📬 Siūlymai</div>
+      <div class="dbot-btn" id="kvRebuildBtn" onclick="rebuildKVCache()" style="display:none;background:rgba(74,140,92,.15);border-color:var(--green);color:var(--green)">🔄 Atnaujinti KV talpyklą</div>
     </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v13</div>
   </div>
@@ -1597,6 +1601,11 @@ function initMap(){
   [100,400,900,1800].forEach(ms=>setTimeout(()=>map.invalidateSize(),ms));
   window.addEventListener('resize',()=>map.invalidateSize());
   map.on('click',e=>{
+    // Suggest spot pick mode
+    if(_sugPickMode){
+      _handleSuggestMapPick(e);
+      return;
+    }
     if(pickingForEditor){
       document.getElementById('eLat').value=e.latlng.lat.toFixed(6);
       document.getElementById('eLng').value=e.latlng.lng.toFixed(6);
@@ -2287,7 +2296,7 @@ function openSheet(spot){
         <div class="dbadge" id="distBadge">—</div>
         <button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button>
         <button class="editbtn" id="favBtn" onclick="toggleFavorite()" title="Mėgstamiausi" style="font-size:18px;padding:10px 12px">${favorites.has(String(spot.id))||favorites.has(spot.id)?'♥':'♡'}</button>
-        ${(window._fbUser&&window._fbUser.uid==='YOUR_UID_HERE')?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
+        ${(window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1')?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
       </div>
     `;
   }
@@ -4318,7 +4327,7 @@ function osmToggleManual(){
 }
 
 // ═══════════ ADMIN HELPER ═══════════
-function isAdmin(){return window._fbUser&&window._fbUser.uid==='YOUR_UID_HERE';}
+function isAdmin(){return window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';}
 
 // ═══════════ USERNAME PROMPT ═══════════
 function maybePromptUsername(){
@@ -4376,6 +4385,33 @@ function suggestUseGPS(){
   }
 }
 
+let _sugPickMode=false;
+function suggestPickOnMap(){
+  // Close modal, enter pick mode
+  document.getElementById('suggestOverlay').classList.remove('show');
+  _sugPickMode=true;
+  toast('🗺 Bakstelėk žemėlapyje norimą vietą','info');
+  // Show a banner on map
+  const banner=document.createElement('div');
+  banner.id='sugPickBanner';
+  banner.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:500;background:var(--gold);color:#0e0c09;border-radius:20px;padding:8px 18px;font-family:"DM Sans",sans-serif;font-size:.85rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.3);pointer-events:none';
+  banner.textContent='📍 Bakstelėk žemėlapyje → vieta bus parinkta';
+  document.body.appendChild(banner);
+}
+
+function _handleSuggestMapPick(e){
+  if(!_sugPickMode) return;
+  _sugPickMode=false;
+  _sugLat=e.latlng.lat;
+  _sugLng=e.latlng.lng;
+  // Remove banner
+  document.getElementById('sugPickBanner')?.remove();
+  // Reopen modal with coords filled
+  document.getElementById('sugCoords').textContent=`📍 ${_sugLat.toFixed(5)}, ${_sugLng.toFixed(5)}`;
+  document.getElementById('suggestOverlay').classList.add('show');
+  toast('📍 Vieta parinkta!','success');
+}
+
 async function submitSuggestion(){
   const user=window._fbUser;
   if(!user){toast('⚠ Prisijunk norėdamas siūlyti vietas','info');return;}
@@ -4419,8 +4455,8 @@ async function renderMySuggestions(){
   }
   body.innerHTML=`<div style="padding:20px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)">⏳ Kraunama...</div>`;
   try{
-    const{db,collection,getDocs,query,where,orderBy}=window._fb;
-    const q=query(collection(db,'suggestions'),where('uid','==',user.uid),orderBy('createdAt','desc'));
+    const{db,collection,getDocs,query,where}=window._fb;
+    const q=query(collection(db,'suggestions'),where('uid','==',user.uid));
     const snap=await getDocs(q);
     if(snap.empty){
       body.innerHTML=`<div style="padding:40px 20px;text-align:center">
@@ -4459,8 +4495,8 @@ async function renderAdminSuggestions(){
   if(!isAdmin()){body.innerHTML='';return;}
   body.innerHTML=`<div style="padding:20px;text-align:center;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)">⏳ Kraunama...</div>`;
   try{
-    const{db,collection,getDocs,query,where,orderBy}=window._fb;
-    const q=query(collection(db,'suggestions'),where('status','==','pending'),orderBy('createdAt','desc'));
+    const{db,collection,getDocs,query,where}=window._fb;
+    const q=query(collection(db,'suggestions'),where('status','==','pending'));
     const snap=await getDocs(q);
     if(snap.empty){
       body.innerHTML=`<div style="padding:30px 16px;text-align:center;color:var(--td);font-size:.85rem">✅ Nėra laukiančių siūlymų</div>`;
@@ -4953,7 +4989,7 @@ self.addEventListener('fetch',e=>{
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=function(user){
   document.getElementById('authBar').classList.remove('hidden');
-  const isAdmin=user&&user.uid==='YOUR_UID_HERE';
+  const isAdmin=user&&user.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
   // Show admin-only UI
   document.getElementById('adminFab').style.display=isAdmin?'flex':'none';
   document.getElementById('drawerAddBtn').style.display=isAdmin?'':'none';
@@ -4961,6 +4997,7 @@ window.onFbAuthReady=function(user){
   document.getElementById('drawerReviewsBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerWikiEnrichBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerSuggestionsBtn').style.display=isAdmin?'':'none';
+  document.getElementById('kvRebuildBtn').style.display=isAdmin?'':'none';
   // Show suggest nav for authenticated users
   document.getElementById('suggestNavItem').style.display=user?'':'none';
   document.getElementById('mySuggestionsNavItem').style.display=user?'':'none';
@@ -5118,7 +5155,7 @@ function fbLogout(){
   });
 }
 
-// ═══════════ FIREBASE SPOTS SYNC ═══════════
+// ═══════════ SPOTS LOADING (KV cache → localStorage fallback) ═══════════
 
 function setSyncDot(state){
   const d=document.getElementById('syncDot');
@@ -5126,45 +5163,132 @@ function setSyncDot(state){
   d.className='sync-dot'+(state==='synced'?' synced':state==='syncing'?' syncing':'');
 }
 
-// Load shared spots from Firestore (replaces/merges with defaults)
-let _fbSeeding=false; // local lock to prevent race condition double-push
+const SPOTS_CACHE_KEY='kex_spots_kv_v1';
+const SPOTS_CACHE_TTL=24*60*60*1000; // 24 hours
 
 async function fbLoadSpots(){
-  const{db,collection,onSnapshot,doc,getDoc,setDoc,query,where}=window._fb||{};
-  if(!db) return;
   setSyncDot('syncing');
+
+  // 1. Try localStorage cache first (fast, zero reads)
   try{
-    onSnapshot(collection(db,'spots'),async snapshot=>{
-      if(snapshot.empty){
-        const isAdmin=window._fbUser&&window._fbUser.uid==='YOUR_UID_HERE';
-        if(!isAdmin||_fbSeeding) return;
-        _fbSeeding=true;
-        const flagRef=doc(db,'_meta','seeded');
-        const flagSnap=await getDoc(flagRef);
-        if(flagSnap.exists()){_fbSeeding=false;return;}
-        await setDoc(flagRef,{at:window._fb.serverTimestamp()});
-        await fbPushDefaultSpots();
-        _fbSeeding=false;
-        return;
-      }
-      const firestoreSpots=[];
-      snapshot.forEach(d=>{
-        const data=d.data();
-        firestoreSpots.push({radius:DEFAULT_RADIUS,...data,_fid:d.id,id:d.id});
-      });
-      SPOTS=firestoreSpots;
+    const cached=JSON.parse(localStorage.getItem(SPOTS_CACHE_KEY)||'null');
+    if(cached&&cached.ts&&Date.now()-cached.ts<SPOTS_CACHE_TTL&&Array.isArray(cached.spots)&&cached.spots.length>0){
+      SPOTS=cached.spots;
       refreshMarkers();
       updateAll();
       setSyncDot('synced');
       const sub=document.getElementById('authSub');
-      if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
+      if(sub) sub.textContent=`${SPOTS.length} vietos (talpykla)`;
       if(isPanelOpen('enrich')) renderEnrichPanel();
+      return;
+    }
+  }catch(e){console.warn('Cache read error',e);}
+
+  // 2. Fetch from KV via Worker endpoint
+  try{
+    const res=await fetch('/api/spots');
+    if(res.ok){
+      const spots=await res.json();
+      if(Array.isArray(spots)&&spots.length>0){
+        SPOTS=spots;
+        // Save to localStorage cache
+        try{
+          localStorage.setItem(SPOTS_CACHE_KEY,JSON.stringify({ts:Date.now(),spots}));
+        }catch(e){console.warn('Cache write error',e);}
+        refreshMarkers();
+        updateAll();
+        setSyncDot('synced');
+        const sub=document.getElementById('authSub');
+        if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
+        if(isPanelOpen('enrich')) renderEnrichPanel();
+        return;
+      }
+    }
+  }catch(e){console.warn('KV fetch failed, falling back to Firestore',e);}
+
+  // 3. Fallback — load directly from Firestore (KV not populated yet)
+  await fbLoadSpotsFromFirestore();
+}
+
+// Direct Firestore load — used as fallback and for initial cache rebuild
+let _fbSeeding=false;
+async function fbLoadSpotsFromFirestore(){
+  const{db,collection,getDocs,doc,getDoc,setDoc}=window._fb||{};
+  if(!db) return;
+  try{
+    const snapshot=await getDocs(collection(db,'spots'));
+    if(snapshot.empty){
+      const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
+      if(!isAdmin||_fbSeeding) return;
+      _fbSeeding=true;
+      const flagRef=doc(db,'_meta','seeded');
+      const flagSnap=await getDoc(flagRef);
+      if(flagSnap.exists()){_fbSeeding=false;return;}
+      await setDoc(flagRef,{at:window._fb.serverTimestamp()});
+      await fbPushDefaultSpots();
+      _fbSeeding=false;
+      return;
+    }
+    const firestoreSpots=[];
+    snapshot.forEach(d=>{
+      const data=d.data();
+      firestoreSpots.push({radius:DEFAULT_RADIUS,...data,_fid:d.id,id:d.id});
     });
-  } catch(e){
-    console.error('fbLoadSpots',e);
+    SPOTS=firestoreSpots;
+    refreshMarkers();
+    updateAll();
+    setSyncDot('synced');
+    const sub=document.getElementById('authSub');
+    if(sub) sub.textContent=`${SPOTS.length} vietos (Firestore)`;
+    if(isPanelOpen('enrich')) renderEnrichPanel();
+  }catch(e){
+    console.error('fbLoadSpotsFromFirestore',e);
     setSyncDot('');
     toast('Nepavyko prisijungti prie DB','info');
   }
+}
+
+// ── ADMIN: Rebuild KV cache from current SPOTS ──
+async function rebuildKVCache(){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
+  const btn=document.getElementById('kvRebuildBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Kraunama iš Firestore...';}
+  toast('⏳ Įkeliami visi taškai iš Firestore...','info');
+  try{
+    // Always fetch fresh from Firestore for rebuild
+    await fbLoadSpotsFromFirestore();
+    if(btn){btn.textContent='⏳ Siunčiama į KV...';}
+    // Strip Firestore-only fields that aren't needed client-side
+    const spotsToCache=SPOTS.map(s=>({...s}));
+    const res=await fetch('/api/admin/rebuild',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'X-Admin-Secret':'lithuania2026'
+      },
+      body:JSON.stringify(spotsToCache)
+    });
+    if(res.ok){
+      const data=await res.json();
+      // Also update localStorage cache
+      try{
+        localStorage.setItem(SPOTS_CACHE_KEY,JSON.stringify({ts:Date.now(),spots:spotsToCache}));
+      }catch(e){}
+      toast(`✅ KV atnaujinta! ${data.count} vietų talpykloje.`,'success');
+      if(btn){btn.disabled=false;btn.textContent='🔄 Atnaujinti KV talpyklą';}
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  }catch(e){
+    toast(`❌ Klaida: ${e.message}`,'info');
+    if(btn){btn.disabled=false;btn.textContent='🔄 Atnaujinti KV talpyklą';}
+  }
+}
+
+// Clear local spots cache (force fresh load next time)
+function clearSpotsCache(){
+  localStorage.removeItem(SPOTS_CACHE_KEY);
+  toast('🗑 Talpykla išvalyta — perkrauk puslapį','info');
 }
 
 // Push all DEFAULT_SPOTS to Firestore — called once on first ever load
@@ -5293,7 +5417,7 @@ save=function(){
 
 const _origSaveSpot=saveSpot;
 saveSpot=async function(){
-  if(!window._fbUser||window._fbUser.uid!=='YOUR_UID_HERE'){
+  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
     toast('⚠ Tik administratorius gali pridėti vietas','info');return;
   }
   const name=document.getElementById('eName').value.trim();
@@ -5329,7 +5453,7 @@ saveSpot=async function(){
 
 const _origDeleteSpot=deleteSpot;
 deleteSpot=async function(){
-  if(!window._fbUser||window._fbUser.uid!=='YOUR_UID_HERE'){
+  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
     toast('⚠ Tik administratorius gali trinti vietas','info');return;
   }
   const id=document.getElementById('eId').value;if(!id)return;
