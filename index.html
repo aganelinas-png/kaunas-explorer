@@ -1507,28 +1507,29 @@ function buildSpotLevelMap(spots){
   // Sort spots deterministically by seeded hash so assignment is stable across all clients
   const sorted=[...eligible].sort((a,b)=>seededHash(String(a.id)+'v1')-seededHash(String(b.id)+'v1'));
 
-  // Level batch sizes: L1=3000, L2-L10 ~150 each, L11-L25 ~100 each,
-  // L26-L40 ~60 each, L41-L49 ~35 each, L50 = remainder (rarest hand-picked T3/T5)
+  // LINEAR scaling: L1=20% of total, L50=100%. Each level adds equal share of remaining 80%.
+  // batchSize per level = (total * 0.8) / 49 for L2-L50, L1 gets total*0.2
+  const totalEligible=eligible.length;
+  const l1Count=Math.round(totalEligible*0.20);
+  const perLevel=Math.round((totalEligible-l1Count)/49);
   const batchSizes=[];
-  batchSizes.push(3000); // L1
-  for(let l=2;l<=10;l++) batchSizes.push(150);  // L2-10: 9×150=1350
-  for(let l=11;l<=25;l++) batchSizes.push(90);  // L11-25: 15×90=1350
-  for(let l=26;l<=40;l++) batchSizes.push(55);  // L26-40: 15×55=825
-  for(let l=41;l<=49;l++) batchSizes.push(30);  // L41-49: 9×30=270
+  batchSizes.push(l1Count); // L1: 20%
+  for(let l=2;l<=49;l++) batchSizes.push(perLevel);
   batchSizes.push(9999); // L50: all remaining
 
   // Tier weighting per level: [T1%, T2%, T3%]
-  // Early = more T3 (unknown discoveries), late = almost all T3
+  // Linear batches — tier mix creates quality curve: T3-heavy early, rarities at high levels
   function tierWeight(lvl){
     if(lvl===1)  return[0.20,0.40,0.40];
-    if(lvl<=5)   return[0.25,0.40,0.35];
-    if(lvl<=10)  return[0.28,0.38,0.34];
-    if(lvl<=15)  return[0.30,0.38,0.32];
-    if(lvl<=20)  return[0.25,0.38,0.37];
-    if(lvl<=25)  return[0.20,0.35,0.45];
-    if(lvl<=35)  return[0.12,0.28,0.60];
-    if(lvl<=45)  return[0.07,0.18,0.75];
-    return[0.03,0.10,0.87];
+    if(lvl<=5)   return[0.22,0.40,0.38];
+    if(lvl<=10)  return[0.25,0.38,0.37];
+    if(lvl<=15)  return[0.28,0.37,0.35];
+    if(lvl<=20)  return[0.25,0.36,0.39];
+    if(lvl<=25)  return[0.20,0.33,0.47];
+    if(lvl<=30)  return[0.15,0.28,0.57];
+    if(lvl<=38)  return[0.10,0.22,0.68];
+    if(lvl<=45)  return[0.06,0.15,0.79];
+    return[0.03,0.08,0.89];
   }
 
   // Separate pools by tier and geo region
