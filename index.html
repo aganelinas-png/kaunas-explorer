@@ -4214,8 +4214,13 @@ async function fetchKpdData(forceRefresh){
       const c=JSON.parse(localStorage.getItem(KPD_CACHE_KEY)||'null');
       if(c&&Date.now()-c.ts<KPD_CACHE_TTL&&c.data?.length){
         _kpdData=c.data;
-        // Recheck alreadyIn
-        _kpdData.forEach(x=>{x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);});
+        // Recheck alreadyIn with tight radius
+        _kpdData.forEach(x=>{
+          x.alreadyIn=SPOTS.some(s=>
+            (s.tag&&s.tag===x.tag)
+            ||(Math.abs(s.lat-x.lat)<0.0001&&Math.abs(s.lng-x.lng)<0.0001)
+          );
+        });
         setS(`✅ ${_kpdData.length} objektų (talpykla · ${new Date(c.ts).toLocaleDateString('lt-LT')})`);
         renderOsmImport();
         setTimeout(()=>renderKpdList(),0);
@@ -4256,20 +4261,38 @@ async function fetchKpdData(forceRefresh){
       // Dedupe by coords + name
       .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002&&y.name===x.name)===i);
 
-    // Check alreadyIn against current SPOTS
+    // Check alreadyIn against current SPOTS — use tight 10m radius
+    // 0.0001° ≈ 10m — only exact same location counts as duplicate
     processed.forEach(x=>{
-      x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);
+      x.alreadyIn=SPOTS.some(s=>
+        s.tag&&s.tag===x.tag  // same KPD code = definite duplicate
+        ||(Math.abs(s.lat-x.lat)<0.0001&&Math.abs(s.lng-x.lng)<0.0001) // same coords ~10m
+      );
     });
 
     _kpdData=processed;
-    // Save cache
-    try{localStorage.setItem(KPD_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_kpdData}));}catch(e){
-      console.warn('KPD cache too large, skipping localStorage');
+    // Save cache — skip if too large
+    try{
+      const cacheStr=JSON.stringify({ts:Date.now(),data:_kpdData});
+      if(cacheStr.length<4500000){ // 4.5MB safety limit
+        localStorage.setItem(KPD_CACHE_KEY,cacheStr);
+      } else {
+        console.warn(`KPD cache too large (${Math.round(cacheStr.length/1024)}KB), skipping localStorage`);
+      }
+    }catch(e){
+      console.warn('KPD cache save failed',e);
     }
     const newCount=_kpdData.filter(x=>!x.alreadyIn).length;
-    setS(`✅ ${_kpdData.length} objektų · ${_kpdData.filter(x=>x.alreadyIn).length} jau DB · ${newCount} naujų`);
+    const alreadyCount=_kpdData.filter(x=>x.alreadyIn).length;
+    setS(`✅ ${_kpdData.length} objektų įkelti · ${alreadyCount} jau DB · ${newCount} naujų`);
+    // Rebuild panel then list
     renderOsmImport();
-    setTimeout(()=>renderKpdList(),0);
+    // Give DOM time to rebuild before populating list
+    setTimeout(()=>{
+      const el=document.getElementById('kpdList');
+      if(el) renderKpdList();
+      else console.warn('kpdList element not found after renderOsmImport');
+    },100);
   }catch(e){
     setS(`❌ Klaida: ${e.message}`);
     console.error('KPD fetch error',e);
