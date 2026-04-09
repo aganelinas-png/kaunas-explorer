@@ -862,7 +862,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="fgroup" data-group="heritage" onclick="toggleFilterGroup('heritage')">🏛 Paveldas <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="nature" onclick="toggleFilterGroup('nature')">🌿 Gamta <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="urban" onclick="toggleFilterGroup('urban')">🏙 Miestas <span class="fg-arr">▾</span></div>
-    <div class="fgroup" id="cityFilterPill" onclick="toggleCityFilter()">🏙 Miestas <span class="fg-arr" id="cityFilterArr">▾</span></div>
+    <div class="fgroup" id="cityFilterPill" onclick="toggleCityFilter()">📍 Regionas <span class="fg-arr" id="cityFilterArr">▾</span></div>
   </div>
   <div class="tb-right">
     <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
@@ -1863,10 +1863,14 @@ function showCityFilterSheet(){
     el.style.cssText='position:fixed;top:calc(60px + env(safe-area-inset-top));left:0;right:0;z-index:199;background:var(--surf);border-bottom:1px solid var(--bdr);padding:10px 12px;display:flex;flex-wrap:wrap;gap:6px;box-shadow:0 4px 16px var(--sh);max-height:180px;overflow-y:auto';
     document.body.appendChild(el);
   }
-  const cities=Object.keys(CITY_BOUNDS).sort();
+  // Only show cities that actually have spots in the current SPOTS array
+  const citiesWithSpots=Object.keys(CITY_BOUNDS).filter(city=>{
+    const b=CITY_BOUNDS[city];
+    return SPOTS.some(s=>s.cat!=='hidden'&&s.lat>=b.sw[0]&&s.lat<=b.ne[0]&&s.lng>=b.sw[1]&&s.lng<=b.ne[1]);
+  }).sort();
   el.innerHTML=`
     <div class="fcap ${activeCity==='all'?'on':''}" onclick="setCityFilter('all')">🇱🇹 Visos</div>
-    ${cities.map(c=>`<div class="fcap ${activeCity===c?'on':''}" onclick="setCityFilter('${c}')">${c}</div>`).join('')}
+    ${citiesWithSpots.map(c=>`<div class="fcap ${activeCity===c?'on':''}" onclick="setCityFilter('${c}')">${c}</div>`).join('')}
   `;
   el.style.display='flex';
 }
@@ -1883,7 +1887,7 @@ function setCityFilter(city){
   activeCity=city;
   const pill=document.getElementById('cityFilterPill');
   if(pill){
-    pill.innerHTML=city==='all'?`🏙 Miestas <span class="fg-arr" id="cityFilterArr">▾</span>`:`📍 ${city} <span class="fg-arr" id="cityFilterArr">▾</span>`;
+    pill.innerHTML=city==='all'?`📍 Regionas <span class="fg-arr" id="cityFilterArr">▾</span>`:`📍 ${city} <span class="fg-arr" id="cityFilterArr">▾</span>`;
     pill.classList.toggle('on',city!=='all');
   }
   closeCityFilterSheet();
@@ -3791,16 +3795,54 @@ function renderOsmManualUI(){
   const el=document.getElementById('osmManualGrid');
   if(!el) return;
   const cache=osmGetManualCache();
-  el.innerHTML=CITY_BBOXES_GLOBAL.map(([city,bbox],i)=>{
-    const c=cache[city];
-    const btnId=`osmRgnBtn_${i}`;
-    const status=c?`<span style="color:var(--gold);font-size:.6rem">✓ ${c.count} · ${new Date(c.ts).toLocaleDateString('lt-LT')}</span>`:`<span style="color:var(--tm);font-size:.6rem">—</span>`;
-    return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:.72rem;flex:1;font-family:'DM Mono',monospace">${city}</span>
-      ${status}
-      <button id="${btnId}" class="osm-ctrl-btn" style="padding:2px 8px;font-size:.65rem" onclick="fetchOsmRegion('${city}','${bbox}','${btnId}')">🔄 Fetch</button>
-    </div>`;
-  }).join('');
+  el.innerHTML=`
+    <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <button class="osm-ctrl-btn" onclick="osmCheckAll(true)">☑ Visi</button>
+      <button class="osm-ctrl-btn" onclick="osmCheckAll(false)">☐ Jokie</button>
+      <button class="osm-ctrl-btn pri" onclick="osmFetchChecked()" id="osmFetchCheckedBtn">🔄 Fetch pasirinktus</button>
+    </div>
+    ${CITY_BBOXES_GLOBAL.map(([city,bbox],i)=>{
+      const c=cache[city];
+      const status=c
+        ?`<span style="color:var(--gold);font-size:.6rem">✓ ${c.count} · ${new Date(c.ts).toLocaleDateString('lt-LT')}</span>`
+        :`<span style="color:var(--tm);font-size:.6rem">—</span>`;
+      return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--bdr)">
+        <input type="checkbox" id="osmChk_${i}" style="accent-color:var(--gold);width:14px;height:14px;flex-shrink:0">
+        <span style="font-size:.75rem;flex:1;font-family:'DM Mono',monospace">${city}</span>
+        ${status}
+        <button id="osmRgnBtn_${i}" class="osm-ctrl-btn" style="padding:2px 8px;font-size:.65rem" onclick="fetchOsmRegion('${city}','${bbox}','osmRgnBtn_${i}')">🔄</button>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function osmCheckAll(val){
+  CITY_BBOXES_GLOBAL.forEach((_,i)=>{
+    const chk=document.getElementById(`osmChk_${i}`);
+    if(chk) chk.checked=val;
+  });
+}
+
+async function osmFetchChecked(){
+  const selected=CITY_BBOXES_GLOBAL.filter((_,i)=>{
+    const chk=document.getElementById(`osmChk_${i}`);
+    return chk&&chk.checked;
+  });
+  if(!selected.length){toast('⚠ Nepasirinkta jokių miestų','info');return;}
+  const btn=document.getElementById('osmFetchCheckedBtn');
+  if(btn){btn.disabled=true;btn.textContent=`⏳ 0/${selected.length}...`;}
+  for(let i=0;i<selected.length;i++){
+    const[city,bbox]=selected[i];
+    if(btn) btn.textContent=`⏳ ${i+1}/${selected.length}: ${city}`;
+    const tmpId=`osmTmpBtn_${i}`;
+    // inject a temp hidden button to reuse fetchOsmRegion
+    let tmpBtn=document.getElementById(tmpId);
+    if(!tmpBtn){tmpBtn=document.createElement('button');tmpBtn.id=tmpId;tmpBtn.style.display='none';document.body.appendChild(tmpBtn);}
+    await fetchOsmRegion(city,bbox,tmpId);
+    if(i<selected.length-1) await new Promise(r=>setTimeout(r,1200));
+  }
+  if(btn){btn.disabled=false;btn.textContent='🔄 Fetch pasirinktus';}
+  toast(`✅ Baigta! ${selected.length} miestų importuota`,'success');
 }
 
 async function fetchOsmData(){
