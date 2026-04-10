@@ -973,6 +973,13 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dnav-main-item" id="mySuggestionsNavItem" style="display:none" onclick="openSubPanel('mysuggestions')">
         <span class="dnmi-icon">🗂</span><span class="dnmi-label">Mano siūlymai</span><span class="dnmi-arrow">›</span>
       </div>
+      <!-- Admin data tools — only visible to admin -->
+      <div id="adminDataSection" style="display:none;margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px">
+        <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;padding:2px 4px 6px">Admin įrankiai</div>
+        <div onclick="rebuildKVCache()" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔄 Atnaujinti KV talpyklą</div>
+        <div onclick="exportSpotsCSV()" id="csvExportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">📥 Eksportuoti CSV</div>
+        <label id="csvImportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(201,168,76,.12);border:1px solid var(--gold);color:var(--gold);font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:8px">📤 Importuoti CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importSpotsCSV(this)"></label>
+      </div>
     </div>
     <div class="drawer-bottom" style="flex-shrink:0">
       <div class="dbot-btn pri" id="drawerAddBtn" onclick="closeDrawer();openEditor(null)" style="display:none">+ Nauja vieta</div>
@@ -980,9 +987,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn" id="drawerReviewsBtn" onclick="openSubPanel('reviews')" style="display:none">💬 Atsiliepimai</div>
       <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="openSubPanel('enrich')" style="display:none">📚 Wikipedia Enrich</div>
       <div class="dbot-btn" id="drawerSuggestionsBtn" onclick="openSubPanel('suggestions')" style="display:none">📬 Siūlymai</div>
-      <div class="dbot-btn" id="kvRebuildBtn" onclick="rebuildKVCache()" style="display:none;background:rgba(74,140,92,.15);border-color:var(--green);color:var(--green)">🔄 Atnaujinti KV talpyklą</div>
-      <div class="dbot-btn" id="csvExportBtn" onclick="exportSpotsCSV()" style="display:none;background:rgba(74,140,92,.15);border-color:var(--green);color:var(--green)">📥 Eksportuoti CSV</div>
-      <label class="dbot-btn" id="csvImportBtn" style="display:none;background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold);cursor:pointer">📤 Importuoti CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importSpotsCSV(this)"></label>
+      <div id="kvRebuildBtn" style="display:none"></div>
     </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v24.02</div>
   </div>
@@ -6168,9 +6173,11 @@ window.onFbAuthReady=async function(user){
   document.getElementById('drawerReviewsBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerWikiEnrichBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerSuggestionsBtn').style.display=isAdmin?'':'none';
-  document.getElementById('kvRebuildBtn').style.display=isAdmin?'':'none';
-  document.getElementById('csvExportBtn').style.display=isAdmin?'':'none';
-  document.getElementById('csvImportBtn').style.display=isAdmin?'':'none';
+  document.getElementById('kvRebuildBtn').style.display='none'; // now inside adminDataSection
+  document.getElementById('csvExportBtn').style.display=isAdmin?'flex':'none';
+  document.getElementById('csvImportBtn').style.display=isAdmin?'flex':'none';
+  const adminSection=document.getElementById('adminDataSection');
+  if(adminSection) adminSection.style.display=isAdmin?'block':'none';
   // Show suggest nav for authenticated users
   document.getElementById('suggestNavItem').style.display=user?'':'none';
   document.getElementById('mySuggestionsNavItem').style.display=user?'':'none';
@@ -6525,8 +6532,8 @@ async function importSpotsCSV(input){
 // ── ADMIN: Rebuild KV cache from current SPOTS ──
 async function rebuildKVCache(){
   if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
-  const btn=document.getElementById('kvRebuildBtn');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Kraunama iš Firestore...';}
+  const btn=document.querySelector('#adminDataSection div:first-of-type');
+  if(btn){btn.style.opacity='.5';btn.style.pointerEvents='none';btn.textContent='⏳ Kraunama...';}
   toast('⏳ Įkeliami visi taškai iš Firestore...','info');
   try{
     // Always fetch fresh from Firestore for rebuild
@@ -6549,13 +6556,13 @@ async function rebuildKVCache(){
         localStorage.setItem(SPOTS_CACHE_KEY,JSON.stringify({ts:Date.now(),spots:spotsToCache}));
       }catch(e){}
       toast(`✅ KV atnaujinta! ${data.count} vietų talpykloje.`,'success');
-      if(btn){btn.disabled=false;btn.textContent='🔄 Atnaujinti KV talpyklą';}
+      if(btn){btn.style.opacity='1';btn.style.pointerEvents='';btn.textContent='🔄 Atnaujinti KV talpyklą';}
     } else {
       throw new Error(`HTTP ${res.status}`);
     }
   }catch(e){
     toast(`❌ Klaida: ${e.message}`,'info');
-    if(btn){btn.disabled=false;btn.textContent='🔄 Atnaujinti KV talpyklą';}
+    if(btn){btn.style.opacity='1';btn.style.pointerEvents='';btn.textContent='🔄 Atnaujinti KV talpyklą';}
   }
 }
 
