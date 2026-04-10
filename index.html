@@ -27,7 +27,7 @@
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
@@ -42,6 +42,9 @@ const fbApp=initializeApp(firebaseConfig);
 const db=getFirestore(fbApp);
 const auth=getAuth(fbApp);
 const gProvider=new GoogleAuthProvider();
+
+// Ensure login persists across page refreshes
+setPersistence(auth,browserLocalPersistence).catch(()=>{});
 
 // Expose to global scope so non-module code can use them
 window._fb={db,auth,gProvider,
@@ -853,6 +856,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="logo-pill" onclick="handleLogoClick()">
       <div class="logo-text">Lithuania Explorer</div>
       <div class="logo-sub" id="topSub">0 / 0 surinkta</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.48rem;color:var(--tm);letter-spacing:.06em;margin-top:1px;opacity:.7">v24.01</div>
     </div>
     <div class="streak-pill" id="streakPill" style="display:none">🔥 <span id="streakNum">0</span></div>
   </div>
@@ -913,6 +917,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div style="display:flex;align-items:flex-start;justify-content:space-between">
         <div style="flex:1;min-width:0">
           <div class="drawer-logo">Lithuania Explorer</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.52rem;color:var(--tm);letter-spacing:.06em;margin-top:-2px;opacity:.7">v24.01</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
           <!-- XP progress bar -->
@@ -1329,33 +1334,6 @@ const BADGE_GROUPS=[
     {id:'h2',name:'Praeities balsas',desc:'Aplankyk 10 istorinių vietų',icon:'⚔️',need:10,xpReward:20},
     {id:'h3',name:'Laikų Mašina',desc:'Aplankyk 25 istorinių vietų',icon:'⏳',need:25,xpReward:20},
     {id:'h4',name:'Gyvas Istorijos Vadovėlis',desc:'Aplankyk 50 istorinių vietų',icon:'💎',need:50,xpReward:50},
-  ]},
-  {id:'monuments',title:'Skulptūrų kolekcionierius',icon:'🗿',cat:'monument',sub:true,badges:[
-    {id:'mon1',name:'Akmeninė istorija',desc:'Aplankyk 1 monumentą',icon:'🗿',need:1,xpReward:10},
-    {id:'mon2',name:'Skulptūrų sargas',desc:'Aplankyk 5 monumentus',icon:'🏺',need:5,xpReward:10},
-    {id:'mon3',name:'Miesto atminimas',desc:'Aplankyk 10 monumentų',icon:'🗽',need:10,xpReward:20},
-    {id:'mon4',name:'Akmens Šnabždesių Klausytojas',desc:'Aplankyk 25 monumentų',icon:'🪨',need:25,xpReward:20},
-    {id:'mon5',name:'Monumentų Dievas',desc:'Aplankyk 50 monumentų',icon:'💎',need:50,xpReward:50},
-  ]},
-  {id:'mounds',title:'Piliakalninkas',icon:'⛰️',cat:'mound',sub:true,badges:[
-    {id:'mnd1',name:'Kalno valdovas',desc:'Aplankyk 1 piliakalnis',icon:'⛰️',need:1,xpReward:10},
-    {id:'mnd2',name:'Senovės gynėjas',desc:'Aplankyk 4 piliakalnius',icon:'🪖',need:4,xpReward:10},
-    {id:'mnd3',name:'Aukštumų Narkomanas',desc:'Aplankyk 8 piliakalnius',icon:'🌄',need:8,xpReward:20},
-    {id:'mnd4',name:'Piliakalnių Imperatorius',desc:'Aplankyk 15 piliakalnius',icon:'💎',need:15,xpReward:50},
-  ]},
-  {id:'cemeteries',title:'Kapinių keleivas',icon:'⚱️',cat:'cemetery',sub:true,badges:[
-    {id:'cem1',name:'Atminties sargas',desc:'Aplankyk 2 kapines',icon:'⚱️',need:2,xpReward:10},
-    {id:'cem2',name:'Amžinojo poilsio tyrinėtojas',desc:'Aplankyk 5 kapines',icon:'🕯️',need:5,xpReward:10},
-    {id:'cem3',name:'Turistų Siaubas',desc:'Aplankyk 10 kapinių',icon:'💀',need:10,xpReward:20},
-    {id:'cem4',name:'Kapinių Someljė',desc:'Aplankyk 20 kapinių',icon:'💎',need:20,xpReward:50},
-  ]},
-  // ── Urban ──
-  {id:'murals',title:'Gatvės meno gerbėjas',icon:'🎨',cat:'mural',sub:true,badges:[
-    {id:'mrl1',name:'Pirmas piešinys',desc:'Aplankyk 1 gatvės meno kūrinį',icon:'🎨',need:1,xpReward:10},
-    {id:'mrl2',name:'Miesto tapytojas',desc:'Aplankyk 5 gatvės meno kūrinius',icon:'🖌️',need:5,xpReward:10},
-    {id:'mrl3',name:'Grafičio karalius',desc:'Aplankyk 10 gatvės meno kūrinių',icon:'🎭',need:10,xpReward:20},
-    {id:'mrl4',name:'Einantis Galerija',desc:'Aplankyk 25 gatvės meno kūrinių',icon:'🖼️',need:25,xpReward:20},
-    {id:'mrl5',name:'Miestas — Mano Drobė',desc:'Aplankyk 50 gatvės meno kūrinių',icon:'💎',need:50,xpReward:50},
   ]},
   {id:'watertowers',title:'Vandens bokštų medžiotojas',icon:'🗼',cat:'watertower',sub:true,badges:[
     {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1,xpReward:10},
@@ -1991,6 +1969,7 @@ function renderViewportMarkers(){
     if(!isSpotVisible(s)||s.cat==='hidden') return;
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(!show) return;
+    if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
     if(!bounds.contains([s.lat,s.lng])) return;
     if(!markers[s.id]){
       const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
@@ -6154,7 +6133,7 @@ self.addEventListener('fetch',e=>{
 
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=async function(user){
-  setTimeout(maybeShowUsernamePrompt,3000);
+  if(!user) setTimeout(maybeShowUsernamePrompt,3000);
   if(user){
     // Load user progress from Firestore (cross-device sync)
     try{
