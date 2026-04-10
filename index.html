@@ -856,7 +856,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="logo-pill" onclick="handleLogoClick()">
       <div class="logo-text">Lithuania Explorer</div>
       <div class="logo-sub" id="topSub">0 / 0 surinkta</div>
-      <div style="font-family:'DM Mono',monospace;font-size:.48rem;color:var(--tm);letter-spacing:.06em;margin-top:1px;opacity:.7">v24.01</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.48rem;color:var(--tm);letter-spacing:.06em;margin-top:1px;opacity:.7">v24.02</div>
     </div>
     <div class="streak-pill" id="streakPill" style="display:none">🔥 <span id="streakNum">0</span></div>
   </div>
@@ -917,7 +917,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div style="display:flex;align-items:flex-start;justify-content:space-between">
         <div style="flex:1;min-width:0">
           <div class="drawer-logo">Lithuania Explorer</div>
-          <div style="font-family:'DM Mono',monospace;font-size:.52rem;color:var(--tm);letter-spacing:.06em;margin-top:-2px;opacity:.7">v24.01</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.52rem;color:var(--tm);letter-spacing:.06em;margin-top:-2px;opacity:.7">v24.02</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
           <!-- XP progress bar -->
@@ -981,8 +981,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn" id="drawerWikiEnrichBtn" onclick="openSubPanel('enrich')" style="display:none">📚 Wikipedia Enrich</div>
       <div class="dbot-btn" id="drawerSuggestionsBtn" onclick="openSubPanel('suggestions')" style="display:none">📬 Siūlymai</div>
       <div class="dbot-btn" id="kvRebuildBtn" onclick="rebuildKVCache()" style="display:none;background:rgba(74,140,92,.15);border-color:var(--green);color:var(--green)">🔄 Atnaujinti KV talpyklą</div>
+      <div class="dbot-btn" id="csvExportBtn" onclick="exportSpotsCSV()" style="display:none;background:rgba(74,140,92,.15);border-color:var(--green);color:var(--green)">📥 Eksportuoti CSV</div>
+      <label class="dbot-btn" id="csvImportBtn" style="display:none;background:rgba(201,168,76,.15);border-color:var(--gold);color:var(--gold);cursor:pointer">📤 Importuoti CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importSpotsCSV(this)"></label>
     </div>
-    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v13</div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v24.02</div>
   </div>
 
   <!-- SUB-PANEL: slides in from right -->
@@ -1116,6 +1118,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="intro-dot on" id="introD0"></div>
     <div class="intro-dot" id="introD1"></div>
     <div class="intro-dot" id="introD2"></div>
+    <div class="intro-dot" id="introD3"></div>
+    <div class="intro-dot" id="introD4"></div>
+    <div class="intro-dot" id="introD5"></div>
   </div>
   <button class="intro-btn" id="introBtn" onclick="introNext()">Pradėti tyrinėti →</button>
 </div>
@@ -1274,31 +1279,7 @@ const CAT_DEFAULT_RADIUS={
   cemetery:220,
 };
 
-const DEFAULT_SPOTS=[
-  // T1
-  {id:1,name:'IX Fortas',cat:'fort',tier:1,year:'1902',time:'2 val.',price:'5 €',radius:120,bring:['Šiltus drabužius','Pagarbą'],history:'Caro laikų fortifikacijos kompleksas, tapęs vienu iš skaudžiausių Holokausto vietų Lietuvoje. 1941–1943 m. čia žuvo apie 30 000 žmonių. Šiandien – memorialas ir muziejus.',lat:54.9214,lng:23.8601,tag:'Memorialas'},
-  {id:2,name:'Kauno Soboras',cat:'church',tier:1,year:'1891',time:'30 min.',price:'Nemokama',radius:100,bring:['Pagarbą'],history:'Šv. Mykolo Arkangelo bažnyčia – ryškiausias neoviizantinis statinys Lietuvoje. Carizmo laikais – cerkvė, vėliau – katalikų bažnyčia. Mozaikiniai langai dominuoja Laisvės alėjos gale.',lat:54.8985,lng:23.9036,tag:'Neoviizantinis'},
-  {id:3,name:'Rotušės aikštė',cat:'history',tier:1,year:'1542',time:'30 min.',price:'Nemokama',radius:150,bring:[],history:'Kauno senamiesčio širdis – ovali aikštė su Baltąja Gulbe centre. Rotušė buvo net Napoleono štabas 1812 m.',lat:54.8974,lng:23.9156,tag:'Renesansas'},
-  {id:4,name:'Kauno Pilis',cat:'museum',tier:1,year:'~1360',time:'1 val.',price:'3 €',radius:100,bring:[],history:'Seniausia mūrinė pilis Lietuvoje. XIV a. atlaikė kryžiuočius ir totorius. Šiandien – muziejus su interaktyviais eksponatais apie viduramžių Kauną.',lat:54.8984,lng:23.9175,tag:'Viduramžiai'},
-  {id:5,name:'Laisvės Alėja',cat:'modern',tier:1,year:'1861',time:'1 val.',price:'Nemokama',radius:200,bring:['Gerą orą'],history:'1.7 km pėsčiųjų bulvaras – vienas ilgiausių Europoje. Tarpukariu čia koncentravosi Kauno gyvenimas. Kiekvienas pastatas – modernistinis manifestas.',lat:54.8976,lng:23.9210,tag:'Tarpukaris'},
-  {id:6,name:'Ąžuolynas',cat:'nature',tier:1,year:'~1880',time:'1-2 val.',price:'Nemokama',radius:200,bring:['Batelius'],history:'100 hektarų ąžuolų parkas – vienas didžiausių tokio tipo parkų Europoje. Kai kuriems ąžuolams – per 200 metų.',lat:54.9075,lng:23.9312,tag:'Gamtos paveldas'},
-  {id:7,name:'Vytauto Didžiojo Karo Muziejus',cat:'museum',tier:1,year:'1921',time:'2 val.',price:'4 €',radius:80,bring:['Smalsumą'],history:'Vienas pirmųjų tokio pobūdžio muziejų Baltijos šalyse. Kieme – Dariaus ir Girėno lėktuvo liekanos. Fasadas – modernistinis šedevras.',lat:54.8979,lng:23.9230,tag:'Karinis paveldas'},
-  {id:8,name:'Kauno Santaka',cat:'nature',tier:1,year:'—',time:'20 min.',price:'Nemokama',radius:150,bring:['Kamerą'],history:'Nemuno ir Neries santaka – geografinė Kauno širdis. Pilis čia pastatyta neatsitiktinai. Puikus vaizdas į abi upes vienu metu.',lat:54.8967,lng:23.9107,tag:'Geografija'},
-  // T2
-  {id:9,name:'VII Fortas',cat:'fort',tier:2,year:'1889',time:'1 val.',price:'Nemokama',radius:120,bring:['Tvirčius batus'],history:'Vienas iš devynių Kauno fortų žiedo. Šiandien iš dalies apaugęs mišku – beveik paslaptinga vieta. Reikia žinoti kur ieškoti.',lat:54.9302,lng:23.8750,tag:'Fortų žiedas'},
-  {id:10,name:'Šv. Gertrūdos bažnyčia',cat:'church',tier:2,year:'1503',time:'20 min.',price:'Nemokama',radius:60,bring:['Tylą'],history:'Viena seniausių bažnyčių Kaune – vėlyvosios gotikos perlas senamiestyje. Mažytė, tamsi, autentiška. Dauguma turistų praeina pro šalį.',lat:54.8978,lng:23.9142,tag:'Gotika'},
-  {id:11,name:'Žaliakalnio funikulierius',cat:'modern',tier:2,year:'1931',time:'20 min.',price:'1 €',radius:80,bring:[],history:'Vienas seniausių funikulierių Baltijos šalyse. Jungia senamiesčio slėnį su Žaliakalnio rajonu. Veikia iki šiol.',lat:54.9011,lng:23.9215,tag:'Inžinerinis paveldas'},
-  {id:12,name:'Stalino skulptūros pjedestalas',cat:'soviet',tier:2,year:'1950',time:'10 min.',price:'Nemokama',radius:80,bring:['Istorinį kontekstą'],history:'Tai kas liko nuo didžiulės Stalino skulptūros, nuverstos 1956 m. Pjedestalas stovi kaip nebylus liudytojas. Sovietinės istorijos artefaktas.',lat:54.9021,lng:23.9341,tag:'Destalinizacija'},
-  {id:13,name:'Aleksoto panorama',cat:'nature',tier:2,year:'—',time:'20 min.',price:'Nemokama',radius:100,bring:['Kamerą'],history:'Vienas geriausių vaizdų į Kauną – senamiesčio siluetas, upių santaka, pilies bokštas. Aleksotas – vienas seniausių rajonų.',lat:54.8941,lng:23.9091,tag:'Panorama'},
-  {id:14,name:'M. K. Čiurlionio dailės muziejus',cat:'museum',tier:2,year:'1925',time:'1.5 val.',price:'5 €',radius:80,bring:['Kantrybę menui'],history:'Didžiausias dailės muziejus Lietuvoje. Čiurlionis – unikalus reiškinys: kompozitorius ir dailininkas tuo pačiu. Kolekcija – pasaulinio lygio.',lat:54.9003,lng:23.9255,tag:'Dailė'},
-  {id:15,name:'Kristaus Prisikėlimo bazilika',cat:'church',tier:2,year:'1934',time:'40 min.',price:'2 €',radius:100,bring:['Kamerą'],history:'Didžiausia tarpukario bažnyčia Lietuvoje. Sovietmečiu paversta sporto sale. Atstatyta 2004 m. Iš viršaus – nuostabus vaizdas į Kauną.',lat:54.9021,lng:23.9241,tag:'Modernizmas'},
-  {id:16,name:'Lietūkio garažas',cat:'soviet',tier:2,year:'1941',time:'15 min.',price:'Nemokama',radius:60,bring:['Pagarbą'],history:'Vieta kur 1941 m. birželio 27 d. įvyko vienas iš siaubingiausių pogromos epizodų. Nedidelė atminimo lenta – vienintelis ženklas.',lat:54.8958,lng:23.9189,tag:'Skaudus paveldas'},
-  // T3
-  {id:17,name:'IV Fortas',cat:'fort',tier:3,year:'1890',time:'45 min.',price:'Nemokama',radius:150,bring:['Žibintuvėlį','Tvirčius batus'],history:'Vienas geriau išlikusių fortų. Požeminiai koridoriai iš dalies prieinami. Vietiniai mėgsta čia vaikščioti vasarą – bet reikia žinoti kelią.',lat:54.9401,lng:23.9112,tag:'Fortų žiedas'},
-  {id:18,name:'Pažaislio vienuolynas',cat:'history',tier:3,year:'1662',time:'1.5 val.',price:'3 €',radius:120,bring:['Ramybę'],history:'Vienas gražiausių baroko ansamblių Rytų Europoje. Kamaldulų vienuoliai čia gyveno šimtmečius. Marmuriniai interjerai ir freskos – kvapą gniaužianti vieta.',lat:54.8721,lng:24.0012,tag:'Barokas'},
-  {id:19,name:'Petrašiūnų karjeras',cat:'nature',tier:3,year:'—',time:'1 val.',price:'Nemokama',radius:200,bring:['Maudymosi kostiumą'],history:'Buvęs smėlio karjeras, tapęs maudymosi vieta. Švaraus vandens ežeras miesto pakraštyje. Vasarą – vietinių maudymosi mekka, turistų dar neatrastas.',lat:54.8812,lng:23.9678,tag:'Paslėptas'},
-  {id:20,name:'Lietuvos medicinos muziejus',cat:'museum',tier:3,year:'1936',time:'1 val.',price:'3 €',radius:80,bring:['Atvirą protą'],history:'Keistai užburiantis muziejus – seni medicinos instrumentai, istorinės vaistinės, anatomijos preparatai. Ne visiems, bet tiems kurie ateina – nepamirštama.',lat:54.8991,lng:23.9198,tag:'Neįprastas'},
-];
+const DEFAULT_SPOTS=[]; // removed — KV/Firestore is always populated
 
 const BADGE_GROUPS=[
   // ── Heritage ──
@@ -1339,6 +1320,20 @@ const BADGE_GROUPS=[
     {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1,xpReward:10},
     {id:'wt2',name:'Bokštų kolekcininkas',desc:'Aplankyk 5 vandens bokštus',icon:'🏗️',need:5,xpReward:20},
     {id:'wt3',name:'Hidroinžinierius Entuziastas',desc:'Aplankyk 12 vandens bokštų',icon:'💎',need:12,xpReward:50},
+  ]},
+  {id:'bridges',title:'Tiltų kolekcininkas',icon:'🌉',cat:'bridge',sub:true,badges:[
+    {id:'br1',name:'Pirmasis tiltas',desc:'Aplankyk 1 tiltą',icon:'🌉',need:1,xpReward:10},
+    {id:'br2',name:'Upių jungtis',desc:'Aplankyk 5 tiltus',icon:'🔗',need:5,xpReward:15},
+    {id:'br3',name:'Tiltų žinovas',desc:'Aplankyk 15 tiltų',icon:'⚙️',need:15,xpReward:30},
+    {id:'br4',name:'Inžinerijos entuziastas',desc:'Aplankyk 40 tiltų',icon:'🏗',need:40,xpReward:75},
+    {id:'br5',name:'Tiltų meistras',desc:'Aplankyk 80 tiltų',icon:'🌟',need:80,xpReward:150},
+    {id:'br6',name:'Lietuvos tiltų legenda',desc:'Aplankyk visus 142 tiltus',icon:'💎',need:142,xpReward:400},
+  ]},
+  {id:'trails',title:'Takų tyrinėtojas',icon:'🥾',cat:'trail',sub:true,badges:[
+    {id:'tr1',name:'Pirmasis takas',desc:'Aplankyk 1 taką',icon:'🥾',need:1,xpReward:10},
+    {id:'tr2',name:'Miško keliautojas',desc:'Aplankyk 3 takus',icon:'🌲',need:3,xpReward:20},
+    {id:'tr3',name:'Takų meistras',desc:'Aplankyk 7 takus',icon:'🗺',need:7,xpReward:40},
+    {id:'tr4',name:'Laukinės gamtos žinovas',desc:'Aplankyk visus 12 takų',icon:'💎',need:12,xpReward:100},
   ]},
   // ── Nature ──
   {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
@@ -1970,6 +1965,8 @@ function renderViewportMarkers(){
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(!show) return;
     if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
+    // 50km radius filter — only when GPS is available (admin sees all)
+    if(userLat!==null&&!isAdmin()&&dist(userLat,userLng,s.lat,s.lng)>GPS_VIEW_RADIUS) return;
     if(!bounds.contains([s.lat,s.lng])) return;
     if(!markers[s.id]){
       const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
@@ -2111,6 +2108,9 @@ function setCityFilter(city){
 
 function startGPS(){
   if(!navigator.geolocation){return;}
+  // Show waiting state on topbar until first fix
+  const sub=document.getElementById('topSub');
+  if(sub&&sub.textContent.includes('surinkta')) sub.textContent='📍 Laukiama GPS...';
   let firstFix=true;
   navigator.geolocation.watchPosition(pos=>{
     userLat=pos.coords.latitude;userLng=pos.coords.longitude;
@@ -2118,6 +2118,7 @@ function startGPS(){
     if(firstFix){
       firstFix=false;
       map.setView([userLat,userLng],14);
+      updateAll(); // refresh topSub with real count now GPS is ready
     }
     if(!userMarker){
       userMarker=L.circleMarker([userLat,userLng],{radius:9,fillColor:'#c9a84c',color:'#e8c878',weight:2,fillOpacity:.95}).addTo(map);
@@ -2148,6 +2149,7 @@ function refreshGPS(){
 }
 
 const PROX_DISPLAY_RADIUS=300; // metres — when prox popup shows
+const GPS_VIEW_RADIUS=50000; // 50km — only show spots within this range when GPS is available
 
 function checkProximity(){
   if(userLat===null) return;
@@ -3087,7 +3089,12 @@ function renderList(){
 
   const searchVal=(document.getElementById('spotSearchInput')?.value||'').toLowerCase().trim();
 
-  const unlockedSpots=SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden');
+  const unlockedSpots=SPOTS.filter(s=>{
+    if(!isSpotVisible(s)||s.cat==='hidden') return false;
+    // 50km radius filter when GPS available (admin sees all)
+    if(userLat!==null&&!isAdmin()&&dist(userLat,userLng,s.lat,s.lng)>GPS_VIEW_RADIUS) return false;
+    return true;
+  });
   const lockedSpots=SPOTS.filter(s=>!isSpotVisible(s)&&s.cat!=='hidden');
 
   const allCats=FILTER_GROUPS.flatMap(g=>g.cats);
@@ -3303,31 +3310,29 @@ async function loadLeaderboard(){
   if(!el) return;
 
   try{
-    // Query top 20 users sorted by selected tab
     const field=_lbTab==='xp'?'totalXP':_lbTab==='spots'?'foundCount':'streak';
-    // Firestore needs composite index for orderBy — use getDocs with client sort as fallback
-    const snap=await getDocs(collection(db,'users'));
-    if(snap.empty){el.innerHTML='<div class="lb-empty">Dar nėra žaidėjų 👀</div>';return;}
-
-    const users=[];
-    snap.forEach(d=>{
-      const data=d.data();
-      users.push({
-        uid:d.id,
-        name:data.playerName||'Anonimas',
-        xp:data.totalXP||0,
-        spots:data.foundCount||0,
-        streak:data.streak||0,
-        photo:data.photoURL||null
+    let users=[];
+    try{
+      // Try indexed query first (50 reads max, requires Firestore composite index)
+      const q=query(collection(db,'users'),orderBy(field,'desc'),limit(50));
+      const snap=await getDocs(q);
+      snap.forEach(d=>{
+        const data=d.data();
+        users.push({uid:d.id,name:data.playerName||data.name||'Anonimas',xp:data.totalXP||0,spots:data.foundCount||0,streak:data.streak||0,photo:data.photoURL||null});
       });
-    });
+    }catch(indexErr){
+      // Index not ready yet — fall back to full read with client sort
+      const snap=await getDocs(collection(db,'users'));
+      snap.forEach(d=>{
+        const data=d.data();
+        users.push({uid:d.id,name:data.playerName||data.name||'Anonimas',xp:data.totalXP||0,spots:data.foundCount||0,streak:data.streak||0,photo:data.photoURL||null});
+      });
+      const sortKey=_lbTab==='xp'?'xp':_lbTab==='spots'?'spots':'streak';
+      users.sort((a,b)=>b[sortKey]-a[sortKey]);
+    }
 
-    // Sort by selected tab
-    const sortKey=_lbTab==='xp'?'xp':_lbTab==='spots'?'spots':'streak';
-    users.sort((a,b)=>b[sortKey]-a[sortKey]);
+    if(!users.length){el.innerHTML='<div class="lb-empty">Dar nėra žaidėjų 👀</div>';return;}
     const top=users.slice(0,20);
-
-    const myUid=window._fbUser?.uid;
     const myRank=users.findIndex(u=>u.uid===myUid)+1;
     const myData=users.find(u=>u.uid===myUid);
 
@@ -5689,9 +5694,12 @@ function checkContributorBadges(count,isCurrentUser){
 
 
 const INTRO_STEPS=[
-  {glyph:'🗺',title:'Sveiki į Lithuania Explorer',sub:'Tyrinėk Lietuvą realiu laiku. Surink vietas fiziškai apsilankydamas.'},
-  {glyph:'📍',title:'Kaip surinkti vietą?',sub:'Prieik prie žymeklio žemėlapyje — sistema automatiškai aptiks tavo buvimo vietą.'},
-  {glyph:'🏅',title:'Atrakinkinėk & Kolekcionuok',sub:'Kiekviena surinkta vieta suteikia XP ir atveria naujas paslėptas Lietuvos vietas.'},
+  {glyph:'🗺',title:'Sveiki į Lithuania Explorer',sub:'Tyrinėk Lietuvą realiu laiku — surink vietas fiziškai apsilankydamas prie jų.'},
+  {glyph:'📍',title:'Kaip surinkti vietą?',sub:'Prieik prie žymeklio žemėlapyje ir paspausk "Surinkti". GPS aptiks tavo buvimo vietą automatiškai.'},
+  {glyph:'🔓',title:'Lygiai & atrakinimai',sub:'Pradedi su ~910 vietų. Kiekvienas lygis atveria naujas — iki viso 9000+ Lietuvoje.'},
+  {glyph:'🏅',title:'XP, ženkleliai & serijos',sub:'Kiekviena vieta duoda XP. Rinki ženklelius pagal kategorijas — bažnyčios, piliakalnis, fortai ir dar daugiau.'},
+  {glyph:'🏆',title:'Lyderių lentelė',sub:'Lenktyniauk su kitais tyrinėtojais. Prisijunk kad sinchronizuoti pažangą tarp įrenginių.'},
+  {glyph:'🚀',title:'Pradėk tyrinėti!',sub:'GPS veikia fone. Matai vietas 50 km spinduliu. Sėkmės renkant Lietuvą!',isLast:true},
 ];
 let _introStep=0;
 
@@ -6100,7 +6108,7 @@ load();initMap();updateAll();startGPS();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='kaunas-explorer-v13';
+const CACHE='kaunas-explorer-v24';
 const PRECACHE=['/'];
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PRECACHE)));
@@ -6161,6 +6169,8 @@ window.onFbAuthReady=async function(user){
   document.getElementById('drawerWikiEnrichBtn').style.display=isAdmin?'':'none';
   document.getElementById('drawerSuggestionsBtn').style.display=isAdmin?'':'none';
   document.getElementById('kvRebuildBtn').style.display=isAdmin?'':'none';
+  document.getElementById('csvExportBtn').style.display=isAdmin?'':'none';
+  document.getElementById('csvImportBtn').style.display=isAdmin?'':'none';
   // Show suggest nav for authenticated users
   document.getElementById('suggestNavItem').style.display=user?'':'none';
   document.getElementById('mySuggestionsNavItem').style.display=user?'':'none';
@@ -6327,7 +6337,7 @@ function setSyncDot(state){
 }
 
 const SPOTS_CACHE_KEY='kex_spots_kv_v1';
-const SPOTS_CACHE_TTL=24*60*60*1000; // 24 hours
+const SPOTS_CACHE_TTL=7*24*60*60*1000; // 7 days
 
 async function fbLoadSpots(){
   setSyncDot('syncing');
@@ -6369,8 +6379,13 @@ async function fbLoadSpots(){
     }
   }catch(e){console.warn('KV fetch failed, falling back to Firestore',e);}
 
-  // 3. Fallback — load directly from Firestore (KV not populated yet)
-  await fbLoadSpotsFromFirestore();
+  // 3. Fallback — Firestore direct load (admin only — prevents accidental 9k reads for regular users)
+  if(isAdmin()){
+    await fbLoadSpotsFromFirestore();
+  } else {
+    setSyncDot('');
+    toast('Vietos laikinai nepasiekiamos — bandyk vėliau','info');
+  }
 }
 
 // Direct Firestore load — used as fallback and for initial cache rebuild
@@ -6409,6 +6424,102 @@ async function fbLoadSpotsFromFirestore(){
     setSyncDot('');
     toast('Nepavyko prisijungti prie DB','info');
   }
+}
+
+// ── ADMIN: CSV Export ──
+function exportSpotsCSV(){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
+  const cols=['id','name','cat','tier','lat','lng','address','kpdCode','kpdUrl','tag','year','history','radius'];
+  const escape=v=>{
+    if(v===null||v===undefined) return '';
+    const s=String(v).replace(/"/g,'""');
+    return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s}"`:s;
+  };
+  const header=cols.join(',');
+  const rows=SPOTS.map(s=>cols.map(c=>escape(s[c])).join(','));
+  // UTF-8 BOM so Excel opens Lithuanian chars correctly
+  const bom='\uFEFF';
+  const csv=bom+header+'\n'+rows.join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`lithuania-explorer-spots-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(url);
+  toast(`📥 Eksportuota ${SPOTS.length} vietų`,'success');
+}
+
+// ── ADMIN: CSV Import ──
+async function importSpotsCSV(input){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
+  const file=input.files[0];
+  if(!file){return;}
+  const btn=document.getElementById('csvImportBtn');
+  btn.textContent='⏳ Importuojama...';
+
+  const text=await file.text();
+  // Strip BOM if present
+  const clean=text.replace(/^\uFEFF/,'');
+  const lines=clean.split('\n').filter(l=>l.trim());
+  if(lines.length<2){toast('❌ CSV tuščias arba neteisingas','info');btn.textContent='📤 Importuoti CSV';return;}
+
+  const header=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  const required=['id','name','cat','lat','lng'];
+  const missing=required.filter(r=>!header.includes(r));
+  if(missing.length){toast(`❌ Trūksta stulpelių: ${missing.join(', ')}`,'info');btn.textContent='📤 Importuoti CSV';return;}
+
+  // Parse CSV respecting quoted fields
+  function parseRow(line){
+    const vals=[];let cur='';let inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){
+        if(inQ&&line[i+1]==='"'){cur+='"';i++;}
+        else inQ=!inQ;
+      } else if(ch===','&&!inQ){vals.push(cur);cur='';}
+      else cur+=ch;
+    }
+    vals.push(cur);
+    return vals;
+  }
+
+  let updated=0,errors=0;
+  const updatedSpots=[...SPOTS];
+
+  for(let i=1;i<lines.length;i++){
+    try{
+      const vals=parseRow(lines[i]);
+      const row={};
+      header.forEach((h,idx)=>row[h]=vals[idx]?.trim().replace(/^"|"$/g,'')||'');
+      const id=row.id;
+      if(!id) continue;
+      const idx=updatedSpots.findIndex(s=>String(s.id)===String(id)||s._fid===id);
+      if(idx===-1){errors++;continue;}
+      // Only update editable fields — never touch lat/lng/id from import
+      const editable=['name','cat','tier','address','kpdCode','kpdUrl','tag','year','history','radius'];
+      editable.forEach(f=>{if(row[f]!==undefined&&row[f]!=='') updatedSpots[idx]={...updatedSpots[idx],[f]:f==='tier'||f==='radius'?Number(row[f]):row[f]};});
+      updated++;
+    }catch(e){errors++;}
+  }
+
+  if(updated===0){toast(`❌ Neatnaujinta nė viena vieta. Patikrink ID stulpelį.`,'info');btn.textContent='📤 Importuoti CSV';input.value='';return;}
+
+  // Confirm before pushing
+  const ok=confirm(`Atnaujinti ${updated} vietų KV talpykloje?${errors>0?`\n(${errors} eilučių praleista)`:''}`);
+  if(!ok){btn.textContent='📤 Importuoti CSV';input.value='';return;}
+
+  SPOTS=updatedSpots;
+  // Push to KV
+  try{
+    const res=await fetch('/api/admin/rebuild',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Secret':'lithuania2026'},body:JSON.stringify(SPOTS)});
+    if(res.ok){
+      const data=await res.json();
+      try{localStorage.setItem(SPOTS_CACHE_KEY,JSON.stringify({ts:Date.now(),spots:SPOTS}));}catch(e){}
+      toast(`✅ ${updated} vietų atnaujinta, ${data.count} KV talpykloje`,'success');
+      refreshMarkers();updateAll();
+    } else {throw new Error(`HTTP ${res.status}`);}
+  }catch(e){toast(`❌ KV klaida: ${e.message}`,'info');}
+  btn.textContent='📤 Importuoti CSV';
+  input.value='';
 }
 
 // ── ADMIN: Rebuild KV cache from current SPOTS ──
