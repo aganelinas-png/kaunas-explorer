@@ -1553,7 +1553,7 @@ function buildSpotLevelMap(spots){
   // Formula: visible(l) = total * (log(l+1)/log(51))^0.7
   const totalEligible=eligible.length;
   function logVisible(lvl){
-    return Math.round(totalEligible*Math.pow(Math.log(lvl+1)/Math.log(51),0.7));
+    return Math.round(totalEligible*Math.pow(Math.log(lvl+1)/Math.log(51),1.5));
   }
   const batchSizes=[];
   // Enforce minimum 10% at L1
