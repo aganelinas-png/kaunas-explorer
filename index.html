@@ -1239,8 +1239,8 @@ const CATS={
 };
 
 const FILTER_GROUPS=[
-  {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['fort','church','museum','history','monument','mound','cemetery']},
-  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint']},
+  {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['church','monument','mound','fort','museum','history','cemetery']},
+  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint','bridge','trail']},
   {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower']},
 ];
 
@@ -1303,11 +1303,17 @@ const BADGE_GROUPS=[
     {id:'f3',name:'Fortų valdovas',desc:'Aplankyk 6 fortų',icon:'⚔️',need:6,xpReward:20},
     {id:'f4',name:'Geležinis Gynėjas',desc:'Aplankyk 10 fortų',icon:'👑',need:10,xpReward:20},
     {id:'f5',name:'Tvirtovių Imperatorius',desc:'Aplankyk 20 fortų',icon:'💎',need:20,xpReward:50},
+    {id:'f6',name:'Fortų Legenda',desc:'Aplankyk 50 fortų',icon:'🌟',need:50,xpReward:150},
+    {id:'f7',name:'Neįveikiamas',desc:'Aplankyk visus fortus',icon:'🏆',need:119,xpReward:500},
   ]},
   {id:'churches',title:'Bažnyčių piligimas',icon:'⛪',cat:'church',sub:true,badges:[
     {id:'c1',name:'Piligimas',desc:'Aplankyk 1 bažnyčią',icon:'⛪',need:1,xpReward:10},
     {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Aplankyk 5 bažnyčias',icon:'✝️',need:5,xpReward:10},
     {id:'c3',name:'Dvasios keliautojas',desc:'Aplankyk 10 bažnyčių',icon:'🕊️',need:10,xpReward:20},
+    {id:'c4b',name:'Bažnyčių žinovas',desc:'Aplankyk 25 bažnyčias',icon:'🏛',need:25,xpReward:40},
+    {id:'c5b',name:'Bažnyčių meistras',desc:'Aplankyk 75 bažnyčias',icon:'⭐',need:75,xpReward:100},
+    {id:'c6b',name:'Bažnyčių legenda',desc:'Aplankyk 200 bažnyčių',icon:'💎',need:200,xpReward:300},
+    {id:'c7b',name:'Lietuvos piligimas',desc:'Aplankyk 500 bažnyčių',icon:'👑',need:500,xpReward:800},
     {id:'c4',name:'Šventasis',desc:'Aplankyk 20 bažnyčių',icon:'😇',need:20,xpReward:20},
     {id:'c5',name:'Dievo Architektas',desc:'Aplankyk 40 bažnyčių',icon:'💎',need:40,xpReward:50},
   ]},
@@ -1400,6 +1406,41 @@ const BADGE_GROUPS=[
     {id:'hid3',name:'Slaptas tyrinėtojas',desc:'Surask 7 paslėptas vietas',icon:'🕵️',need:7,xpReward:20},
     {id:'hid4',name:'Šešėlių Meistras',desc:'Surask 15 paslėptų vietų',icon:'🌑',need:15,xpReward:50},
     {id:'hid5',name:'???',desc:'???',icon:'👁️',need:30,xpReward:50},
+  ]},
+  {id:'mounds',title:'Piliakalnių žinovas',icon:'⛰',cat:'mound',sub:true,badges:[
+    {id:'mo1',name:'Pirmasis piliakalnis',desc:'Aplankyk 1 piliakalnį',icon:'⛰',need:1,xpReward:15},
+    {id:'mo2',name:'Istorijos ieškotojas',desc:'Aplankyk 5 piliakalnius',icon:'🗡',need:5,xpReward:25},
+    {id:'mo3',name:'Baltų palikuonis',desc:'Aplankyk 15 piliakalnių',icon:'🌾',need:15,xpReward:60},
+    {id:'mo4',name:'Piliakalnių valdovas',desc:'Aplankyk 40 piliakalnių',icon:'👑',need:40,xpReward:150},
+    {id:'mo5',name:'Legendinis gynėjas',desc:'Aplankyk 100 piliakalnių',icon:'💎',need:100,xpReward:400},
+  ]},
+  {id:'cemeteries',title:'Kapinių tyrinėtojas',icon:'⚱️',cat:'cemetery',sub:true,badges:[
+    {id:'ce1',name:'Pirmosios kapinės',desc:'Aplankyk 1 kapines',icon:'⚱️',need:1,xpReward:10},
+    {id:'ce2',name:'Atminties saugotojas',desc:'Aplankyk 5 kapines',icon:'🕯',need:5,xpReward:20},
+    {id:'ce3',name:'Amžinosios ramybės žinovas',desc:'Aplankyk 20 kapinių',icon:'🌹',need:20,xpReward:60},
+    {id:'ce4',name:'Kapinių meditatorius',desc:'Aplankyk 50 kapinių',icon:'💫',need:50,xpReward:150},
+    {id:'ce5',name:'Amžinybės sargas',desc:'Aplankyk 150 kapinių',icon:'💎',need:150,xpReward:500},
+  ]},
+  {id:'monuments',title:'Monumentų kolekcininkas',icon:'🗿',cat:'monument',sub:true,badges:[
+    {id:'mn1',name:'Pirmasis monumentas',desc:'Aplankyk 1 monumentą',icon:'🗿',need:1,xpReward:10},
+    {id:'mn2',name:'Skulptūrų žinovas',desc:'Aplankyk 10 monumentų',icon:'🏛',need:10,xpReward:25},
+    {id:'mn3',name:'Monumentų meistras',desc:'Aplankyk 30 monumentų',icon:'⭐',need:30,xpReward:75},
+    {id:'mn4',name:'Atminties kolekcionierius',desc:'Aplankyk 100 monumentų',icon:'💎',need:100,xpReward:300},
+  ]},
+  {id:'murals',title:'Gatvės meno žinovas',icon:'🎨',cat:'mural',sub:true,badges:[
+    {id:'mu1',name:'Pirmas kūrinys',desc:'Aplankyk 1 gatvės meno kūrinį',icon:'🎨',need:1,xpReward:10},
+    {id:'mu2',name:'Gatvės dailininkas',desc:'Aplankyk 10 kūrinių',icon:'🖌',need:10,xpReward:25},
+    {id:'mu3',name:'Miesto menininkas',desc:'Aplankyk 30 kūrinių',icon:'🌈',need:30,xpReward:75},
+    {id:'mu4',name:'Gatvės meno legenda',desc:'Aplankyk 80 kūrinių',icon:'💎',need:80,xpReward:250},
+  ]},
+  {id:'explorer',title:'Bendras tyrinėjimas',icon:'🧭',cat:null,sub:true,badges:[
+    {id:'ex1',name:'Pirmieji žingsniai',desc:'Surink 10 vietų',icon:'👣',all:true,need:10,xpReward:20},
+    {id:'ex2',name:'Smalsus keliautojas',desc:'Surink 50 vietų',icon:'🧭',all:true,need:50,xpReward:60},
+    {id:'ex3',name:'Tikras tyrinėtojas',desc:'Surink 100 vietų',icon:'🗺',all:true,need:100,xpReward:120},
+    {id:'ex4',name:'Lietuvos žinovas',desc:'Surink 250 vietų',icon:'🏅',all:true,need:250,xpReward:300},
+    {id:'ex5',name:'Legendinis keliautojas',desc:'Surink 500 vietų',icon:'⭐',all:true,need:500,xpReward:600},
+    {id:'ex6',name:'Nemirtingasis tyrinėtojas',desc:'Surink 1000 vietų',icon:'💫',all:true,need:1000,xpReward:1500},
+    {id:'ex7',name:'Lietuvos legenda',desc:'Surink 2000 vietų',icon:'💎',all:true,need:2000,xpReward:5000},
   ]},
   {id:'contributor',title:'Bendruomenės kūrėjas',icon:'🗺️',cat:null,badges:[
     {id:'con1',name:'Vietovės kūrėjas',desc:'1 siūlyta vieta patvirtinta',icon:'📍',contribNeed:1,xpReward:50},
@@ -1507,15 +1548,22 @@ function buildSpotLevelMap(spots){
   // Sort spots deterministically by seeded hash so assignment is stable across all clients
   const sorted=[...eligible].sort((a,b)=>seededHash(String(a.id)+'v1')-seededHash(String(b.id)+'v1'));
 
-  // LINEAR scaling: L1=20% of total, L50=100%. Each level adds equal share of remaining 80%.
-  // batchSize per level = (total * 0.8) / 49 for L2-L50, L1 gets total*0.2
+  // LOGARITHMIC scaling: L1=10%, L50=100%.
+  // Log curve: fast unlock early, slower mid, tiny batches at end.
+  // Formula: visible(l) = total * (log(l+1)/log(51))^0.7
   const totalEligible=eligible.length;
-  const l1Count=Math.round(totalEligible*0.20);
-  const perLevel=Math.round((totalEligible-l1Count)/49);
+  function logVisible(lvl){
+    return Math.round(totalEligible*Math.pow(Math.log(lvl+1)/Math.log(51),0.7));
+  }
   const batchSizes=[];
-  batchSizes.push(l1Count); // L1: 20%
-  for(let l=2;l<=49;l++) batchSizes.push(perLevel);
-  batchSizes.push(9999); // L50: all remaining
+  // Enforce minimum 10% at L1
+  const l1Target=Math.max(Math.round(totalEligible*0.10),logVisible(1));
+  let prev=0;
+  for(let l=1;l<=50;l++){
+    let target=l===1?l1Target:(l===50?totalEligible:logVisible(l));
+    batchSizes.push(Math.max(1,target-prev));
+    prev=Math.min(target,totalEligible);
+  }
 
   // Tier weighting per level: [T1%, T2%, T3%]
   // Linear batches — tier mix creates quality curve: T3-heavy early, rarities at high levels
@@ -1783,6 +1831,8 @@ function initMap(){
   applyTheme();
   [100,400,900,1800].forEach(ms=>setTimeout(()=>map.invalidateSize(),ms));
   window.addEventListener('resize',()=>map.invalidateSize());
+  map.on('moveend',scheduleViewportRender);
+  map.on('zoomend',scheduleViewportRender);
   map.on('click',e=>{
     // Close city filter if open
     if(_cityFilterOpen) closeCityFilterSheet();
@@ -1910,28 +1960,12 @@ function spotInCity(spot,city){
 }
 
 function refreshMarkers(){
-  if(!clusterGroup) return;
-  clusterGroup.clearLayers();
-
-  SPOTS.forEach(s=>{
-    if(s.cat==='hidden') return;
-    if(!isSpotUnlocked(s)){
-      if(markers[s.id]){clusterGroup.removeLayer(markers[s.id]);delete markers[s.id];}
-      return;
-    }
-    const show=activeFilter==='all'||activeFilter===s.cat;
-    if(markers[s.id]){
-      markers[s.id].setIcon(makeIcon(s));
-      if(show) clusterGroup.addLayer(markers[s.id]);
-    } else {
-      addMarkerToCluster(s,show);
-    }
-  });
-
-  // Remove markers for spots that no longer exist
+  if(!clusterGroup||!map) return;
+  // Clean up removed spots
   Object.keys(markers).forEach(id=>{
     if(!SPOTS.find(s=>s.id==id)){delete markers[id];}
   });
+  renderViewportMarkers();
 }
 
 function addMarkerToCluster(spot,show){
@@ -1940,6 +1974,34 @@ function addMarkerToCluster(spot,show){
   m.on('click',()=>openSheet(spot));
   markers[spot.id]=m;
   if(show&&clusterGroup) clusterGroup.addLayer(m);
+}
+
+// Viewport lazy rendering — only render markers near current map bounds
+let _viewportRenderPending=false;
+function scheduleViewportRender(){
+  if(_viewportRenderPending) return;
+  _viewportRenderPending=true;
+  setTimeout(()=>{_viewportRenderPending=false;renderViewportMarkers();},200);
+}
+function renderViewportMarkers(){
+  if(!map||!clusterGroup) return;
+  const bounds=map.getBounds().pad(0.5); // 50% padding beyond viewport
+  clusterGroup.clearLayers();
+  SPOTS.forEach(s=>{
+    if(!isSpotVisible(s)||s.cat==='hidden') return;
+    const show=activeFilter==='all'||activeFilter===s.cat;
+    if(!show) return;
+    if(!bounds.contains([s.lat,s.lng])) return;
+    if(!markers[s.id]){
+      const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
+      m._isMarker=true;
+      m.on('click',()=>openSheet(s));
+      markers[s.id]=m;
+    } else {
+      markers[s.id].setIcon(makeIcon(s));
+    }
+    clusterGroup.addLayer(markers[s.id]);
+  });
 }
 
 function centerUser(){
@@ -2478,6 +2540,7 @@ function openSheet(spot){
       </div>
       ${histHtml}
       ${isF?`<div class="note-box"><div class="note-t">📝 Mano pastaba</div><textarea class="note-area" id="noteArea" placeholder="Pridėk savo įspūdžius...">${notes[spot.id]||''}</textarea><button class="note-save" onclick="saveNote()">Išsaugoti</button></div>`:''}
+      ${spot.kpdUrl?`<a href="${spot.kpdUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);text-decoration:none;margin-bottom:6px;opacity:.85">📖 KPD registras ↗</a>`:''}
       <div class="area-hint">📡 Surinkimo zona: ${r}m spinduliu nuo vietos</div>
       <div class="crow">
         <div class="dbadge" id="distBadge">—</div>
@@ -2574,6 +2637,13 @@ function collectCurrent(){
   incrementDailyCollect();
   recordWeeklyCollect(selectedSpot.id);
   save();updateAll();
+  // Sync to Firestore if logged in
+  if(window._fbUser&&window._fb){
+    const{db,doc,setDoc}=window._fb;
+    setDoc(doc(db,'users',window._fbUser.uid),{
+      found:[...found],totalXP,streak,badges:[...earnedBadges],name:playerName
+    },{merge:true}).catch(()=>{});
+  }
 
   proxDismissedIds.delete(selectedSpot.id);
   hideProxPopup();
@@ -2643,7 +2713,7 @@ function closeUnlock(){
 // ═══════════ SURPRISE ═══════════
 
 function surpriseMe(){
-  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotVisible(s)&&s.cat!=='hidden');
+  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotVisible(s)&&s.cat!=='hidden'&&getSpotLevel(s)<=getPlayerLevel(totalXP));
   if(!unfound.length){toast('🎉 Viskas surinkta! Tu legenda!','gold');return;}
   // Truly random — no proximity bias
   const pick=unfound[Math.floor(Math.random()*unfound.length)];
@@ -2726,10 +2796,10 @@ function renderAboutMe(){
     <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:6px">
         <span style="font-size:.82rem;font-weight:700;color:var(--txt)">Matomos vietos</span>
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold);font-weight:600">${SPOTS.filter(s=>isSpotVisible(s)).length} / ${SPOTS.filter(s=>s.cat!=='hidden').length}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold);font-weight:600">${found.size} / ${SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden').length} matoma</span>
       </div>
       <div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${Math.round(SPOTS.filter(s=>isSpotVisible(s)).length/Math.max(1,SPOTS.filter(s=>s.cat!=='hidden').length)*100)}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:3px;transition:width .5s"></div>
+        <div style="height:100%;width:${Math.round(found.size/Math.max(1,SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden').length)*100)}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:3px;transition:width .5s"></div>
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-top:5px">Kitas lygis atrakina dar ${SPOTS.filter(s=>getSpotLevel(s)===lv.level+1).length} naujų vietų</div>
     </div>
@@ -5842,20 +5912,66 @@ function renderFavorites(){
 
 // ═══════════ REVIEW SYSTEM ═══════════
 
-const REVIEW_TRIGGER_COUNT=3; // show after 3rd collected spot
+const REVIEW_MILESTONES=[3,20,50,150]; // show review at these spot counts only
 let _reviewRating=0;
+// ═══════════ USERNAME ONBOARDING ═══════════
+function maybeShowUsernamePrompt(){
+  if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
+  // Only show if logged in or after a short delay for guests
+  setTimeout(()=>{
+    if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
+    showUsernameModal();
+  }, 2000);
+}
+
+function showUsernameModal(){
+  let el=document.getElementById('usernameModal');
+  if(!el){
+    el=document.createElement('div');
+    el.id='usernameModal';
+    el.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
+    el.innerHTML=`<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:12px">🗺</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px">Sveiki atvykę!</div>
+      <div style="font-size:.85rem;color:var(--td);margin-bottom:20px;line-height:1.5">Kaip tave vadinti? Tavo vardas pasirodys lyderių lentelėje.</div>
+      <input id="usernameInput" type="text" maxlength="20" placeholder="Tyrinėtojo vardas..."
+        style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--txt);outline:none;margin-bottom:14px;box-sizing:border-box">
+      <button onclick="confirmUsername()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">Pradėti tyrinėti →</button>
+      <div onclick="confirmUsername()" style="margin-top:10px;font-size:.75rem;color:var(--tm);cursor:pointer">Praleisti</div>
+    </div>`;
+    document.body.appendChild(el);
+  }
+  el.style.display='flex';
+  setTimeout(()=>document.getElementById('usernameInput')?.focus(),100);
+}
+
+function confirmUsername(){
+  const input=document.getElementById('usernameInput');
+  const name=(input?.value||'').trim();
+  if(name.length>=2) playerName=name;
+  save();
+  // Sync to Firestore if logged in
+  const user=window._fbUser;
+  if(user&&window._fb){
+    const{db,doc,setDoc}=window._fb;
+    setDoc(doc(db,'users',user.uid),{name:playerName},{merge:true}).catch(()=>{});
+  }
+  const el=document.getElementById('usernameModal');
+  if(el) el.style.display='none';
+  updateDrawerHeader();
+  updateAll();
+}
+
 let _reviewShownThisSession=false;
 
 function maybeShowReview(){
   if(_reviewShownThisSession) return;
-  if(found.size<REVIEW_TRIGGER_COUNT) return;
-  // Only show once per day per device
-  const lastReviewKey='kex_review_shown';
-  const lastShown=localStorage.getItem(lastReviewKey)||'';
-  const today=new Date().toDateString();
-  if(lastShown===today) return;
+  if(!REVIEW_MILESTONES.includes(found.size)) return;
+  const shownKey='kex_rev_'+found.size;
+  if(localStorage.getItem(shownKey)) return;
+  localStorage.setItem(shownKey,'1');
   _reviewShownThisSession=true;
-  setTimeout(()=>openReview(),900); // slight delay after collect animation
+  setTimeout(()=>openReview(),900);
 }
 
 function openReview(){
@@ -6037,7 +6153,25 @@ self.addEventListener('fetch',e=>{
 // Load any admin-saved routes
 
 // Show auth bar once Firebase module is ready
-window.onFbAuthReady=function(user){
+window.onFbAuthReady=async function(user){
+  setTimeout(maybeShowUsernamePrompt,3000);
+  if(user){
+    // Load user progress from Firestore (cross-device sync)
+    try{
+      const{db,doc,getDoc}=window._fb;
+      const snap=await getDoc(doc(db,'users',user.uid));
+      if(snap.exists()){
+        const d=snap.data();
+        if(d.found&&Array.isArray(d.found)) found=new Set(d.found);
+        if(d.name) playerName=d.name;
+        if(d.totalXP) totalXP=d.totalXP;
+        if(d.streak) streak=d.streak;
+        if(d.badges) earnedBadges=new Set(d.badges);
+        _spotLevelMap=null; // rebuild with fresh data
+        refreshMarkers();updateAll();
+      }
+    }catch(e){console.log('Firestore load:',e.message);}
+  }
   document.getElementById('authBar').classList.remove('hidden');
   const isAdmin=user&&user.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
   // Show admin-only UI
