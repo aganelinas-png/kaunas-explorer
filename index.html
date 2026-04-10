@@ -862,6 +862,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="fgroup" data-group="heritage" onclick="toggleFilterGroup('heritage')">🏛 Paveldas <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="nature" onclick="toggleFilterGroup('nature')">🌿 Gamta <span class="fg-arr">▾</span></div>
     <div class="fgroup" data-group="urban" onclick="toggleFilterGroup('urban')">🏙 Miestas <span class="fg-arr">▾</span></div>
+    <div class="fgroup" id="cityFilterPill" onclick="toggleCityFilter()">📍 Regionas <span class="fg-arr" id="cityFilterArr">▾</span></div>
   </div>
   <div class="tb-right">
     <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
@@ -1239,16 +1240,15 @@ const CATS={
 };
 
 const FILTER_GROUPS=[
-  {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['church','monument','mound','fort','museum','history','cemetery']},
-  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint','bridge','trail']},
+  {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['fort','church','museum','history','monument','mound','cemetery']},
+  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint']},
   {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower']},
 ];
 
-// TIER_CONFIG kept for display labels only — unlock logic replaced by player level system
 const TIER_CONFIG={
-  1:{label:'T1 — Žinomos',color:'#c9a84c',icon:'🥉',desc:'Plačiau žinomos vietos'},
-  2:{label:'T2 — Retos',color:'#7a9cc9',icon:'🥈',desc:'Retesnės, mažiau žinomos vietos'},
-  3:{label:'T3 — Legendos',color:'#b07aaa',icon:'🥇',desc:'Rariausios ir paslaptingiausios vietos'},
+  1:{label:'T1 — Žinomos',color:'#c9a84c',unlockAt:0,icon:'🥉',desc:'Žinomos Lietuvos vietos'},
+  2:{label:'T2 — Paslėptos',color:'#7a9cc9',unlockAt:5,icon:'🥈',desc:'Atrakinama surinkus 5 T1 vietas'},
+  3:{label:'T3 — Legendos',color:'#b07aaa',unlockAt:10,icon:'🥇',desc:'Atrakinama surinkus 10 T2 vietų'},
 };
 
 // Default collection radius per spot in metres (can be overridden per spot)
@@ -1303,17 +1303,11 @@ const BADGE_GROUPS=[
     {id:'f3',name:'Fortų valdovas',desc:'Aplankyk 6 fortų',icon:'⚔️',need:6,xpReward:20},
     {id:'f4',name:'Geležinis Gynėjas',desc:'Aplankyk 10 fortų',icon:'👑',need:10,xpReward:20},
     {id:'f5',name:'Tvirtovių Imperatorius',desc:'Aplankyk 20 fortų',icon:'💎',need:20,xpReward:50},
-    {id:'f6',name:'Fortų Legenda',desc:'Aplankyk 50 fortų',icon:'🌟',need:50,xpReward:150},
-    {id:'f7',name:'Neįveikiamas',desc:'Aplankyk visus fortus',icon:'🏆',need:119,xpReward:500},
   ]},
   {id:'churches',title:'Bažnyčių piligimas',icon:'⛪',cat:'church',sub:true,badges:[
     {id:'c1',name:'Piligimas',desc:'Aplankyk 1 bažnyčią',icon:'⛪',need:1,xpReward:10},
     {id:'c2',name:'Sakralinis tyrinėtojas',desc:'Aplankyk 5 bažnyčias',icon:'✝️',need:5,xpReward:10},
     {id:'c3',name:'Dvasios keliautojas',desc:'Aplankyk 10 bažnyčių',icon:'🕊️',need:10,xpReward:20},
-    {id:'c4b',name:'Bažnyčių žinovas',desc:'Aplankyk 25 bažnyčias',icon:'🏛',need:25,xpReward:40},
-    {id:'c5b',name:'Bažnyčių meistras',desc:'Aplankyk 75 bažnyčias',icon:'⭐',need:75,xpReward:100},
-    {id:'c6b',name:'Bažnyčių legenda',desc:'Aplankyk 200 bažnyčių',icon:'💎',need:200,xpReward:300},
-    {id:'c7b',name:'Lietuvos piligimas',desc:'Aplankyk 500 bažnyčių',icon:'👑',need:500,xpReward:800},
     {id:'c4',name:'Šventasis',desc:'Aplankyk 20 bažnyčių',icon:'😇',need:20,xpReward:20},
     {id:'c5',name:'Dievo Architektas',desc:'Aplankyk 40 bažnyčių',icon:'💎',need:40,xpReward:50},
   ]},
@@ -1407,41 +1401,6 @@ const BADGE_GROUPS=[
     {id:'hid4',name:'Šešėlių Meistras',desc:'Surask 15 paslėptų vietų',icon:'🌑',need:15,xpReward:50},
     {id:'hid5',name:'???',desc:'???',icon:'👁️',need:30,xpReward:50},
   ]},
-  {id:'mounds',title:'Piliakalnių žinovas',icon:'⛰',cat:'mound',sub:true,badges:[
-    {id:'mo1',name:'Pirmasis piliakalnis',desc:'Aplankyk 1 piliakalnį',icon:'⛰',need:1,xpReward:15},
-    {id:'mo2',name:'Istorijos ieškotojas',desc:'Aplankyk 5 piliakalnius',icon:'🗡',need:5,xpReward:25},
-    {id:'mo3',name:'Baltų palikuonis',desc:'Aplankyk 15 piliakalnių',icon:'🌾',need:15,xpReward:60},
-    {id:'mo4',name:'Piliakalnių valdovas',desc:'Aplankyk 40 piliakalnių',icon:'👑',need:40,xpReward:150},
-    {id:'mo5',name:'Legendinis gynėjas',desc:'Aplankyk 100 piliakalnių',icon:'💎',need:100,xpReward:400},
-  ]},
-  {id:'cemeteries',title:'Kapinių tyrinėtojas',icon:'⚱️',cat:'cemetery',sub:true,badges:[
-    {id:'ce1',name:'Pirmosios kapinės',desc:'Aplankyk 1 kapines',icon:'⚱️',need:1,xpReward:10},
-    {id:'ce2',name:'Atminties saugotojas',desc:'Aplankyk 5 kapines',icon:'🕯',need:5,xpReward:20},
-    {id:'ce3',name:'Amžinosios ramybės žinovas',desc:'Aplankyk 20 kapinių',icon:'🌹',need:20,xpReward:60},
-    {id:'ce4',name:'Kapinių meditatorius',desc:'Aplankyk 50 kapinių',icon:'💫',need:50,xpReward:150},
-    {id:'ce5',name:'Amžinybės sargas',desc:'Aplankyk 150 kapinių',icon:'💎',need:150,xpReward:500},
-  ]},
-  {id:'monuments',title:'Monumentų kolekcininkas',icon:'🗿',cat:'monument',sub:true,badges:[
-    {id:'mn1',name:'Pirmasis monumentas',desc:'Aplankyk 1 monumentą',icon:'🗿',need:1,xpReward:10},
-    {id:'mn2',name:'Skulptūrų žinovas',desc:'Aplankyk 10 monumentų',icon:'🏛',need:10,xpReward:25},
-    {id:'mn3',name:'Monumentų meistras',desc:'Aplankyk 30 monumentų',icon:'⭐',need:30,xpReward:75},
-    {id:'mn4',name:'Atminties kolekcionierius',desc:'Aplankyk 100 monumentų',icon:'💎',need:100,xpReward:300},
-  ]},
-  {id:'murals',title:'Gatvės meno žinovas',icon:'🎨',cat:'mural',sub:true,badges:[
-    {id:'mu1',name:'Pirmas kūrinys',desc:'Aplankyk 1 gatvės meno kūrinį',icon:'🎨',need:1,xpReward:10},
-    {id:'mu2',name:'Gatvės dailininkas',desc:'Aplankyk 10 kūrinių',icon:'🖌',need:10,xpReward:25},
-    {id:'mu3',name:'Miesto menininkas',desc:'Aplankyk 30 kūrinių',icon:'🌈',need:30,xpReward:75},
-    {id:'mu4',name:'Gatvės meno legenda',desc:'Aplankyk 80 kūrinių',icon:'💎',need:80,xpReward:250},
-  ]},
-  {id:'explorer',title:'Bendras tyrinėjimas',icon:'🧭',cat:null,sub:true,badges:[
-    {id:'ex1',name:'Pirmieji žingsniai',desc:'Surink 10 vietų',icon:'👣',all:true,need:10,xpReward:20},
-    {id:'ex2',name:'Smalsus keliautojas',desc:'Surink 50 vietų',icon:'🧭',all:true,need:50,xpReward:60},
-    {id:'ex3',name:'Tikras tyrinėtojas',desc:'Surink 100 vietų',icon:'🗺',all:true,need:100,xpReward:120},
-    {id:'ex4',name:'Lietuvos žinovas',desc:'Surink 250 vietų',icon:'🏅',all:true,need:250,xpReward:300},
-    {id:'ex5',name:'Legendinis keliautojas',desc:'Surink 500 vietų',icon:'⭐',all:true,need:500,xpReward:600},
-    {id:'ex6',name:'Nemirtingasis tyrinėtojas',desc:'Surink 1000 vietų',icon:'💫',all:true,need:1000,xpReward:1500},
-    {id:'ex7',name:'Lietuvos legenda',desc:'Surink 2000 vietų',icon:'💎',all:true,need:2000,xpReward:5000},
-  ]},
   {id:'contributor',title:'Bendruomenės kūrėjas',icon:'🗺️',cat:null,badges:[
     {id:'con1',name:'Vietovės kūrėjas',desc:'1 siūlyta vieta patvirtinta',icon:'📍',contribNeed:1,xpReward:50},
     {id:'con2',name:'Bendruomenės tyrinėtojas',desc:'3 siūlytos vietos patvirtintos',icon:'🗺️',contribNeed:3,xpReward:100},
@@ -1461,204 +1420,24 @@ const BADGE_GROUPS=[
 // ═══════════ LEVEL SYSTEM ═══════════
 const LEVELS=[
   {level:1,name:'Naujokas',icon:'🐣',xp:0},
-  {level:2,name:'Klajoklis',icon:'🚶',xp:120},
-  {level:3,name:'Žvalgybininkas',icon:'🔭',xp:280},
-  {level:4,name:'Tyrinėtojas',icon:'🧭',xp:500},
-  {level:5,name:'Keliauninkas',icon:'🗺',xp:780},
-  {level:6,name:'Žinovas',icon:'📚',xp:1120},
-  {level:7,name:'Meistras',icon:'⚔',xp:1530},
-  {level:8,name:'Ekspeditorius',icon:'🏕',xp:2020},
-  {level:9,name:'Krašto Sargas',icon:'🛡',xp:2600},
-  {level:10,name:'Lietuvos Tyrinėtojas',icon:'🇱🇹',xp:3280},
-  {level:11,name:'Lobių Ieškotojas',icon:'🔍',xp:4060},
-  {level:12,name:'Istorijos Palikimas',icon:'🏺',xp:4950},
-  {level:13,name:'Kraštovaizdžių Meistras',icon:'🌄',xp:5960},
-  {level:14,name:'Legendinis Keliautojas',icon:'🌟',xp:7100},
-  {level:15,name:'Baltijos Tyrinėtojas',icon:'⚓',xp:8380},
-  {level:16,name:'Kultūros Sargas',icon:'🏛',xp:9810},
-  {level:17,name:'Pilių Valdovas',icon:'🏰',xp:11400},
-  {level:18,name:'Miškininkų Brolis',icon:'🌲',xp:13160},
-  {level:19,name:'Upių Keliautojas',icon:'🏞',xp:15100},
-  {level:20,name:'Žemės Pažintojas',icon:'🗺',xp:17230},
-  {level:21,name:'Slapčiausių Kelių Žinovas',icon:'🛤',xp:19560},
-  {level:22,name:'Senojo Pasaulio Tyrėjas',icon:'🌍',xp:22100},
-  {level:23,name:'Bažnyčių Piligimas',icon:'⛪',xp:24870},
-  {level:24,name:'Fortų Strategas',icon:'⚔',xp:27880},
-  {level:25,name:'Pusiau Legenda',icon:'💫',xp:31150},
-  {level:26,name:'Piliakalnių Valdovas',icon:'⛰',xp:34700},
-  {level:27,name:'Kapinių Meditatorius',icon:'🕯',xp:38540},
-  {level:28,name:'Laiko Keliautojas',icon:'⏳',xp:42690},
-  {level:29,name:'Viduramžių Riteris',icon:'🗡',xp:47160},
-  {level:30,name:'Lietuvos Istorijos Žinovas',icon:'📜',xp:51970},
-  {level:31,name:'Nemuninkas',icon:'🌊',xp:57140},
-  {level:32,name:'Tautodailės Saugotojas',icon:'🎨',xp:62680},
-  {level:33,name:'Žvalgybos Generolas',icon:'🎖',xp:68610},
-  {level:34,name:'Baltų Palikuonis',icon:'🌾',xp:74950},
-  {level:35,name:'Pusiasalio Valdovas',icon:'🏝',xp:81720},
-  {level:36,name:'Karių Atminties Saugotojas',icon:'🕊',xp:88940},
-  {level:37,name:'Laukinės Gamtos Bičiulis',icon:'🦅',xp:96630},
-  {level:38,name:'Baroko Gerbėjas',icon:'🏺',xp:104810},
-  {level:39,name:'Dvaro Lordas',icon:'🏡',xp:113500},
-  {level:40,name:'Amžinosios Atminties Sargas',icon:'🕯',xp:122720},
-  {level:41,name:'Šventovių Meistras',icon:'🙏',xp:132490},
-  {level:42,name:'Žemėlapių Kūrėjas',icon:'🗺',xp:142830},
-  {level:43,name:'Mitologinių Žemių Žinovas',icon:'🐉',xp:153760},
-  {level:44,name:'Didžiojo Kunigaikščio Patarėjas',icon:'👑',xp:165300},
-  {level:45,name:'Baltijos Jūros Herojus',icon:'⛵',xp:177470},
-  {level:46,name:'Nemirtingasis Tyrinėtojas',icon:'⚡',xp:190290},
-  {level:47,name:'Paslaptingų Kelių Meistras',icon:'🌙',xp:203780},
-  {level:48,name:'Legendų Kūrėjas',icon:'📖',xp:217960},
-  {level:49,name:'Baltijos Legenda',icon:'🌟',xp:232850},
-  {level:50,name:'Lietuvos Legenda',icon:'💎',xp:248470},
+  {level:2,name:'Klajoklis',icon:'🚶',xp:50},
+  {level:3,name:'Žvalgybininkas',icon:'🔭',xp:150},
+  {level:4,name:'Tyrinėtojas',icon:'🧭',xp:300},
+  {level:5,name:'Keliauninkas',icon:'🗺',xp:500},
+  {level:6,name:'Žinovas',icon:'📚',xp:750},
+  {level:7,name:'Meistras',icon:'⚔',xp:1100},
+  {level:8,name:'Ekspeditorius',icon:'🏕',xp:1500},
+  {level:9,name:'Krašto Sargas',icon:'🛡',xp:2100},
+  {level:10,name:'Lietuvos Tyrinėtojas',icon:'🇱🇹',xp:2800},
+  {level:11,name:'Legendinis Keliautojas',icon:'🌟',xp:3700},
+  {level:12,name:'Istorijos Palikimas',icon:'🏺',xp:4800},
+  {level:13,name:'Nemirtingasis Klajoklis',icon:'💫',xp:6200},
+  {level:14,name:'Baltijos Legendа',icon:'⚡',xp:8000},
+  {level:15,name:'Lietuvos Legenda',icon:'👑',xp:10000},
 ];
 function getLevel(xp){let lv=LEVELS[0];for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].xp){lv=LEVELS[i];break;}}return lv;}
 function getNextLevel(xp){for(let i=0;i<LEVELS.length;i++){if(xp<LEVELS[i].xp) return LEVELS[i];}return null;}
 function getLevelProgress(xp){const c=getLevel(xp),n=getNextLevel(xp);if(!n)return 100;return Math.round((xp-c.xp)/(n.xp-c.xp)*100);}
-
-// ═══════════ SPOT LEVEL SYSTEM ═══════════
-// Each spot has a .spotLevel (1-50). Player sees spots where spotLevel <= playerLevel.
-// spotLevel is assigned deterministically via seeded shuffle so it's identical for all players.
-// L1 starts with ~3000 spots visible. Further levels unlock batches.
-// Tier weighting per level: early levels = more T3 (discovery), later = even more T3.
-
-function getPlayerLevel(xp){return getLevel(xp).level;}
-
-// Deterministic shuffle using spot ID as seed contribution
-function seededHash(str){
-  let h=0;
-  for(let i=0;i<str.length;i++){h=Math.imul(31,h)+str.charCodeAt(i)|0;}
-  return Math.abs(h);
-}
-
-// Build the spotLevel assignment table. Called once after SPOTS loaded.
-// Returns a Map<spotId, spotLevel>
-function buildSpotLevelMap(spots){
-  // Filter out hidden/special
-  const eligible=spots.filter(s=>s.cat!=='hidden'&&s.id!==99);
-
-  // Geo regions for spread guarantee
-  function geoRegion(s){
-    if(s.lng<22) return 'west';
-    if(s.lat>56) return 'north';
-    if(s.lng>25) return 'east';
-    if(s.lat<54.5) return 'south';
-    return 'center';
-  }
-
-  // Sort spots deterministically by seeded hash so assignment is stable across all clients
-  const sorted=[...eligible].sort((a,b)=>seededHash(String(a.id)+'v1')-seededHash(String(b.id)+'v1'));
-
-  // LOGARITHMIC scaling: L1=10%, L50=100%.
-  // Log curve: fast unlock early, slower mid, tiny batches at end.
-  // Formula: visible(l) = total * (log(l+1)/log(51))^0.7
-  const totalEligible=eligible.length;
-  function logVisible(lvl){
-    return Math.round(totalEligible*Math.pow(Math.log(lvl+1)/Math.log(51),1.5));
-  }
-  const batchSizes=[];
-  // Enforce minimum 10% at L1
-  const l1Target=Math.max(Math.round(totalEligible*0.10),logVisible(1));
-  let prev=0;
-  for(let l=1;l<=50;l++){
-    let target=l===1?l1Target:(l===50?totalEligible:logVisible(l));
-    batchSizes.push(Math.max(1,target-prev));
-    prev=Math.min(target,totalEligible);
-  }
-
-  // Tier weighting per level: [T1%, T2%, T3%]
-  // Linear batches — tier mix creates quality curve: T3-heavy early, rarities at high levels
-  function tierWeight(lvl){
-    if(lvl===1)  return[0.20,0.40,0.40];
-    if(lvl<=5)   return[0.22,0.40,0.38];
-    if(lvl<=10)  return[0.25,0.38,0.37];
-    if(lvl<=15)  return[0.28,0.37,0.35];
-    if(lvl<=20)  return[0.25,0.36,0.39];
-    if(lvl<=25)  return[0.20,0.33,0.47];
-    if(lvl<=30)  return[0.15,0.28,0.57];
-    if(lvl<=38)  return[0.10,0.22,0.68];
-    if(lvl<=45)  return[0.06,0.15,0.79];
-    return[0.03,0.08,0.89];
-  }
-
-  // Separate pools by tier and geo region
-  const regions=['west','north','east','south','center'];
-  const pools={};
-  regions.forEach(r=>{
-    pools[r]={1:[],2:[],3:[]};
-  });
-  sorted.forEach(s=>{
-    const r=geoRegion(s);
-    const t=s.tier||1;
-    if(pools[r][t]) pools[r][t].push(s);
-  });
-
-  const levelMap=new Map();
-  const assigned=new Set();
-
-  function pickFromPools(count,wt,lvl){
-    const picked=[];
-    // Calculate how many from each tier
-    const t1n=Math.round(count*wt[0]);
-    const t2n=Math.round(count*wt[1]);
-    const t3n=count-t1n-t2n;
-    const tierNeeds={1:t1n,2:t2n,3:t3n};
-
-    // For each tier, spread across regions proportionally
-    [1,2,3].forEach(tier=>{
-      let need=tierNeeds[tier];
-      if(need<=0) return;
-      // Round-robin across regions to ensure spread
-      const regionOrder=['center','east','west','north','south'];
-      let ri=0;
-      while(need>0&&regionOrder.length>0){
-        const r=regionOrder[ri%regionOrder.length];
-        const pool=pools[r][tier];
-        const avail=pool.filter(s=>!assigned.has(s.id));
-        if(avail.length>0){
-          const s=avail[0];
-          picked.push(s);
-          assigned.add(s.id);
-          need--;
-        }
-        ri++;
-        // Safety: if no region has this tier left, break
-        if(regionOrder.every(rr=>pools[rr][tier].filter(s=>!assigned.has(s.id)).length===0)) break;
-      }
-    });
-    return picked;
-  }
-
-  for(let lvl=1;lvl<=50;lvl++){
-    const batchSize=batchSizes[lvl-1];
-    const wt=tierWeight(lvl);
-    const batch=lvl<50
-      ? pickFromPools(Math.min(batchSize,eligible.length-assigned.size),wt,lvl)
-      : eligible.filter(s=>!assigned.has(s.id)); // L50: all remaining
-    batch.forEach(s=>levelMap.set(s.id,lvl));
-  }
-
-  // Any unassigned (shouldn't happen) → L50
-  eligible.forEach(s=>{if(!levelMap.has(s.id)) levelMap.set(s.id,50);});
-
-  return levelMap;
-}
-
-let _spotLevelMap=null;
-function getSpotLevelMap(){
-  if(!_spotLevelMap) _spotLevelMap=buildSpotLevelMap(SPOTS);
-  return _spotLevelMap;
-}
-function getSpotLevel(spot){
-  // Use stored spotLevel if already persisted to Firestore, else compute
-  if(spot.spotLevel) return spot.spotLevel;
-  const m=getSpotLevelMap();
-  return m.get(spot.id)||1;
-}
-function isSpotVisible(spot){
-  if(spot.cat==='hidden') return false;
-  if(isAdmin()) return true;
-  return getSpotLevel(spot)<=getPlayerLevel(totalXP);
-}
 
 // ═══════════ STREAK MILESTONES ═══════════
 const STREAK_MILES=[
@@ -1674,6 +1453,7 @@ const STREAK_HIDDEN_SPOT={id:99,name:'Napoleono tiltas',cat:'history',tier:1,yea
 
 let SPOTS=[...DEFAULT_SPOTS];
 let found=new Set(),streak=0,lastDate=null,notes={},earnedBadges=new Set();
+let unlockedCats=new Set();
 let favorites=new Set(); // spot ids
 let selectedSpot=null,userLat=null,userLng=null;
 let isDark=false,activeFilter='all';
@@ -1697,41 +1477,30 @@ let nextSuggestId=null;
 let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
 let approvedSuggestions=0; // loaded from Firestore user doc
 
-// ═══════════ TIER HELPERS (display only) ═══════════
+// ═══════════ TIER UNLOCK ═══════════
 
 function t1Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===1)).length;}
 function t2Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===2)).length;}
 function t3Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===3)).length;}
 
-// isSpotUnlocked → now uses level system
-function isSpotUnlocked(spot){return isSpotVisible(spot);}
+function tokensSpent(tier){return[...unlockedCats].filter(k=>k.startsWith(tier+':')).length;}
+function tokensEarned(tier){
+  if(tier===2) return Math.floor(t1Collected()/TIER_CONFIG[2].unlockAt);
+  if(tier===3) return Math.floor(t2Collected()/TIER_CONFIG[3].unlockAt);
+  return 999;
+}
+function tokensAvailable(tier){return Math.max(0,tokensEarned(tier)-tokensSpent(tier));}
+
+function isTierUnlocked(tier,cat){
+  if(tier===1) return true;
+  if(isAdmin()) return true; // admin sees all spots
+  return unlockedCats.has(tier+':'+(cat||''));
+}
+function isSpotUnlocked(spot){return isTierUnlocked(spot.tier||1,spot.cat);}
 
 function catsForTier(tier){
   const cats=new Set(SPOTS.filter(s=>s.tier===tier).map(s=>s.cat));
   return [...cats];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 // Spot collection radius
@@ -1749,6 +1518,7 @@ function save(){
   localStorage.setItem('ke7_notes',JSON.stringify(notes));
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
+  localStorage.setItem('ke7_ucats',JSON.stringify([...unlockedCats]));
   localStorage.setItem('ke7_xp',totalXP);
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
@@ -1767,6 +1537,7 @@ function load(){
   const n=localStorage.getItem('ke7_notes');notes=n?JSON.parse(n):{};
   const b=localStorage.getItem('ke7_badges');earnedBadges=b?new Set(JSON.parse(b)):new Set();
   isDark=localStorage.getItem('ke7_theme')!=='light';
+  const uc=localStorage.getItem('ke7_ucats');unlockedCats=uc?new Set(JSON.parse(uc)):new Set();
   totalXP=parseInt(localStorage.getItem('ke7_xp')||'0');
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
@@ -1831,8 +1602,6 @@ function initMap(){
   applyTheme();
   [100,400,900,1800].forEach(ms=>setTimeout(()=>map.invalidateSize(),ms));
   window.addEventListener('resize',()=>map.invalidateSize());
-  map.on('moveend',scheduleViewportRender);
-  map.on('zoomend',scheduleViewportRender);
   map.on('click',e=>{
     // Close city filter if open
     if(_cityFilterOpen) closeCityFilterSheet();
@@ -1925,9 +1694,23 @@ function makeIcon(spot){
   const isF=found.has(spot.id);
   const tc=TIER_CONFIG[spot.tier||1];
 
-  // Locked spots are invisible — admin only reaches this branch
   if(locked){
-    return L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:var(--tm);opacity:.3"></div>',iconSize:[8,8],iconAnchor:[4,4]});
+    const bg=isDark?'#1a1710':'#f0ebe0';
+    const t1need=TIER_CONFIG[spot.tier].unlockAt;
+    const prevC=spot.tier===2?t1Collected():t2Collected();
+    const need=Math.max(0,t1need-prevC);
+    const tokAvail=tokensAvailable(spot.tier);
+    const hintHtml=tokAvail>0
+      ?`<div style="font-size:9px;color:#c9a84c;margin-top:3px;text-align:center;white-space:nowrap">🔓 Žetonas!</div>`
+      :(need>0?`<div style="font-size:9px;color:#8a8070;margin-top:3px;text-align:center;white-space:nowrap">+${need} T${spot.tier-1}</div>`:'');
+    return L.divIcon({
+      className:'',
+      html:`<div style="display:flex;flex-direction:column;align-items:center">
+        <div style="width:34px;height:34px;border-radius:50%;background:${bg};border:2px dashed ${isDark?'#2e2a20':'#ccc'};display:flex;align-items:center;justify-content:center;font-size:14px;opacity:.6">🔒</div>
+        ${hintHtml}
+      </div>`,
+      iconSize:[34,50],iconAnchor:[17,17],
+    });
   }
 
   const bg=isF?cat.color:(isDark?'#1a1710':'#fff');
@@ -1949,8 +1732,9 @@ function addMarker(spot){
   m.on('click',()=>openSheet(spot));
   markers[spot.id]=m;
   const show=activeFilter==='all'||activeFilter===spot.cat;
-  if(show&&clusterGroup) clusterGroup.addLayer(m);
-  else m._hiddenFromCluster=true;
+  const cityOk=activeCity==='all'||spotInCity(spot,activeCity);
+  if(show&&cityOk&&clusterGroup) clusterGroup.addLayer(m);
+  else if(!show||!cityOk) m._hiddenFromCluster=true;
 }
 
 function spotInCity(spot,city){
@@ -1960,12 +1744,29 @@ function spotInCity(spot,city){
 }
 
 function refreshMarkers(){
-  if(!clusterGroup||!map) return;
-  // Clean up removed spots
+  if(!clusterGroup) return;
+  clusterGroup.clearLayers();
+
+  SPOTS.forEach(s=>{
+    if(s.cat==='hidden') return;
+    if(!isSpotUnlocked(s)){
+      if(markers[s.id]){clusterGroup.removeLayer(markers[s.id]);delete markers[s.id];}
+      return;
+    }
+    const show=activeFilter==='all'||activeFilter===s.cat;
+    const cityOk=activeCity==='all'||spotInCity(s,activeCity);
+    if(markers[s.id]){
+      markers[s.id].setIcon(makeIcon(s));
+      if(show&&cityOk) clusterGroup.addLayer(markers[s.id]);
+    } else {
+      addMarkerToCluster(s,show&&cityOk);
+    }
+  });
+
+  // Remove markers for spots that no longer exist
   Object.keys(markers).forEach(id=>{
     if(!SPOTS.find(s=>s.id==id)){delete markers[id];}
   });
-  renderViewportMarkers();
 }
 
 function addMarkerToCluster(spot,show){
@@ -1974,34 +1775,6 @@ function addMarkerToCluster(spot,show){
   m.on('click',()=>openSheet(spot));
   markers[spot.id]=m;
   if(show&&clusterGroup) clusterGroup.addLayer(m);
-}
-
-// Viewport lazy rendering — only render markers near current map bounds
-let _viewportRenderPending=false;
-function scheduleViewportRender(){
-  if(_viewportRenderPending) return;
-  _viewportRenderPending=true;
-  setTimeout(()=>{_viewportRenderPending=false;renderViewportMarkers();},200);
-}
-function renderViewportMarkers(){
-  if(!map||!clusterGroup) return;
-  const bounds=map.getBounds().pad(0.5); // 50% padding beyond viewport
-  clusterGroup.clearLayers();
-  SPOTS.forEach(s=>{
-    if(!isSpotVisible(s)||s.cat==='hidden') return;
-    const show=activeFilter==='all'||activeFilter===s.cat;
-    if(!show) return;
-    if(!bounds.contains([s.lat,s.lng])) return;
-    if(!markers[s.id]){
-      const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
-      m._isMarker=true;
-      m.on('click',()=>openSheet(s));
-      markers[s.id]=m;
-    } else {
-      markers[s.id].setIcon(makeIcon(s));
-    }
-    clusterGroup.addLayer(markers[s.id]);
-  });
 }
 
 function centerUser(){
@@ -2176,7 +1949,7 @@ function checkProximity(){
   SPOTS.forEach(s=>{
     if(found.has(s.id)) return;
     // hidden spots: always proximity-eligible (no tier lock)
-    if(s.cat!=='hidden'&&!isSpotVisible(s)) return;
+    if(s.cat!=='hidden'&&!isSpotUnlocked(s)) return;
     if(proxDismissedIds.has(s.id)) return;
     const d=dist(userLat,userLng,s.lat,s.lng);
     if(d<=PROX_DISPLAY_RADIUS&&d<bestDist){bestDist=d;best=s;}
@@ -2377,36 +2150,58 @@ function updateDrawerHeader(){
 }
 
 function renderTierProgressHTML(){
-  const plvl=getPlayerLevel(totalXP);
-  const visibleSpots=SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden');
-  const nextLvlSpots=SPOTS.filter(s=>getSpotLevel(s)===plvl+1).length;
+  const t1tot=SPOTS.filter(s=>s.tier===1).length;
+  const t2tot=SPOTS.filter(s=>s.tier===2).length;
+  const t3tot=SPOTS.filter(s=>s.tier===3).length;
   const t1c=t1Collected(),t2c=t2Collected(),t3c=t3Collected();
-  function tierRow(tier,color,label,collected){
-    const tot=SPOTS.filter(s=>s.tier===tier&&isSpotVisible(s)).length;
+
+  function tierRow(tier,color,label,collected,total){
+    const tok=tokensAvailable(tier);
+    const earned=tokensEarned(tier);
+    const unlockedCount=[...unlockedCats].filter(k=>k.startsWith(tier+':')).length;
+    const totalCats=catsForTier(tier).length;
+
+    if(tier===1){
+      const need2=TIER_CONFIG[2].unlockAt;
+      const leftFor2=Math.max(0,need2-t1c);
+      const hint=leftFor2>0
+        ?`<div class="unlock-hint-banner">🔓 Surink dar ${leftFor2} T1 viet${leftFor2===1?'ą':'as'} → gausi T2 žetoną</div>`
+        :'';
+      return`<div class="tier-row">
+        <div class="tier-dot" style="background:${color}"></div>
+        <div class="tier-info">
+          <div class="tier-name">${label}</div>
+          <div class="tier-count">${collected} / ${total} surinkta</div>
+          <div class="tier-bar"><div class="tier-fill" style="background:${color};width:${total?collected/total*100:0}%"></div></div>
+          ${hint}
+        </div>
+      </div>`;
+    }
+    const prevC=tier===2?t1c:t2c;
+    const unlockAt=TIER_CONFIG[tier].unlockAt;
+    const nextToken=(earned+1)*unlockAt;
+    const leftForNext=Math.max(0,nextToken-prevC);
+    const hintText=leftForNext>0&&leftForNext<=5
+      ?`<div class="unlock-hint-banner">🔓 Dar ${leftForNext} T${tier-1} → kitas T${tier} žetonas</div>`:'';
     return`<div class="tier-row">
-      <div class="tier-dot" style="background:${color}"></div>
+      <div class="tier-dot" style="background:${unlockedCount>0?color:'var(--tm)'}"></div>
       <div class="tier-info">
-        <div class="tier-name">${label}</div>
-        <div class="tier-count">${collected} / ${tot} surinkta (matoma)</div>
-        <div class="tier-bar"><div class="tier-fill" style="background:${color};width:${tot?collected/tot*100:0}%"></div></div>
+        <div class="tier-name">${label} ${tok>0?`<span style="color:var(--gold);font-size:.65rem">🔓 ×${tok}</span>`:''}</div>
+        ${unlockedCount>0
+          ?`<div class="tier-count">${collected} / ${total} · ${unlockedCount}/${totalCats} kat. atrakintos</div>
+            <div class="tier-bar"><div class="tier-fill" style="background:${color};width:${total?collected/total*100:0}%"></div></div>`
+          :`<div class="tier-lock">🔒 Surink ${TIER_CONFIG[tier].unlockAt} T${tier-1} – gauk žetoną</div>`}
+        ${hintText}
+        ${tok>0?`<div style="margin-top:6px"><button onclick="showUnlockPicker(${tier})" style="background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:7px 14px;font-size:.78rem;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;width:100%">🔓 Atrakkink kategoriją →</button></div>`:''}
       </div>
     </div>`;
   }
   return`<div class="tier-progress">
-    <div class="tier-row" style="margin-bottom:4px">
-      <div class="tier-dot" style="background:var(--gold)"></div>
-      <div class="tier-info">
-        <div class="tier-name">Lv.${plvl} — Matomos vietos</div>
-        <div class="tier-count">${visibleSpots.length} vietų žemėlapyje · Lv.${plvl+1} atvers +${nextLvlSpots}</div>
-        <div class="tier-bar"><div class="tier-fill" style="background:var(--gold);width:${Math.round(visibleSpots.length/Math.max(1,SPOTS.filter(s=>s.cat!=='hidden').length)*100)}%"></div></div>
-      </div>
-    </div>
-    ${tierRow(1,'#c9a84c','T1 — Žinomos',t1c)}
-    ${tierRow(2,'#7a9cc9','T2 — Retos',t2c)}
-    ${tierRow(3,'#b07aaa','T3 — Legendos',t3c)}
+    ${tierRow(1,'#c9a84c','T1 — Žinomosios',t1c,t1tot)}
+    ${tierRow(2,'#7a9cc9','T2 — Paslėptos',t2c,t2tot)}
+    ${tierRow(3,'#b07aaa','T3 — Legendos',t3c,t3tot)}
   </div>`;
 }
-
 // Keep old name as alias so any stray calls don't crash
 function renderDrawerTierProgress(){}
 
@@ -2506,18 +2301,39 @@ function openSheet(spot){
   const r=spotRadius(spot);
 
   if(locked){
-    // Locked spots are invisible on map — this branch only triggers for admin previews
-    const spotLvl=getSpotLevel(spot);
-    const plvl=getPlayerLevel(totalXP);
+    const tier=spot.tier||1;
+    const avail=tokensAvailable(tier);
+    const prevTier=tier-1;
+    const prevC=prevTier===1?t1Collected():t2Collected();
+    const prevLabel=`T${prevTier}`;
+    const needMore=Math.max(0,TIER_CONFIG[tier].unlockAt-prevC);
+    const totalCatsInTier=catsForTier(tier).length;
+    const unlockedInTier=[...unlockedCats].filter(k=>k.startsWith(tier+':')).length;
+
+    // Smart hint message
+    let hintMsg='';
+    if(avail>0){
+      hintMsg=`Turi <strong style="color:var(--gold)">${avail} atrakinimo žeton${avail===1?'ą':'ų'}</strong>! Atrakink šio lygio kategorijas.`;
+    } else if(needMore>0){
+      hintMsg=`Surink dar <strong style="color:var(--gold)">${needMore} ${prevLabel}</strong> viet${needMore===1?'ą':'as'} → gauk žetoną → atrakink T${tier} kategoriją.`;
+    } else {
+      hintMsg=`Šios kategorijos vietos dar paslėptos.`;
+    }
+
     content.innerHTML=`
       <div class="locked-sheet">
         <div class="locked-icon">🔒</div>
         <div class="locked-title">??? — Nežinoma vieta</div>
-        <div class="tier-badge t${spot.tier||1}" style="margin:8px auto 14px;justify-content:center">${tc.icon} ${tc.label}</div>
+        <div class="tier-badge t${spot.tier}" style="margin:8px auto 14px;justify-content:center">${tc.icon} ${tc.label}</div>
         <div class="locked-hint-box">
           <div class="lhb-row"><span class="lhb-icon">💡</span><span class="lhb-title">Kaip atrakinti?</span></div>
-          <div class="lhb-text">Ši vieta atsiveria pasiekus <strong style="color:var(--gold)">${spotLvl} lygį</strong>. Dabar esi <strong>${plvl} lygio</strong> — tęsk kelionę!</div>
+          <div class="lhb-text">${hintMsg}</div>
         </div>
+        <div class="locked-progress">
+          <div class="lp-label">${prevLabel} surinkta: ${prevC} / ${TIER_CONFIG[tier].unlockAt} · Žetonai: ${tokensAvailable(tier)} / ${tokensEarned(tier)}</div>
+          <div class="lp-bar"><div class="lp-fill" style="background:${tc.color};width:${Math.min(100,prevC/TIER_CONFIG[tier].unlockAt*100)}%"></div></div>
+        </div>
+        ${avail>0?`<button class="unlock-btn" style="margin-top:0;width:100%" onclick="closeSheet();showUnlockPicker(${tier})">🔓 Atrakkink kategoriją</button>`:''}
       </div>`;
   } else {
     const histFull=spot.history||'';
@@ -2540,7 +2356,6 @@ function openSheet(spot){
       </div>
       ${histHtml}
       ${isF?`<div class="note-box"><div class="note-t">📝 Mano pastaba</div><textarea class="note-area" id="noteArea" placeholder="Pridėk savo įspūdžius...">${notes[spot.id]||''}</textarea><button class="note-save" onclick="saveNote()">Išsaugoti</button></div>`:''}
-      ${spot.kpdUrl?`<a href="${spot.kpdUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);text-decoration:none;margin-bottom:6px;opacity:.85">📖 KPD registras ↗</a>`:''}
       <div class="area-hint">📡 Surinkimo zona: ${r}m spinduliu nuo vietos</div>
       <div class="crow">
         <div class="dbadge" id="distBadge">—</div>
@@ -2626,24 +2441,16 @@ function collectCurrent(){
       return;
     }
   }
-  const prevPlayerLevel=getPlayerLevel(totalXP);
+  const wasT1=t1Collected();const wasT2=t2Collected();
   found.add(selectedSpot.id);
   updateStreak();
-  // XP for collecting — bonus for higher-tier spots
-  const spotTier=selectedSpot.tier||1;
-  const xpGain=spotTier===3?35:spotTier===2?25:20;
+  // XP for collecting
+  const xpGain=20;
   addXP(xpGain);
   showXPBurst(xpGain);
   incrementDailyCollect();
   recordWeeklyCollect(selectedSpot.id);
-  save();updateAll();
-  // Sync to Firestore if logged in
-  if(window._fbUser&&window._fb){
-    const{db,doc,setDoc}=window._fb;
-    setDoc(doc(db,'users',window._fbUser.uid),{
-      found:[...found],totalXP,streak,badges:[...earnedBadges],name:playerName
-    },{merge:true}).catch(()=>{});
-  }
+  save();refreshMarkers();updateAll();
 
   proxDismissedIds.delete(selectedSpot.id);
   hideProxPopup();
@@ -2653,20 +2460,22 @@ function collectCurrent(){
   toast(`🏅 Surinkta: ${selectedSpot.name}`,'success');
   launchConfetti();
 
-  // Check level-up after XP gain
-  const newPlayerLevel=getPlayerLevel(totalXP);
-  if(newPlayerLevel>prevPlayerLevel){
-    // Invalidate spot level map cache so new spots appear
-    _spotLevelMap=null;
-    // Count newly visible spots
-    const newVisibleCount=SPOTS.filter(s=>getSpotLevel(s)===newPlayerLevel).length;
-    refreshMarkers();
-    setTimeout(()=>showLevelUpOverlay(newPlayerLevel,newVisibleCount),700);
+  // Check easter eggs after collect
+
+  const newT1=t1Collected();const newT2=t2Collected();
+  const prevT2tokens=Math.floor(wasT1/TIER_CONFIG[2].unlockAt);
+  const newT2tokens=Math.floor(newT1/TIER_CONFIG[2].unlockAt);
+  const prevT3tokens=Math.floor(wasT2/TIER_CONFIG[3].unlockAt);
+  const newT3tokens=Math.floor(newT2/TIER_CONFIG[3].unlockAt);
+
+  if(newT2tokens>prevT2tokens){
+    setTimeout(()=>showUnlockPicker(2,true),700);
+  } else if(newT3tokens>prevT3tokens){
+    setTimeout(()=>showUnlockPicker(3,true),700);
   } else {
-    refreshMarkers();
     setTimeout(checkBadges,400);
   }
-  // Review prompt — after animations clear
+  // Review prompt — after unlock animations clear
   setTimeout(maybeShowReview,1200);
 }
 
@@ -2688,32 +2497,66 @@ function handleLogoClick(){
   // reserved for future use
 }
 
-// ═══════════ LEVEL-UP OVERLAY ═══════════
+// ═══════════ UNLOCK PICKER ═══════════
 
-function showLevelUpOverlay(newLevel,newSpotsCount){
-  const lv=LEVELS.find(l=>l.level===newLevel)||LEVELS[0];
-  const el=document.getElementById('unlockOverlay');
-  document.getElementById('unlockStars').textContent=lv.icon;
-  document.getElementById('unlockIcon').textContent='🗺';
-  document.getElementById('unlockTitle').textContent=`Lygis ${newLevel} — ${lv.name}!`;
-  document.getElementById('unlockSub').innerHTML=newSpotsCount>0
-    ?`<span style="color:var(--gold);font-size:1.1rem;font-weight:700">+${newSpotsCount}</span> naujų vietų atsirado žemėlapyje visoje Lietuvoje!`
-    :'Sveikiname su nauju lygiu!';
-  document.getElementById('unlockPicker').style.display='none';
+let _pendingUnlockTier=null;
+
+function showUnlockPicker(tier,isNew=false){
+  _pendingUnlockTier=tier;
+  const tc=TIER_CONFIG[tier];
+  const avail=tokensAvailable(tier);
+  const cats=catsForTier(tier);
+
+  document.getElementById('unlockStars').textContent=tier===2?'🥉 → 🥈':'🥈 → 🥇';
+  document.getElementById('unlockIcon').textContent=tc.icon;
+  document.getElementById('unlockTitle').textContent=isNew?`Žetonas atrakintas!`:`Atrakkink kategoriją`;
+  document.getElementById('unlockSub').textContent=`${avail} žetonas: pasirink kurią ${tc.label} kategoriją atverti`;
+
+  const earned=tokensEarned(tier);
+  const spent=tokensSpent(tier);
+  let dots='<div class="token-bar">';
+  for(let i=0;i<earned;i++) dots+=`<div class="token-dot${i<spent?' used':''}"></div>`;
+  dots+='</div>';
+
+  document.getElementById('unlockPicker').innerHTML=dots+`<div id="unlockCatGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">`+cats.map(cat=>{
+    const c=CATS[cat]||CATS.history;
+    const alreadyUnlocked=unlockedCats.has(tier+':'+cat);
+    const count=SPOTS.filter(s=>s.tier===tier&&s.cat===cat).length;
+    return`<div class="ucat-card ${alreadyUnlocked?'already':'available'}" onclick="spendToken(${tier},'${cat}')">
+      <div class="uce">${c.emoji}</div>
+      <div class="ucn">${c.label}</div>
+      <div class="ucc">${count} viet${count===1?'a':'os'}${alreadyUnlocked?' ✓ atrakinta':''}</div>
+    </div>`;
+  }).join('')+`</div>`;
+
+  document.getElementById('unlockPicker').style.display='block';
   document.getElementById('unlockCloseBtn').style.display='block';
-  el.classList.add('show');
-  // Animate map dots appearing after a short delay
-  setTimeout(()=>{refreshMarkers();},600);
+  document.getElementById('unlockOverlay').classList.add('show');
+}
+
+function spendToken(tier,cat){
+  if(tokensAvailable(tier)<=0) return;
+  if(unlockedCats.has(tier+':'+cat)){toast('Ši kategorija jau atrakinta','info');return;}
+  unlockedCats.add(tier+':'+cat);
+  save();
+  const c=CATS[cat]||CATS.history;
+  refreshMarkers();
+  closeUnlock();
+  toast(`🔓 Atrakinta: ${c.emoji} ${c.label} (T${tier})`,'gold');
+  setTimeout(checkBadges,400);
+  if(tokensAvailable(tier)>0) setTimeout(()=>showUnlockPicker(tier),600);
 }
 function closeUnlock(){
   document.getElementById('unlockOverlay').classList.remove('show');
+  document.getElementById('unlockPicker').style.display='none';
   document.getElementById('unlockCloseBtn').style.display='none';
+  _pendingUnlockTier=null;
 }
 
 // ═══════════ SURPRISE ═══════════
 
 function surpriseMe(){
-  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotVisible(s)&&s.cat!=='hidden'&&getSpotLevel(s)<=getPlayerLevel(totalXP));
+  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotUnlocked(s)&&s.cat!=='hidden');
   if(!unfound.length){toast('🎉 Viskas surinkta! Tu legenda!','gold');return;}
   // Truly random — no proximity bias
   const pick=unfound[Math.floor(Math.random()*unfound.length)];
@@ -2757,6 +2600,9 @@ function renderAboutMe(){
   const pct=getLevelProgress(totalXP);
   const xpLeft=nxt?nxt.xp-totalXP:0;
 
+  const t1tot=SPOTS.filter(s=>s.tier===1).length;
+  const t2tot=SPOTS.filter(s=>s.tier===2).length;
+  const t3tot=SPOTS.filter(s=>s.tier===3).length;
   const t1c=t1Collected(),t2c=t2Collected(),t3c=t3Collected();
 
   function statCard(label,value,sub,color){
@@ -2766,6 +2612,25 @@ function renderAboutMe(){
       ${sub?`<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);margin-top:3px">${sub}</div>`:''}
     </div>`;
   }
+
+  function tierBar(tier,color,label,collected,total,locked){
+    const pct2=total?Math.round(collected/total*100):0;
+    return`<div style="background:var(--surf2);border:1px solid ${locked?'var(--bdr)':'var(--bdr)'};border-radius:10px;padding:11px 14px;${locked?'opacity:.55':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${locked?'var(--tm)':color};flex-shrink:0"></div>
+          <span style="font-size:.82rem;font-weight:700;color:var(--txt)">${label}</span>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:${locked?'var(--tm)':color};font-weight:600">${locked?'🔒 Užrakinta':`${collected} / ${total}`}</span>
+      </div>
+      ${!locked?`<div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct2}%;background:${color};border-radius:3px;transition:width .5s"></div>
+      </div>`:''}
+    </div>`;
+  }
+
+  const t2locked=[...unlockedCats].filter(k=>k.startsWith('2:')).length===0;
+  const t3locked=[...unlockedCats].filter(k=>k.startsWith('3:')).length===0;
 
   body.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:10px">
 
@@ -2791,29 +2656,11 @@ function renderAboutMe(){
       ${statCard('Serija',streak>0?streak+'d':'—',streak>0?'dienų iš eilės':'pradėk šiandien',streak>=2?'var(--gold)':'var(--txt)')}
     </div>
 
-    <!-- Level & spots progress -->
-    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Vietos pažanga</div>
-    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-        <span style="font-size:.82rem;font-weight:700;color:var(--txt)">Matomos vietos</span>
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--gold);font-weight:600">${found.size} / ${SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden').length} matoma</span>
-      </div>
-      <div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${Math.round(found.size/Math.max(1,SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden').length)*100)}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:3px;transition:width .5s"></div>
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-top:5px">Kitas lygis atrakina dar ${SPOTS.filter(s=>getSpotLevel(s)===lv.level+1).length} naujų vietų</div>
-    </div>
-    <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-        <span style="font-size:.82rem;font-weight:700;color:var(--txt)">Surinkta</span>
-        <span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--txt)">${found.size} viet${found.size===1?'a':'os'}</span>
-      </div>
-      <div style="display:flex;gap:8px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td)">
-        <span>🥉 T1: ${t1c}</span>
-        <span>🥈 T2: ${t2c}</span>
-        <span>🥇 T3: ${t3c}</span>
-      </div>
-    </div>
+    <!-- Tier progress -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Tiero pažanga</div>
+    ${tierBar(1,'#c9a84c','T1 — Žinomos',t1c,t1tot,false)}
+    ${tierBar(2,'#7a9cc9','T2 — Paslėptos',t2c,t2tot,t2locked)}
+    ${tierBar(3,'#b07aaa','T3 — Legendos',t3c,t3tot,t3locked)}
 
     <!-- Daily quest -->
     <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Dienos užduotis</div>
@@ -2867,7 +2714,7 @@ const WEEKLY_CHALLENGES=[
   {id:'w_viewpoint',cat:'viewpoint',goal:2,label:'Aplankyk 2 apžvalgos taškus šią savaitę',icon:'🔭',xp:60},
   {id:'w_mound',cat:'mound',goal:2,label:'Aplankyk 2 piliakalnius šią savaitę',icon:'⛰️',xp:80},
   {id:'w_any5',cat:null,goal:5,label:'Surink bet kokias 5 vietas šią savaitę',icon:'🗺',xp:50},
-  {id:'w_t2',cat:'cemetery',goal:2,label:'Aplankyk 2 kapines šią savaitę',icon:'⚱️',xp:100},
+  {id:'w_t2',cat:null,goal:2,label:'Surink 2 T2 lygio vietas šią savaitę',icon:'🥈',xp:100,tier:2},
   {id:'w_mural',cat:'mural',goal:3,label:'Aplankyk 3 gatvės meno kūrinius šią savaitę',icon:'🎨',xp:60},
 ];
 
@@ -3046,7 +2893,7 @@ function renderNearbySuggestions(){
   if(userLat===null) return'';
   const MAX_DIST=800;
   const nearby=SPOTS
-    .filter(s=>!found.has(s.id)&&isSpotVisible(s)&&s.cat!=='hidden')
+    .filter(s=>!found.has(s.id)&&isSpotUnlocked(s)&&s.cat!=='hidden')
     .map(s=>({s,d:dist(userLat,userLng,s.lat,s.lng)}))
     .filter(x=>x.d<=MAX_DIST)
     .sort((a,b)=>a.d-b.d)
@@ -3108,8 +2955,8 @@ function renderList(){
 
   const searchVal=(document.getElementById('spotSearchInput')?.value||'').toLowerCase().trim();
 
-  const unlockedSpots=SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden');
-  const lockedSpots=SPOTS.filter(s=>!isSpotVisible(s)&&s.cat!=='hidden');
+  const unlockedSpots=SPOTS.filter(s=>isSpotUnlocked(s)&&s.cat!=='hidden');
+  const lockedSpots=SPOTS.filter(s=>!isSpotUnlocked(s)&&s.cat!=='hidden');
 
   const allCats=FILTER_GROUPS.flatMap(g=>g.cats);
   const extraCats=[...new Set(unlockedSpots.map(s=>s.cat))].filter(c=>!allCats.includes(c));
@@ -3183,12 +3030,12 @@ function renderList(){
       </div>`;
       if(lockedExpanded){
         lockedSpots.forEach(s=>{
-          // Locked spots are invisible — skip in list for regular users
-          if(!isAdmin()) return;
           const cat=CATS[s.cat]||CATS.history;
+          const tokAvail=tokensAvailable(s.tier);
           h+=`<div class="sr hidden-spot" onclick="closeDrawer();goToSpot('${s.id}')" style="padding-left:16px">
             <div class="sri" style="opacity:.4">🔒</div>
-            <div style="flex:1;min-width:0"><div class="srn" style="color:var(--tm)">Lv.${getSpotLevel(s)} — ${cat.label}</div><div class="srm">${TIER_CONFIG[s.tier||1].label}</div></div>
+            <div style="flex:1;min-width:0"><div class="srn" style="color:var(--tm)">??? — ${cat.label}</div><div class="srm">${TIER_CONFIG[s.tier||1].label}</div></div>
+            ${tokAvail>0?`<div class="srr" style="color:var(--gold)">🔓</div>`:''}
           </div>`;
         });
       }
@@ -3463,7 +3310,7 @@ function deleteSpot(){
 // ═══════════ HEADER ═══════════
 
 function updateAll(){
-  document.getElementById('topSub').textContent=`${found.size} surinkta · Lv.${getPlayerLevel(totalXP)}`;
+  document.getElementById('topSub').textContent=`${found.size} / ${SPOTS.length} surinkta`;
   const s=streak||0;
   document.getElementById('streakNum').textContent=s;
   const pill=document.getElementById('streakPill');
@@ -4187,7 +4034,6 @@ function renderOsmImport(){
       <button class="osm-ctrl-btn pri" id="osmImportBtn" onclick="osmImportSelected()">✅ Importuoti</button>
       <button class="osm-ctrl-btn" style="border-color:var(--red);color:var(--red)" onclick="findDuplicateSpots()">🔍 Dublikatai</button>
       <button class="osm-ctrl-btn" style="border-color:var(--red);color:var(--red);background:rgba(140,74,74,.1)" onclick="autoDeleteAllDuplicates()">🗑 Ištrinti visus</button>
-      <button class="osm-ctrl-btn" style="border-color:#b07aaa;color:#b07aaa" onclick="reclassifyKpdSpots()">🏷 Perrūšiuoti KPD</button>
     </div>
     ${_osmManualMode?`<div id="osmManualGrid" style="margin:8px 0;max-height:260px;overflow-y:auto;padding:0 2px"></div>`:''}
     <div class="osm-filter-row">
@@ -4828,65 +4674,6 @@ async function deleteDuplicateSpot(fid){
     toast('Klaida: '+e.message,'info');
   }
 }
-// ═══════════ KPD CATEGORY RECLASSIFIER (Admin) ═══════════
-// Fixes ~547 history spots that were miscategorised during KPD import.
-// Uses spot name keywords to determine correct category.
-
-function resolveKpdCatFromName(name){
-  const n=name.toLowerCase();
-  // Mound complex sub-objects
-  if(/piliakalnio|pilkapis|piliakalniui|senojo piliakalnio/.test(n)) return 'mound';
-  // Cemetery objects
-  if(/antkapinis|antkapis/.test(n)) return 'cemetery';
-  // Church objects
-  if(/koplytėlė(?!stulp)|koplyčia|varpinė|klebonija|šventoriaus tvora|bažnyčios/.test(n)) return 'church';
-  // Monument/sculpture
-  if(/koplytstulpis|skulptūra|obeliskas/.test(n)) return 'monument';
-  // Fort/bunker
-  if(/slėptuvė|bunkeris|tvirtovės/.test(n)) return 'fort';
-  return null; // no change
-}
-
-async function reclassifyKpdSpots(){
-  if(!isAdmin()){toast('Tik adminui','info');return;}
-  const{db,doc,updateDoc}=window._fb||{};
-  if(!db){toast('Firebase nepasiekiamas','info');return;}
-
-  const candidates=SPOTS.filter(s=>s.cat==='history'&&s.tag&&s.tag.startsWith('KPD-'));
-  const toReclassify=[];
-  candidates.forEach(s=>{
-    const newCat=resolveKpdCatFromName(s.name);
-    if(newCat) toReclassify.push({spot:s,newCat});
-  });
-
-  osmSetStatus(`🔍 Rasta ${toReclassify.length} vietų perrūšiavimui iš ${candidates.length} istorinių...`);
-  if(!toReclassify.length){toast('Nieko perrūšiuoti','info');return;}
-
-  if(!confirm(`Perrūšiuoti ${toReclassify.length} vietų?\n\nPavyzdžiai:\n${toReclassify.slice(0,5).map(x=>`${x.spot.name.slice(0,40)} → ${x.newCat}`).join('\n')}\n\nTęsti?`)) return;
-
-  let done=0,failed=0;
-  for(const{spot,newCat} of toReclassify){
-    try{
-      const fid=spot._fid||spot.id;
-      await updateDoc(doc(db,'spots',fid),{cat:newCat});
-      spot.cat=newCat; // update local
-      done++;
-      if(done%20===0) osmSetStatus(`⏳ Perrūšiuota ${done}/${toReclassify.length}...`);
-    }catch(e){
-      failed++;
-      console.error('reclassify fail',spot.name,e);
-    }
-    if(done%50===0) await new Promise(r=>setTimeout(r,200));
-  }
-
-  // Rebuild spot level map after category changes
-  _spotLevelMap=null;
-  refreshMarkers();updateAll();
-  const msg=`✅ Perrūšiuota ${done} vietų${failed>0?`, klaida ${failed}`:''}.`;
-  osmSetStatus(msg);
-  toast(msg,'success');
-}
-
 let _wikiData=[];
 let _wikiSelected=new Set();
 let _wikiLoading=false;
@@ -5912,66 +5699,20 @@ function renderFavorites(){
 
 // ═══════════ REVIEW SYSTEM ═══════════
 
-const REVIEW_MILESTONES=[3,20,50,150]; // show review at these spot counts only
+const REVIEW_TRIGGER_COUNT=3; // show after 3rd collected spot
 let _reviewRating=0;
-// ═══════════ USERNAME ONBOARDING ═══════════
-function maybeShowUsernamePrompt(){
-  if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
-  // Only show if logged in or after a short delay for guests
-  setTimeout(()=>{
-    if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
-    showUsernameModal();
-  }, 2000);
-}
-
-function showUsernameModal(){
-  let el=document.getElementById('usernameModal');
-  if(!el){
-    el=document.createElement('div');
-    el.id='usernameModal';
-    el.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
-    el.innerHTML=`<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
-      <div style="font-size:2.5rem;margin-bottom:12px">🗺</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px">Sveiki atvykę!</div>
-      <div style="font-size:.85rem;color:var(--td);margin-bottom:20px;line-height:1.5">Kaip tave vadinti? Tavo vardas pasirodys lyderių lentelėje.</div>
-      <input id="usernameInput" type="text" maxlength="20" placeholder="Tyrinėtojo vardas..."
-        style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--txt);outline:none;margin-bottom:14px;box-sizing:border-box">
-      <button onclick="confirmUsername()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">Pradėti tyrinėti →</button>
-      <div onclick="confirmUsername()" style="margin-top:10px;font-size:.75rem;color:var(--tm);cursor:pointer">Praleisti</div>
-    </div>`;
-    document.body.appendChild(el);
-  }
-  el.style.display='flex';
-  setTimeout(()=>document.getElementById('usernameInput')?.focus(),100);
-}
-
-function confirmUsername(){
-  const input=document.getElementById('usernameInput');
-  const name=(input?.value||'').trim();
-  if(name.length>=2) playerName=name;
-  save();
-  // Sync to Firestore if logged in
-  const user=window._fbUser;
-  if(user&&window._fb){
-    const{db,doc,setDoc}=window._fb;
-    setDoc(doc(db,'users',user.uid),{name:playerName},{merge:true}).catch(()=>{});
-  }
-  const el=document.getElementById('usernameModal');
-  if(el) el.style.display='none';
-  updateDrawerHeader();
-  updateAll();
-}
-
 let _reviewShownThisSession=false;
 
 function maybeShowReview(){
   if(_reviewShownThisSession) return;
-  if(!REVIEW_MILESTONES.includes(found.size)) return;
-  const shownKey='kex_rev_'+found.size;
-  if(localStorage.getItem(shownKey)) return;
-  localStorage.setItem(shownKey,'1');
+  if(found.size<REVIEW_TRIGGER_COUNT) return;
+  // Only show once per day per device
+  const lastReviewKey='kex_review_shown';
+  const lastShown=localStorage.getItem(lastReviewKey)||'';
+  const today=new Date().toDateString();
+  if(lastShown===today) return;
   _reviewShownThisSession=true;
-  setTimeout(()=>openReview(),900);
+  setTimeout(()=>openReview(),900); // slight delay after collect animation
 }
 
 function openReview(){
@@ -6153,25 +5894,7 @@ self.addEventListener('fetch',e=>{
 // Load any admin-saved routes
 
 // Show auth bar once Firebase module is ready
-window.onFbAuthReady=async function(user){
-  setTimeout(maybeShowUsernamePrompt,3000);
-  if(user){
-    // Load user progress from Firestore (cross-device sync)
-    try{
-      const{db,doc,getDoc}=window._fb;
-      const snap=await getDoc(doc(db,'users',user.uid));
-      if(snap.exists()){
-        const d=snap.data();
-        if(d.found&&Array.isArray(d.found)) found=new Set(d.found);
-        if(d.name) playerName=d.name;
-        if(d.totalXP) totalXP=d.totalXP;
-        if(d.streak) streak=d.streak;
-        if(d.badges) earnedBadges=new Set(d.badges);
-        _spotLevelMap=null; // rebuild with fresh data
-        refreshMarkers();updateAll();
-      }
-    }catch(e){console.log('Firestore load:',e.message);}
-  }
+window.onFbAuthReady=function(user){
   document.getElementById('authBar').classList.remove('hidden');
   const isAdmin=user&&user.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
   // Show admin-only UI
@@ -6546,6 +6269,7 @@ async function fbLoadUserProgress(uid){
       if(d.totalXP!==undefined) totalXP=d.totalXP;
       if(d.notes) notes=d.notes;
       if(d.earnedBadges) earnedBadges=new Set(d.earnedBadges);
+      if(d.unlockedCats) unlockedCats=new Set(d.unlockedCats);
       if(d.playerName) playerName=d.playerName;
       if(d.approvedSuggestions!==undefined) approvedSuggestions=d.approvedSuggestions;
       prevLevel=getLevel(totalXP).level;
@@ -6567,6 +6291,7 @@ async function fbSaveUserProgress(){
       foundCount:found.size,   // top-level for leaderboard sorting
       streak,lastDate,totalXP,notes,
       earnedBadges:[...earnedBadges],
+      unlockedCats:[...unlockedCats],
       playerName,
       photoURL:user.photoURL||null,
       updatedAt:serverTimestamp()
@@ -6587,6 +6312,7 @@ save=function(){
   localStorage.setItem('ke7_notes',JSON.stringify(notes));
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
+  localStorage.setItem('ke7_ucats',JSON.stringify([...unlockedCats]));
   localStorage.setItem('ke7_xp',totalXP);
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
