@@ -2321,7 +2321,7 @@ const PANEL_TITLES={
 };
 
 function openSubPanel(name){
-  ['aboutme','vietos','favs','zenklai','social','osm','enrich','reviews','suggestions','mysuggestions'].forEach(p=>{
+  ['aboutme','vietos','favs','zenklai','social','osm','reviews','suggestions','mysuggestions'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
@@ -5905,7 +5905,6 @@ async function fbLoadSpots(){
         setSyncDot('synced');
         const sub=document.getElementById('authSub');
         if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
-        if(isPanelOpen('enrich')) renderEnrichPanel();
         return;
       }
     }
@@ -5950,7 +5949,6 @@ async function fbLoadSpotsFromFirestore(){
     setSyncDot('synced');
     const sub=document.getElementById('authSub');
     if(sub) sub.textContent=`${SPOTS.length} vietos (Firestore)`;
-    if(isPanelOpen('enrich')) renderEnrichPanel();
   }catch(e){
     console.error('fbLoadSpotsFromFirestore',e);
     setSyncDot('');
