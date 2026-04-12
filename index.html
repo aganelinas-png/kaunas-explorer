@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Lithuania Explorer</title>
+<title>SpotSeekers</title>
 
 <!-- PWA -->
 <meta name="theme-color" content="#c9a84c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Lithuania Explorer">
-<meta name="description" content="Tyrinėk Lietuvą — surink vietas, atrakinkinėk paslėptas istorijas">
+<meta name="apple-mobile-web-app-title" content="SpotSeekers">
+<meta name="description" content="Tyrinėk Lietuvą — surink vietas, atrakinkinėk paslėptas istorijas. SpotSeekers.">
 <link rel="manifest" id="pwaManifest">
 <!-- Apple touch icon (inline SVG as data URI fallback) -->
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230e0c09'/><text y='340' x='256' text-anchor='middle' font-size='300' font-family='serif'>🗺</text></svg>">
@@ -855,7 +855,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <div class="tb-left">
     <div class="ib" onclick="openDrawer()">☰</div>
     <div class="logo-pill" onclick="handleLogoClick()">
-      <div class="logo-text">Lithuania Explorer</div>
+      <div class="logo-text">SpotSeekers</div>
       <div class="logo-sub" id="topSub">0 / 0 surinkta</div>
       <div style="font-family:'DM Mono',monospace;font-size:.48rem;color:var(--tm);letter-spacing:.06em;margin-top:1px;opacity:.7">v24.03</div>
     </div>
@@ -917,7 +917,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-header">
       <div style="display:flex;align-items:flex-start;justify-content:space-between">
         <div style="flex:1;min-width:0">
-          <div class="drawer-logo">Lithuania Explorer</div>
+          <div class="drawer-logo">SpotSeekers</div>
           <div style="font-family:'DM Mono',monospace;font-size:.52rem;color:var(--tm);letter-spacing:.06em;margin-top:-2px;opacity:.7">v24.03</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
@@ -1115,8 +1115,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 <!-- INTRO OVERLAY -->
 <div class="intro-overlay hidden" id="introOverlay">
   <div class="intro-glyph">🗺</div>
-  <div class="intro-title">Sveiki atvykę į<br>Lithuania Explorer</div>
-  <div class="intro-sub">Tyrinėk miestą, atrakinkinėk paslėptas vietas ir tapk tikru Kauno žinovu.</div>
+  <div class="intro-title">Labas, Seeker'i! 👋<br>Sveiki į SpotSeekers</div>
+  <div class="intro-sub">Tyrinėk Lietuvą, rink vietas ir tapk tikru Seeker'iu.</div>
   <div class="intro-city">📍 Lietuva</div>
   <div class="intro-dots">
     <div class="intro-dot on" id="introD0"></div>
@@ -2842,27 +2842,69 @@ function renderBadges(){
 
 // ═══════════ WEEKLY CHALLENGE ═══════════
 const WEEKLY_CHALLENGES=[
+  // Category-based
   {id:'w_church',cat:'church',goal:3,label:'Aplankyk 3 bažnyčias šią savaitę',icon:'⛪',xp:60},
+  {id:'w_church2',cat:'church',goal:5,label:'Aplankyk 5 bažnyčias šią savaitę',icon:'⛪',xp:90},
   {id:'w_nature',cat:'nature',goal:3,label:'Aplankyk 3 gamtos vietas šią savaitę',icon:'🌿',xp:60},
+  {id:'w_nature2',cat:'nature',goal:5,label:'Aplankyk 5 gamtos vietas šią savaitę',icon:'🌿',xp:90},
   {id:'w_fort',cat:'fort',goal:2,label:'Aplankyk 2 fortus šią savaitę',icon:'🏰',xp:80},
+  {id:'w_fort2',cat:'fort',goal:3,label:'Aplankyk 3 fortus šią savaitę',icon:'🏰',xp:110},
   {id:'w_museum',cat:'museum',goal:2,label:'Aplankyk 2 muziejus šią savaitę',icon:'🏛',xp:60},
+  {id:'w_museum2',cat:'museum',goal:4,label:'Aplankyk 4 muziejus šią savaitę',icon:'🏛',xp:90},
   {id:'w_history',cat:'history',goal:4,label:'Aplankyk 4 istorines vietas šią savaitę',icon:'⚔️',xp:70},
+  {id:'w_history2',cat:'history',goal:7,label:'Aplankyk 7 istorines vietas šią savaitę',icon:'⚔️',xp:110},
   {id:'w_viewpoint',cat:'viewpoint',goal:2,label:'Aplankyk 2 apžvalgos taškus šią savaitę',icon:'🔭',xp:60},
+  {id:'w_viewpoint2',cat:'viewpoint',goal:4,label:'Aplankyk 4 apžvalgos taškus šią savaitę',icon:'🔭',xp:90},
   {id:'w_mound',cat:'mound',goal:2,label:'Aplankyk 2 piliakalnius šią savaitę',icon:'⛰️',xp:80},
-  {id:'w_any5',cat:null,goal:5,label:'Surink bet kokias 5 vietas šią savaitę',icon:'🗺',xp:50},
-  {id:'w_t2',cat:'cemetery',goal:2,label:'Aplankyk 2 kapines šią savaitę',icon:'⚱️',xp:100},
+  {id:'w_mound2',cat:'mound',goal:4,label:'Aplankyk 4 piliakalnius šią savaitę',icon:'⛰️',xp:120},
+  {id:'w_cemetery',cat:'cemetery',goal:2,label:'Aplankyk 2 kapines šią savaitę',icon:'⚱️',xp:100},
   {id:'w_mural',cat:'mural',goal:3,label:'Aplankyk 3 gatvės meno kūrinius šią savaitę',icon:'🎨',xp:60},
+  {id:'w_mural2',cat:'mural',goal:5,label:'Aplankyk 5 gatvės meno kūrinius šią savaitę',icon:'🎨',xp:90},
+  {id:'w_monument',cat:'monument',goal:3,label:'Aplankyk 3 monumentus šią savaitę',icon:'🗿',xp:70},
+  {id:'w_monument2',cat:'monument',goal:5,label:'Aplankyk 5 monumentus šią savaitę',icon:'🗿',xp:100},
+  {id:'w_watertower',cat:'watertower',goal:2,label:'Aplankyk 2 vandens bokštus šią savaitę',icon:'🗼',xp:80},
+  // Any-category challenges
+  {id:'w_any3',cat:null,goal:3,label:'Surink bet kokias 3 vietas šią savaitę',icon:'🗺',xp:40},
+  {id:'w_any5',cat:null,goal:5,label:'Surink bet kokias 5 vietas šią savaitę',icon:'🗺',xp:60},
+  {id:'w_any8',cat:null,goal:8,label:'Surink bent 8 vietas šią savaitę',icon:'🗺',xp:90},
+  {id:'w_any10',cat:null,goal:10,label:'Surink 10 vietų šią savaitę — Seeker\'io norma!',icon:'🗺',xp:120},
+  // Tier-based
+  {id:'w_t2a',cat:null,tier:2,goal:2,label:'Surink 2 retas (T2) vietas šią savaitę',icon:'🥈',xp:100},
+  {id:'w_t3a',cat:null,tier:3,goal:1,label:'Surink bent 1 legendinę (T3) vietą šią savaitę',icon:'🥇',xp:120},
+  {id:'w_t3b',cat:null,tier:3,goal:2,label:'Surink 2 legendines (T3) vietas šią savaitę',icon:'🥇',xp:180},
+  // Heritage combo
+  {id:'w_heritage',cat:null,cats:['church','monument','mound'],goal:4,label:'Aplankyk 4 paveldo vietas (bažnyčios, monumentai ar piliakalnis)',icon:'🏛',xp:90},
+  {id:'w_heritage2',cat:null,cats:['fort','mound','history'],goal:3,label:'Aplankyk 3 gynybines ar istorines vietas',icon:'⚔️',xp:90},
+  // Nature combo
+  {id:'w_outdoors',cat:null,cats:['nature','viewpoint','mound'],goal:4,label:'Aplankyk 4 lauko vietas (gamta, apžvalgos ar piliakalnis)',icon:'🌄',xp:80},
+  // Urban combo
+  {id:'w_urban',cat:null,cats:['mural','monument','watertower'],goal:4,label:'Aplankyk 4 miesto vietas (gatvės menas, bokštai ar monumentai)',icon:'🏙',xp:80},
+  // Streak boosters
+  {id:'w_streak3',cat:null,goal:1,streakBonus:3,label:'Aplankyk bent 1 vietą ir išlaikyk 3 dienų seriją šią savaitę',icon:'🔥',xp:70},
+  {id:'w_daily',cat:null,goal:7,perDay:true,label:'Aplankyk bent 1 vietą kiekvieną dieną šią savaitę',icon:'📅',xp:150},
 ];
+
+// Seeded shuffle — produces a stable but year+week unique order
+function _seededRand(seed){
+  let s=seed^0x9e3779b9;
+  s=Math.imul(s^(s>>>16),0x45d9f3b);
+  s=Math.imul(s^(s>>>16),0x45d9f3b);
+  return((s^(s>>>16))>>>0)/0xffffffff;
+}
 
 function getWeekSeed(){
   const d=new Date();
   const jan1=new Date(d.getFullYear(),0,1);
-  return Math.floor((d-jan1)/604800000)+d.getFullYear()*100;
+  const week=Math.floor((d-jan1)/604800000);
+  // Mix year and week so same week# never repeats across years
+  return week*397+d.getFullYear()*1000003;
 }
 
 function getCurrentWeekChallenge(){
   const seed=getWeekSeed();
-  return WEEKLY_CHALLENGES[seed%WEEKLY_CHALLENGES.length];
+  // Pick index using seeded random for better distribution across full pool
+  const idx=Math.floor(_seededRand(seed)*WEEKLY_CHALLENGES.length);
+  return WEEKLY_CHALLENGES[idx];
 }
 
 function getWeekStart(){
@@ -2913,7 +2955,7 @@ function recordWeeklyCollect(spotId){
   if(ids.includes(spotId)) return;
   const spot=SPOTS.find(s=>s.id==spotId);
   if(!spot) return;
-  const matches=!ch.cat||(ch.tier?spot.tier===ch.tier:spot.cat===ch.cat);
+  const matches=ch.tier?spot.tier===ch.tier:ch.cats?ch.cats.includes(spot.cat):!ch.cat||spot.cat===ch.cat;
   if(matches){ids.push(spotId);try{localStorage.setItem(wkKey,JSON.stringify(ids));}catch(e){}}
   updateWeeklyProgress();
 }
@@ -3101,7 +3143,7 @@ function renderList(){
 
   const allCats=FILTER_GROUPS.flatMap(g=>g.cats);
   const extraCats=[...new Set(unlockedSpots.map(s=>s.cat))].filter(c=>!allCats.includes(c));
-  const orderedCats=[...allCats,...extraCats];
+  const orderedCats=[...new Set([...allCats,...extraCats])];
 
   if(searchVal){
     // Flat search results
@@ -3219,7 +3261,7 @@ function getInviteUrl(){
 
 function shareInvite(){
   const url=getInviteUrl();
-  const text=`🗺 Tyrinėk Lietuvą su manimi Lithuania Explorer! Surink vietas, atrakinkinėk paslėptas ir lenktyniauk lyderių lentelėje.\n\n👉 ${url}`;
+  const text=`🗺 Tyrinėk Lietuvą su manimi SpotSeekers! Surink vietas, atrakinkinėk paslėptas ir lenktyniauk lyderių lentelėje.\n\n👉 ${url}`;
   // Show our custom share sheet
   showShareSheet(url, text);
 }
@@ -3228,7 +3270,7 @@ function shareProgress(){
   const t1=t1Collected(),t2=t2Collected(),t3=t3Collected();
   const badges=[...earnedBadges].length;
   const url=getInviteUrl();
-  const text=`🗺 Lithuania Explorer — ${playerName} pažanga!\n\n📍 Surinkta: ${found.size}/${SPOTS.length} vietų\n   T1: ${t1} · T2: ${t2} · T3: ${t3}\n⭐ XP: ${totalXP}\n🔥 Serija: ${streak} dienų\n🏅 Ženkleliai: ${badges}\n\n👉 ${url}`;
+  const text=`🗺 SpotSeekers — ${playerName} pažanga!\n\n📍 Surinkta: ${found.size}/${SPOTS.length} vietų\n   T1: ${t1} · T2: ${t2} · T3: ${t3}\n⭐ XP: ${totalXP}\n🔥 Serija: ${streak} dienų\n🏅 Ženkleliai: ${badges}\n\n👉 ${url}`;
   showShareSheet(url, text);
 }
 
@@ -3263,7 +3305,7 @@ function copyInviteUrl(url){
 
 function nativeShare(url,text){
   if(navigator.share){
-    navigator.share({title:'Lithuania Explorer',text:text,url:url}).catch(()=>{});
+    navigator.share({title:'SpotSeekers',text:text,url:url}).catch(()=>{});
   } else {
     copyInviteUrl(url);
   }
@@ -5224,12 +5266,12 @@ function checkContributorBadges(count,isCurrentUser){
 
 
 const INTRO_STEPS=[
-  {glyph:'🗺',title:'Sveiki į Lithuania Explorer',sub:'Tyrinėk Lietuvą realiu laiku — surink vietas fiziškai apsilankydamas prie jų.'},
+  {glyph:'🗺',title:'Labas, Seeker\'i!',sub:'SpotSeekers — tyrinėk Lietuvą realiu laiku. Surink vietas fiziškai apsilankydamas prie jų.'},
   {glyph:'📍',title:'Kaip surinkti vietą?',sub:'Prieik prie žymeklio žemėlapyje ir paspausk "Surinkti". GPS aptiks tavo buvimo vietą automatiškai.'},
   {glyph:'🔓',title:'Lygiai & atrakinimai',sub:'Pradedi su ~910 vietų. Kiekvienas lygis atveria naujas — iki viso 9000+ Lietuvoje.'},
   {glyph:'🏅',title:'XP, ženkleliai & serijos',sub:'Kiekviena vieta duoda XP. Rinki ženklelius pagal kategorijas — bažnyčios, piliakalnis, fortai ir dar daugiau.'},
-  {glyph:'🏆',title:'Lyderių lentelė',sub:'Lenktyniauk su kitais tyrinėtojais. Prisijunk kad sinchronizuoti pažangą tarp įrenginių.'},
-  {glyph:'🚀',title:'Pradėk tyrinėti!',sub:'GPS veikia fone. Matai vietas 50 km spinduliu. Sėkmės renkant Lietuvą!',isLast:true},
+  {glyph:'🏆',title:'Lyderių lentelė',sub:'Lenktyniauk su kitais Seeker\'iais. Prisijunk kad sinchronizuoti pažangą tarp įrenginių.'},
+  {glyph:'🚀',title:'Pradėk tyrinėti!',sub:'GPS veikia fone. Matai vietas 50 km spinduliu. Sėkmės, Seeker\'i!',isLast:true},
 ];
 let _introStep=0;
 
@@ -5617,9 +5659,9 @@ load();initMap();updateAll();startGPS();checkRefParam();
 (function(){
   // Inject manifest as blob URL (works from any host including Cloudflare Workers)
   const manifest={
-    name:'Lithuania Explorer',
-    short_name:'LithuaniaXP',
-    description:'Tyrinėk Kauną — surink vietas, atrakinkinėk paslėptas istorijas',
+    name:'SpotSeekers',
+    short_name:'SpotSeekers',
+    description:'Tyrinėk Lietuvą — surink vietas, atrakinkinėk paslėptas istorijas. SpotSeekers.',
     start_url:'/',
     display:'standalone',
     background_color:'#0e0c09',
@@ -5638,7 +5680,7 @@ load();initMap();updateAll();startGPS();checkRefParam();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='kaunas-explorer-v24';
+const CACHE='spotseekers-v25';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
