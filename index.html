@@ -1525,7 +1525,7 @@ function buildSpotLevelMap(spots){
   // Sort spots deterministically by seeded hash so assignment is stable across all clients
   const sorted=[...eligible].sort((a,b)=>seededHash(String(a.id)+'v1')-seededHash(String(b.id)+'v1'));
 
-  // LOGARITHMIC scaling: L1=10%, L50=100%.
+  // LOGARITHMIC scaling: L1=25%, L50=100%.
   // Log curve: fast unlock early, slower mid, tiny batches at end.
   // Formula: visible(l) = total * (log(l+1)/log(51))^0.7
   const totalEligible=eligible.length;
@@ -1533,8 +1533,8 @@ function buildSpotLevelMap(spots){
     return Math.round(totalEligible*Math.pow(Math.log(lvl+1)/Math.log(51),1.5));
   }
   const batchSizes=[];
-  // Enforce minimum 10% at L1
-  const l1Target=Math.max(Math.round(totalEligible*0.10),logVisible(1));
+  // Enforce minimum 25% at L1
+  const l1Target=Math.max(Math.round(totalEligible*0.25),logVisible(1));
   let prev=0;
   for(let l=1;l<=50;l++){
     let target=l===1?l1Target:(l===50?totalEligible:logVisible(l));
@@ -1664,6 +1664,17 @@ let dailyQuestDate=null;
 let totalXP=0;
 // Player name
 let playerName='Tu';
+// Guest ID — stable anonymous identity for users who skip login
+function getGuestId(){
+  let id=localStorage.getItem('ss_guest_id');
+  if(!id){
+    id='guest_'+Math.random().toString(36).slice(2,9)+Math.random().toString(36).slice(2,9);
+    localStorage.setItem('ss_guest_id',id);
+  }
+  return id;
+}
+// Unified UID — Firebase UID if logged in, guest ID otherwise
+function getMyUid(){return window._fbUser?window._fbUser.uid:getGuestId();}
 // Level tracking
 let prevLevel=1;
 let streakRewards=new Set();
@@ -1969,8 +1980,6 @@ function renderViewportMarkers(){
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(!show) return;
     if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
-    // 50km radius filter — only when GPS is available (admin sees all)
-    if(userLat!==null&&!isAdmin()&&dist(userLat,userLng,s.lat,s.lng)>GPS_VIEW_RADIUS) return;
     if(!bounds.contains([s.lat,s.lng])) return;
     if(!markers[s.id]){
       const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
@@ -2583,12 +2592,22 @@ function saveNote(){
 // ═══════════ COLLECT ═══════════
 
 function collectCurrent(){
+  // Must be logged in to collect
+  if(!window._fbUser){
+    toast('🔒 Prisijunk norėdamas rinkti vietas!','info');
+    setTimeout(()=>openEmailModal(),800);
+    return;
+  }
+  // Must have GPS to collect
+  if(userLat===null){
+    toast('📍 Įjunk GPS norėdamas rinkti vietas!','info');
+    return;
+  }
   if(selectedSpot&&selectedSpot.cat==='hidden'){
     setTimeout(()=>toast('🔮 Paslėpta vieta surasta! Naujas ženklelis?','gold'),600);
   }
   if(!selectedSpot||found.has(selectedSpot.id)) return;
-  if(userLat!==null){
-    const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
+  const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
     const r=spotRadius(selectedSpot);
     const FORCE_RADIUS=250;
     if(d>r&&d<=FORCE_RADIUS){
@@ -2608,7 +2627,6 @@ function collectCurrent(){
       toast(`📍 Per toli! Zona: ${r}m (tu: ${lbl})`,'info');
       return;
     }
-  }
   const prevPlayerLevel=getPlayerLevel(totalXP);
   found.add(selectedSpot.id);
   updateStreak();
@@ -3135,8 +3153,6 @@ function renderList(){
 
   const unlockedSpots=SPOTS.filter(s=>{
     if(!isSpotVisible(s)||s.cat==='hidden') return false;
-    // 50km radius filter when GPS available (admin sees all)
-    if(userLat!==null&&!isAdmin()&&dist(userLat,userLng,s.lat,s.lng)>GPS_VIEW_RADIUS) return false;
     return true;
   });
   const lockedSpots=SPOTS.filter(s=>!isSpotVisible(s)&&s.cat!=='hidden');
@@ -3456,8 +3472,8 @@ async function loadLeaderboard(){
 
     if(!users.length){el.innerHTML='<div class="lb-empty">Dar nėra žaidėjų 👀</div>';return;}
     const top=users.slice(0,20);
-    const myRank=users.findIndex(u=>u.uid===myUid)+1;
-    const myData=users.find(u=>u.uid===myUid);
+    const myRank=users.findIndex(u=>u.uid===getMyUid())+1;
+    const myData=users.find(u=>u.uid===getMyUid());
 
     const medals=['🥇','🥈','🥉'];
     const rankClass=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'';
@@ -3479,7 +3495,7 @@ async function loadLeaderboard(){
     }
 
     top.forEach((u,i)=>{
-      const isMe=u.uid===myUid;
+      const isMe=u.uid===getMyUid();
       const val=_lbTab==='xp'?u.xp:_lbTab==='spots'?u.spots:u.streak;
       const rank=i<3?medals[i]:`#${i+1}`;
       html+=`<div class="lb-row${isMe?' lb-me-row':''}">
@@ -5491,12 +5507,12 @@ function showUsernameModal(){
     el.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
     el.innerHTML=`<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
       <div style="font-size:2.5rem;margin-bottom:12px">🗺</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px">Sveiki atvykę!</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px">Labas, Seeker'i!</div>
       <div style="font-size:.85rem;color:var(--td);margin-bottom:20px;line-height:1.5">Kaip tave vadinti? Tavo vardas pasirodys lyderių lentelėje.</div>
-      <input id="usernameInput" type="text" maxlength="20" placeholder="Tyrinėtojo vardas..."
+      <input id="usernameInput" type="text" maxlength="20" placeholder="Seeker'io vardas..."
         style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--txt);outline:none;margin-bottom:14px;box-sizing:border-box">
       <button onclick="confirmUsername()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">Pradėti tyrinėti →</button>
-      <div onclick="confirmUsername()" style="margin-top:10px;font-size:.75rem;color:var(--tm);cursor:pointer">Praleisti</div>
+      <div onclick="skipUsername()" style="margin-top:10px;font-size:.75rem;color:var(--tm);cursor:pointer">Praleisti</div>
     </div>`;
     document.body.appendChild(el);
   }
@@ -5504,10 +5520,25 @@ function showUsernameModal(){
   setTimeout(()=>document.getElementById('usernameInput')?.focus(),100);
 }
 
+function skipUsername(){
+  // Assign a stable guest name if skipping
+  if(!playerName||playerName==='Tu'){
+    const gid=getGuestId();
+    const suffix=parseInt(gid.replace('guest_','').slice(0,4),36)%9000+1000;
+    playerName=`Seeker #${suffix}`;
+    save();
+  }
+  const el=document.getElementById('usernameModal');
+  if(el) el.style.display='none';
+  updateDrawerHeader();
+  updateAll();
+}
+
 function confirmUsername(){
   const input=document.getElementById('usernameInput');
   const name=(input?.value||'').trim();
   if(name.length>=2) playerName=name;
+  else skipUsername(); // treat empty confirm same as skip
   save();
   // Sync to Firestore if logged in
   const user=window._fbUser;
