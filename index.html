@@ -104,7 +104,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 }
 
 /* ── TOPBAR ── */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:8px;padding:10px 12px 10px 12px;pointer-events:none}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:8px;padding:10px 12px 10px 12px;pointer-events:none;overflow:visible}
 .tb-left{display:flex;align-items:center;gap:8px;pointer-events:all;flex-shrink:0}
 .tb-filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;pointer-events:all;flex:1;-webkit-overflow-scrolling:touch}
 .tb-filters::-webkit-scrollbar{display:none}
@@ -195,11 +195,11 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .drawer-back-btn{background:none;border:none;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;padding:4px 0;flex-shrink:0;-webkit-user-select:none;user-select:none}
 .drawer-back-btn:active{opacity:.7}
 .drawer-sub-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt);flex:1}
-.drawer-sub-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:env(safe-area-inset-bottom,20px)}
+.drawer-sub-body{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;min-height:0;padding-bottom:env(safe-area-inset-bottom,20px);overscroll-behavior:contain}
 
 /* ── PANEL SECTIONS (inside sub-panel) ── */
 .panel-section{display:none}
-.panel-section.active{display:block}
+.panel-section.active{display:block;min-height:0}
 
 /* DRAWER BOTTOM */
 .drawer-bottom{padding:12px 16px;border-top:1px solid var(--bdr);display:flex;gap:8px;flex-shrink:0}
@@ -277,6 +277,12 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .schips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .chip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:4px 10px;font-size:.7rem;color:var(--td);font-family:'DM Mono',monospace;white-space:nowrap}
 .chip.hi{border-color:var(--gd);color:var(--gold)}
+.year-block{display:flex;align-items:flex-start;gap:6px;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td)}
+.year-label{flex-shrink:0;margin-top:1px}
+.year-text{flex:1;line-height:1.5;word-break:break-word;white-space:pre-wrap}
+.year-clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.year-clamp.expanded{display:block;-webkit-line-clamp:unset}
+.year-toggle{display:block;margin-top:5px;background:none;border:none;color:var(--gold);font-family:'DM Mono',monospace;font-size:.65rem;cursor:pointer;padding:0;text-align:left;-webkit-user-select:none;user-select:none}
 .sinfo{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px}
 .ic{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 8px;text-align:center}
 .ic .ii{font-size:17px;margin-bottom:3px}
@@ -2507,9 +2513,15 @@ function openSheet(spot){
       <div class="stitle">${spot.name}</div>
       <div class="tier-badge t${spot.tier||1}">${tc.icon} ${tc.label}</div>
       <div class="schips">
-        ${spot.year&&spot.year!=='—'?`<span class="chip">📅 ${spot.year}</span>`:''}
         ${spot.tag?`<span class="chip hi">${spot.tag}</span>`:''}
       </div>
+      ${spot.year&&spot.year!=='—'?(()=>{
+        const yr=spot.year;
+        const long=yr.length>30;
+        return long
+          ?`<div class="year-block"><span class="year-label">📅</span><span class="year-text year-clamp" id="yrText">${yr}</span><button class="year-toggle" id="yrBtn" onclick="toggleYear()">Rodyti daugiau ↓</button></div>`
+          :`<div class="year-block"><span class="year-label">📅</span><span class="year-text">${yr}</span></div>`;
+      })():''}
       <div class="sinfo">
         <div class="ic"><div class="ii">${cat.emoji}</div><div class="iv">${cat.label}</div><div class="il">Tipas</div></div>
         <div class="ic"><div class="ii">🏅</div><div class="iv">${tc.label}</div><div class="il">Lygis</div></div>
@@ -2540,6 +2552,14 @@ function toggleReadMore(){
   if(!el||!btn) return;
   el.classList.toggle('expanded');
   btn.textContent=el.classList.contains('expanded')?'Rodyti mažiau ↑':'Skaityti daugiau ↓';
+}
+
+function toggleYear(){
+  const el=document.getElementById('yrText');
+  const btn=document.getElementById('yrBtn');
+  if(!el||!btn) return;
+  el.classList.toggle('expanded');
+  btn.textContent=el.classList.contains('expanded')?'Rodyti mažiau ↑':'Rodyti daugiau ↓';
 }
 
 function updateCollectBtn(spot){
@@ -2752,7 +2772,7 @@ function renderAboutMe(){
     </div>`;
   }
 
-  body.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+  body.innerHTML=`<div style="padding:14px;display:flex;flex-direction:column;gap:10px;padding-bottom:calc(40px + env(safe-area-inset-bottom,20px))">
 
     <!-- XP + Level -->
     <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;position:relative;overflow:hidden">
@@ -6401,6 +6421,58 @@ deleteSpot=async function(){
   save();refreshMarkers();updateAll();closeEditor();
   toast('🗑 Vieta ištrinta','info');
 };
+
+// ═══════════ ANDROID BACK BUTTON (TWA) ═══════════
+(function(){
+  // Push an initial history entry so the first back press doesn't exit immediately
+  history.pushState({ss:'app'},'');
+
+  let _backPressedOnce=false;
+  let _backTimer=null;
+
+  function getTopLayer(){
+    // Returns the topmost open layer in priority order
+    if(document.getElementById('unameOverlay')?.classList.contains('show')) return'uname';
+    if(document.getElementById('eauthOverlay')?.style.display==='flex'||document.getElementById('eauthOverlay')?.classList.contains('show')) return'eauth';
+    if(document.getElementById('mobFilterSheet')?.classList.contains('open')) return'mobfilter';
+    if(document.getElementById('editorModal')?.classList.contains('open')) return'editor';
+    if(document.getElementById('sheet')?.classList.contains('open')) return'sheet';
+    if(document.getElementById('drawerSubPanel')?.classList.contains('open')) return'subpanel';
+    if(document.getElementById('drawer')?.classList.contains('open')) return'drawer';
+    return null;
+  }
+
+  window.addEventListener('popstate',function(e){
+    const layer=getTopLayer();
+
+    if(layer){
+      // Close the topmost layer and push state again so next back still works
+      if(layer==='uname'){document.getElementById('unameOverlay').classList.remove('show');}
+      else if(layer==='eauth'){closeEmailModal();}
+      else if(layer==='mobfilter'){closeMobFilterSheet();}
+      else if(layer==='editor'){closeEditor();}
+      else if(layer==='sheet'){closeSheet();}
+      else if(layer==='subpanel'){closeSubPanel();}
+      else if(layer==='drawer'){closeDrawer();}
+      // Re-push so back still intercepts on next press
+      history.pushState({ss:'app'},'');
+    } else {
+      // Nothing open — double-back to exit
+      if(_backPressedOnce){
+        clearTimeout(_backTimer);
+        // Let the default popstate through (exits TWA)
+        history.go(-1);
+        return;
+      }
+      _backPressedOnce=true;
+      toast('⬅ Spausk dar kartą, kad išeitum','info');
+      // Re-push so we stay in app for now
+      history.pushState({ss:'app'},'');
+      _backTimer=setTimeout(()=>{_backPressedOnce=false;},2000);
+    }
+  });
+})();
+
 </script>
 
 <!-- MOBILE BOTTOM NAV BAR -->
