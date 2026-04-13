@@ -3,10 +3,31 @@
 
 const GITHUB_HTML = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
 const ADMIN_SECRET = 'lithuania2026';
+const FIREBASE_AUTH_ORIGIN = 'https://kaunas-explorer.firebaseapp.com';
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // ── Firebase Auth proxy — /__/auth/* must be served from spotseekers.net ──
+    // This enables signInWithRedirect to work correctly in TWA
+    if (url.pathname.startsWith('/__/auth/')) {
+      const targetUrl = FIREBASE_AUTH_ORIGIN + url.pathname + url.search;
+      const proxyReq = new Request(targetUrl, {
+        method: request.method,
+        headers: request.headers,
+        body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
+        redirect: 'follow',
+      });
+      const resp = await fetch(proxyReq);
+      // Forward response with CORS headers
+      const newHeaders = new Headers(resp.headers);
+      newHeaders.set('Access-Control-Allow-Origin', '*');
+      return new Response(resp.body, {
+        status: resp.status,
+        headers: newHeaders,
+      });
+    }
 
     // ── GET /api/spots — serve cached spots from KV ──
     if (url.pathname === '/api/spots') {
