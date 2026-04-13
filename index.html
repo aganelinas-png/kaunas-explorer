@@ -108,7 +108,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .tb-left{display:flex;align-items:center;gap:8px;pointer-events:all;flex-shrink:0}
 .tb-filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;pointer-events:all;flex:1;-webkit-overflow-scrolling:touch}
 .tb-filters::-webkit-scrollbar{display:none}
-.tb-right{display:flex;gap:7px;pointer-events:all;flex-shrink:0}
+.tb-right{display:flex;gap:6px;pointer-events:all;flex-shrink:0;align-items:center}
 .ib{background:var(--surf);border:1px solid var(--bdr);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;box-shadow:0 2px 12px var(--sh);color:var(--td);transition:all .2s;-webkit-user-select:none;user-select:none;flex-shrink:0}
 .ib:active{transform:scale(.92)}
 .ib.on{border-color:var(--gold);color:var(--gold)}
@@ -724,7 +724,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .auth-btn.out{background:var(--surf2);border:1px solid var(--bdr);color:var(--td)}
 .auth-btn:active{transform:scale(.96)}
 /* Mobile login pill in topbar */
-.mob-login-pill{background:var(--gold);color:#0e0c09;border:none;border-radius:16px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.72rem;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;display:none}
+.mob-login-pill{background:var(--gold);color:#0e0c09;border:none;border-radius:16px;padding:5px 10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.68rem;cursor:pointer;white-space:nowrap;-webkit-user-select:none;user-select:none;display:none;flex-shrink:0;pointer-events:all}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--tm);flex-shrink:0}
 .sync-dot.synced{background:var(--green);box-shadow:0 0 5px var(--green)}
 .sync-dot.syncing{background:var(--gold);animation:gp 1s infinite}
@@ -899,7 +899,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 <!-- BOTTOM SHEET -->
 <div class="sheet" id="sheet">
-  <div class="shandle"></div>
   <button class="sheet-close" onclick="closeSheet()">✕</button>
   <div class="sscroll" id="sheetContent"></div>
 </div>
@@ -1245,6 +1244,7 @@ const CATS={
   // — Nature —
   nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
   viewpoint:{label:'Apžvalgos',emoji:'🔭',color:'#1a6b8a'},
+  bridge:{label:'Tiltai',emoji:'🌉',color:'#4a6a8a'},
   // — Urban / City —
   mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
@@ -1304,8 +1304,6 @@ const BADGE_GROUPS=[
     {id:'c5b',name:'Bažnyčių meistras',desc:'Aplankyk 75 bažnyčias',icon:'⭐',need:75,xpReward:100},
     {id:'c6b',name:'Bažnyčių legenda',desc:'Aplankyk 200 bažnyčių',icon:'💎',need:200,xpReward:300},
     {id:'c7b',name:'Lietuvos piligimas',desc:'Aplankyk 500 bažnyčių',icon:'👑',need:500,xpReward:800},
-    {id:'c4',name:'Šventasis',desc:'Aplankyk 20 bažnyčių',icon:'😇',need:20,xpReward:20},
-    {id:'c5',name:'Dievo Architektas',desc:'Aplankyk 40 bažnyčių',icon:'💎',need:40,xpReward:50},
   ]},
   {id:'museums',title:'Muziejų kuratorius',icon:'🏛',cat:'museum',sub:true,badges:[
     {id:'m1',name:'Lankytojas',desc:'Aplankyk 1 muziejų',icon:'🎟️',need:1,xpReward:10},
@@ -1332,12 +1330,6 @@ const BADGE_GROUPS=[
     {id:'br4',name:'Inžinerijos entuziastas',desc:'Aplankyk 40 tiltų',icon:'🏗',need:40,xpReward:75},
     {id:'br5',name:'Tiltų meistras',desc:'Aplankyk 80 tiltų',icon:'🌟',need:80,xpReward:150},
     {id:'br6',name:'Lietuvos tiltų legenda',desc:'Aplankyk visus 142 tiltus',icon:'💎',need:142,xpReward:400},
-  ]},
-  {id:'trails',title:'Takų tyrinėtojas',icon:'🥾',cat:'trail',sub:true,badges:[
-    {id:'tr1',name:'Pirmasis takas',desc:'Aplankyk 1 taką',icon:'🥾',need:1,xpReward:10},
-    {id:'tr2',name:'Miško keliautojas',desc:'Aplankyk 3 takus',icon:'🌲',need:3,xpReward:20},
-    {id:'tr3',name:'Takų meistras',desc:'Aplankyk 7 takus',icon:'🗺',need:7,xpReward:40},
-    {id:'tr4',name:'Laukinės gamtos žinovas',desc:'Aplankyk visus 12 takų',icon:'💎',need:12,xpReward:100},
   ]},
   // ── Nature ──
   {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
@@ -1424,14 +1416,6 @@ const BADGE_GROUPS=[
     {id:'con2',name:'Bendruomenės tyrinėtojas',desc:'3 siūlytos vietos patvirtintos',icon:'🗺️',contribNeed:3,xpReward:100},
     {id:'con3',name:'Vietos žinovas',desc:'10 siūlytų vietų patvirtinta',icon:'🏅',contribNeed:10,xpReward:200},
     {id:'con4',name:'Lietuvos kartografas',desc:'25 siūlytos vietos patvirtintos',icon:'💎',contribNeed:25,xpReward:500},
-  ]},
-  {id:'xp',title:'XP pasiekimai',icon:'⭐',cat:null,badges:[
-    {id:'xp1',name:'Pirmieji taškai',desc:'Surink 100 XP',icon:'⭐',xpNeed:100},
-    {id:'xp2',name:'XP Kolekcionierius',desc:'Surink 500 XP',icon:'🌟',xpNeed:500},
-    {id:'xp3',name:'Taškai Lyja',desc:'Surink 1000 XP',icon:'💫',xpNeed:1000},
-    {id:'xp4',name:'XP Dileris',desc:'Surink 3000 XP',icon:'🏆',xpNeed:3000},
-    {id:'xp5',name:'Gyvas XP Maišas',desc:'Surink 10000 XP',icon:'👑',xpNeed:10000},
-    {id:'xp6',name:'XP Dievas',desc:'Surink 25000 XP',icon:'💎',xpNeed:25000},
   ]},
 ];
 
@@ -2820,6 +2804,10 @@ function renderAboutMe(){
     <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Dienos užduotis</div>
     <div id="aboutMeQuest">${renderQuestCard()}</div>
 
+    <!-- Weekly summary -->
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Savaitės suvestinė</div>
+    <div id="aboutMeWeeklySummary">${renderWeeklySummary()}</div>
+
     <!-- Weekly challenge -->
     <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:-4px">Savaitės iššūkis</div>
     <div id="aboutMeWeekly">${renderWeeklyChallenge()}</div>
@@ -2970,11 +2958,23 @@ function recordWeeklyCollect(spotId){
   const wkKey='ke7_weekly_ids_'+getWeekSeed();
   let ids=[];
   try{ids=JSON.parse(localStorage.getItem(wkKey)||'[]');}catch(e){}
-  if(ids.includes(spotId)) return;
+  const isNew=!ids.includes(spotId);
   const spot=SPOTS.find(s=>s.id==spotId);
   if(!spot) return;
   const matches=ch.tier?spot.tier===ch.tier:ch.cats?ch.cats.includes(spot.cat):!ch.cat||spot.cat===ch.cat;
-  if(matches){ids.push(spotId);try{localStorage.setItem(wkKey,JSON.stringify(ids));}catch(e){}}
+  if(isNew&&matches){ids.push(spotId);try{localStorage.setItem(wkKey,JSON.stringify(ids));}catch(e){}}
+  // Track ALL weekly collects for personal summary
+  if(isNew){
+    const allWkKey='ke7_all_weekly_'+getWeekSeed();
+    const prev=parseInt(localStorage.getItem(allWkKey)||'0');
+    try{localStorage.setItem(allWkKey,String(prev+1));}catch(e){}
+    // Track active days (0=Sun..6=Sat)
+    const daysKey='ke7_weekly_days_'+getWeekSeed();
+    const dow=new Date().getDay();
+    let days=[];
+    try{days=JSON.parse(localStorage.getItem(daysKey)||'[]');}catch(e){}
+    if(!days.includes(dow)){days.push(dow);try{localStorage.setItem(daysKey,JSON.stringify(days));}catch(e){}}
+  }
   updateWeeklyProgress();
 }
 
@@ -3000,6 +3000,55 @@ function renderWeeklyChallenge(){
     <div class="quest-reward">🌟 Atlygis: +${ch.xp} XP</div>
     <div class="quest-pbar"><div class="quest-pfill" style="width:${done?100:pct}%"></div></div>
     <div class="quest-status">${done?'Puiku! Nauja užduotis kitą pirmadienį.':`${prog} / ${ch.goal} surinkta`}</div>
+  </div>`;
+}
+
+// ═══════════ WEEKLY PERSONAL SUMMARY ═══════════
+function renderWeeklySummary(){
+  const wkKey='ke7_weekly_ids_'+getWeekSeed();
+  const prevKey='ke7_weekly_ids_'+(getWeekSeed()-1);
+  let thisWeek=[];
+  let lastWeek=[];
+  try{thisWeek=JSON.parse(localStorage.getItem(wkKey)||'[]');}catch(e){}
+  try{lastWeek=JSON.parse(localStorage.getItem(prevKey)||'[]');}catch(e){}
+
+  // Count all collected this week by checking found spots timestamps — fallback: use weekly challenge ids
+  // We use a separate broader key that tracks ALL collects this week (not just challenge ones)
+  const allWkKey='ke7_all_weekly_'+getWeekSeed();
+  const allPrevKey='ke7_all_weekly_'+(getWeekSeed()-1);
+  let allThis=0,allPrev=0;
+  try{allThis=parseInt(localStorage.getItem(allWkKey)||'0');}catch(e){}
+  try{allPrev=parseInt(localStorage.getItem(allPrevKey)||'0');}catch(e){}
+
+  const diff=allThis-allPrev;
+  const diffStr=diff>0?`<span style="color:var(--green)">▲${diff} vs praeita sav.</span>`:diff<0?`<span style="color:var(--red)">▼${Math.abs(diff)} vs praeita sav.</span>`:`<span style="color:var(--td)">= praeita sav.</span>`;
+
+  // Days this week that had at least 1 collect
+  const daysKey='ke7_weekly_days_'+getWeekSeed();
+  let activeDays=[];
+  try{activeDays=JSON.parse(localStorage.getItem(daysKey)||'[]');}catch(e){}
+  const dayNames=['S','P','A','T','K','Pn','Š'];
+  const now=new Date();
+  const todayDow=now.getDay();
+  const dayDots=dayNames.map((d,i)=>{
+    const active=activeDays.includes(i);
+    const isToday=i===todayDow;
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${active?'var(--gold)':'var(--surf3)'};border:1px solid ${isToday?'var(--gold)':'var(--bdr)'}"></div>
+      <span style="font-family:'DM Mono',monospace;font-size:.52rem;color:${isToday?'var(--gold)':'var(--td)'}">${d}</span>
+    </div>`;
+  }).join('');
+
+  return`<div class="streak-card" style="margin-bottom:8px">
+    <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);margin-bottom:10px">📅 Šios savaitės pažanga</div>
+    <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:12px">
+      <div>
+        <div style="font-size:2rem;font-weight:700;color:var(--txt);line-height:1">${allThis}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)">surinkta vietų</div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:.62rem;padding-bottom:4px">${allPrev>0||allThis>0?diffStr:''}</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center">${dayDots}</div>
   </div>`;
 }
 
@@ -3066,9 +3115,14 @@ function getCityStats(){
 }
 
 function renderCityCompletion(){
-  const stats=getCityStats();
+  const stats=getCityStats().sort((a,b)=>b.done-a.done||b.total-a.total);
   if(!stats.length) return'';
-  const rows=stats.map(s=>{
+  const withProgress=stats.filter(s=>s.done>0);
+  const top5=withProgress.slice(0,5);
+  const rest=withProgress.slice(5);
+  const hasMore=rest.length>0;
+
+  function cityRow(s){
     const col=s.pct===100?'var(--gold)':s.pct>50?'#7ac47a':'var(--tm)';
     return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
       <span style="font-family:'DM Mono',monospace;font-size:.68rem;min-width:82px;color:var(--txt)">${s.city}</span>
@@ -3077,10 +3131,16 @@ function renderCityCompletion(){
       </div>
       <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:${col};min-width:52px;text-align:right">${s.done}/${s.total} · ${s.pct}%</span>
     </div>`;
-  }).join('');
+  }
+
+  const restRows=rest.map(cityRow).join('');
+  const restHtml=hasMore?`<div id="cityRestRows" style="display:none">${restRows}</div>
+    <button onclick="this.style.display='none';document.getElementById('cityRestRows').style.display='block'" style="background:none;border:1px solid var(--bdr);border-radius:8px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);cursor:pointer;margin-top:4px">+ Rodyti dar ${rest.length}</button>`:'';
+
   return`<div class="streak-card" style="margin-bottom:8px">
     <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);margin-bottom:10px">🏙 Miestų pažanga</div>
-    ${rows}
+    ${top5.map(cityRow).join('')}
+    ${restHtml}
   </div>`;
 }
 
@@ -3121,6 +3181,7 @@ function renderDrawerStats(){
     +renderLevelCard()
     +renderStreakCard()
     +renderQuestCard()
+    +renderWeeklySummary()
     +renderWeeklyChallenge()
     +renderCityCompletion()
     +renderNearbySuggestions();
@@ -3187,7 +3248,8 @@ function renderList(){
     orderedCats.forEach(catId=>{
       const catSpots=unlockedSpots.filter(s=>s.cat===catId).sort((a,b)=>(a.name||'').localeCompare(b.name||'','lt'));
       if(!catSpots.length) return;
-      const cat=CATS[catId]||CATS.history;
+      const cat=CATS[catId];
+      if(!cat) return;
       const collectedInCat=catSpots.filter(s=>found.has(s.id)).length;
       const expanded=_catExpanded.has(catId);
       const pct2=catSpots.length?Math.round(collectedInCat/catSpots.length*100):0;
