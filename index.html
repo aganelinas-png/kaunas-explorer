@@ -27,7 +27,7 @@
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import{getAuth,signInWithPopup,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
@@ -50,7 +50,7 @@ setPersistence(auth,browserLocalPersistence).catch(()=>{});
 window._fb={db,auth,gProvider,
   doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
   query,orderBy,limit,where,writeBatch,
-  signInWithPopup,signOut,onAuthStateChanged,
+  signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged,
   createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
 };
 
@@ -58,6 +58,18 @@ window._fb={db,auth,gProvider,
 onAuthStateChanged(auth,user=>{
   window._fbUser=user||null;
   if(typeof window.onFbAuthReady==='function') window.onFbAuthReady(user);
+});
+
+// Handle returning redirect from Google sign-in (TWA / mobile)
+getRedirectResult(auth).then(result=>{
+  if(result?.user){
+    window._fbUser=result.user;
+    if(typeof window.updateAuthUI==='function') window.updateAuthUI(result.user);
+    if(typeof window.toast==='function') window.toast(`👋 Sveiki, ${result.user.displayName||''}!`,'success');
+    if(typeof window.onFbAuthReady==='function') window.onFbAuthReady(result.user);
+  }
+}).catch(e=>{
+  console.error('Redirect result error:',e);
 });
 </script>
 <style>
@@ -879,8 +891,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="ib" id="themeBtn" onclick="toggleTheme()" title="Dienos/nakties režimas">☀️</div>
     <div class="ib" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS" style="position:relative"><span id="gpsRefreshIcon">↻</span><span class="gd" id="gpsDot" style="position:absolute;top:8px;right:8px;width:6px;height:6px"></span></div>
     <div class="ib" onclick="centerUser()">📍</div>
-    <!-- Mobile login pill — only visible on mobile when not logged in -->
-    <div class="mob-login-pill" id="mobLoginPill" onclick="openEmailModal()" style="display:none">Prisijungti</div>
+    <!-- Mobile login icon — only visible on mobile when not logged in -->
+    <div class="ib" id="mobLoginPill" onclick="openEmailModal()" style="display:none" title="Prisijungti">👤</div>
   </div>
 </div>
 
@@ -5920,21 +5932,18 @@ function updateAuthUI(user){
     if(drawerAvatar) drawerAvatar.textContent='👤';
     if(drawerLabel) drawerLabel.textContent='Prisijungti';
     if(drawerBtn){drawerBtn.style.borderColor='var(--bdr)';drawerBtn.onclick=openEmailModal;}
-    if(mobPill&&window.innerWidth<=600) mobPill.style.display='block';
+    if(mobPill&&window.innerWidth<=600) mobPill.style.display='flex';
   }
 }
 
 function fbLogin(){
-  const{auth,gProvider,signInWithPopup}=window._fb||{};
+  const{auth,gProvider,signInWithRedirect}=window._fb||{};
   if(!auth){toast('Firebase dar kraunasi...','info');return;}
-  signInWithPopup(auth,gProvider)
-    .then(result=>{
-      toast(`👋 Sveiki, ${result.user.displayName||''}!`,'success');
-    })
-    .catch(e=>{
-      console.error(e);
-      toast('Prisijungimas nepavyko','info');
-    });
+  toast('⏳ Jungiamasi su Google...','info');
+  signInWithRedirect(auth,gProvider).catch(e=>{
+    console.error(e);
+    toast('Prisijungimas nepavyko','info');
+  });
 }
 
 // ── EMAIL AUTH ──
