@@ -22,12 +22,14 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Firebase -->
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import{getAuth,signInWithPopup,signInWithRedirect,getRedirectResult,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,signInWithPopup,signInWithRedirect,getRedirectResult,signInWithCredential,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
@@ -50,7 +52,7 @@ setPersistence(auth,browserLocalPersistence).catch(()=>{});
 window._fb={db,auth,gProvider,
   doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
   query,orderBy,limit,where,writeBatch,
-  signInWithPopup,signInWithRedirect,getRedirectResult,signOut,onAuthStateChanged,
+  signInWithPopup,signInWithRedirect,getRedirectResult,signInWithCredential,GoogleAuthProvider,signOut,onAuthStateChanged,
   createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
 };
 
@@ -1224,7 +1226,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="auth-name" id="authName">Neprisijungęs</div>
     <div class="auth-sub" id="authSub">Prisijunk norėdamas sinchronizuoti</div>
   </div>
-  <button class="auth-btn" id="authBtn" onclick="fbLogin()">Google</button>
+  <button class="auth-btn" id="authBtn" onclick="openEmailModal()">Google</button>
   <button class="auth-btn" id="authEmailBtn" onclick="openEmailModal()" style="background:var(--surf2);border:1px solid var(--bdr);color:var(--txt)">El. paštas</button>
 </div>
 
@@ -1239,9 +1241,17 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <input class="eauth-input" id="eauthPass" type="password" placeholder="Slaptažodis" autocomplete="current-password">
     <button class="eauth-btn" id="eauthSubmit" onclick="fbLoginEmail()">Prisijungti</button>
     <div class="eauth-sep"><span class="eauth-sep-txt">arba</span></div>
-    <button class="eauth-google" onclick="closeEmailModal();fbLogin()">🔵 Prisijungti su Google</button>
+    <!-- GIS Google Sign-In button rendered here -->
+    <div id="gisGoogleBtn" style="display:flex;justify-content:center;margin-bottom:8px"></div>
     <div class="eauth-toggle" id="eauthToggle">Neturi paskyros? <span onclick="toggleEmailMode()">Registruotis</span></div>
   </div>
+</div>
+
+<!-- Google One Tap container -->
+<div id="g_id_onload"
+  data-client_id="241890115444-i97i3pcibutqg9mriqjdd67cqg1suudi.apps.googleusercontent.com"
+  data-callback="handleGisCredential"
+  data-auto_prompt="false">
 </div>
 
 <!-- TOASTS -->
@@ -5937,14 +5947,56 @@ function updateAuthUI(user){
 }
 
 function fbLogin(){
-  const{auth,gProvider,signInWithRedirect}=window._fb||{};
-  if(!auth){toast('Firebase dar kraunasi...','info');return;}
-  toast('⏳ Jungiamasi su Google...','info');
-  signInWithRedirect(auth,gProvider).catch(e=>{
-    console.error(e);
-    toast('Prisijungimas nepavyko','info');
-  });
+  // Trigger GIS — render button and prompt
+  if(window.google?.accounts?.id){
+    google.accounts.id.prompt();
+  } else {
+    toast('Google prisijungimas kraunamas, bandyk dar kartą...','info');
+  }
 }
+
+// Called by GIS when user picks a Google account
+function handleGisCredential(response){
+  const{auth,signInWithCredential,GoogleAuthProvider}=window._fb||{};
+  if(!auth||!response?.credential){toast('Prisijungimas nepavyko','info');return;}
+  const cred=GoogleAuthProvider.credential(response.credential);
+  signInWithCredential(auth,cred)
+    .then(result=>{
+      closeEmailModal();
+      toast(`👋 Sveiki, ${result.user.displayName||''}!`,'success');
+    })
+    .catch(e=>{
+      console.error(e);
+      toast('Prisijungimas nepavyko: '+e.message,'info');
+    });
+}
+
+// Initialise GIS once the library loads
+function initGIS(){
+  if(!window.google?.accounts?.id) return;
+  google.accounts.id.initialize({
+    client_id:'241890115444-i97i3pcibutqg9mriqjdd67cqg1suudi.apps.googleusercontent.com',
+    callback:handleGisCredential,
+    auto_select:false,
+    cancel_on_tap_outside:true,
+  });
+  // Render the standard Google button inside the modal
+  const btnEl=document.getElementById('gisGoogleBtn');
+  if(btnEl){
+    google.accounts.id.renderButton(btnEl,{
+      type:'standard',
+      theme:'outline',
+      size:'large',
+      text:'signin_with',
+      shape:'pill',
+      logo_alignment:'left',
+      width:280,
+    });
+  }
+}
+// GIS loads async — try after DOM ready and also on load event
+if(document.readyState==='complete') initGIS();
+else window.addEventListener('load',initGIS);
 
 // ── EMAIL AUTH ──
 let _emailRegisterMode=false;
