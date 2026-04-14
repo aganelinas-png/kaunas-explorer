@@ -813,6 +813,18 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sug-card-btns{display:flex;gap:8px}
 .sug-approve{flex:1;background:var(--green);color:#fff;border:none;border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer}
 .sug-reject{flex:1;background:var(--surf3);border:1px solid var(--bdr);color:var(--td);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer}
+
+/* ── ONBOARDING ── */
+.ob-overlay{position:fixed;inset:0;z-index:3000;background:#0e0c09;display:flex;align-items:center;justify-content:center;padding:24px}
+.ob-card{width:100%;max-width:360px;text-align:center}
+.ob-dots{display:flex;justify-content:center;gap:6px;margin-bottom:28px}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--bdr);transition:background .3s}
+.ob-dot.on{background:var(--gold)}
+.ob-icon{font-size:3.5rem;margin-bottom:16px}
+.ob-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--gold);margin-bottom:10px}
+.ob-text{font-size:.88rem;color:var(--td);line-height:1.65;margin-bottom:32px}
+.ob-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:14px;padding:14px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:12px}
+.ob-skip{font-size:.75rem;color:var(--tm);cursor:pointer;padding:4px}
 </style>
 </head>
 <body>
@@ -3394,7 +3406,25 @@ function shareProgress(){
   const badges=[...earnedBadges].length;
   const url=getInviteUrl();
   const text=`🗺 SpotSeekers — ${playerName} pažanga!\n\n📍 Surinkta: ${found.size}/${SPOTS.length} vietų\n   T1: ${t1} · T2: ${t2} · T3: ${t3}\n⭐ XP: ${totalXP}\n🔥 Serija: ${streak} dienų\n🏅 Ženkleliai: ${badges}\n\n👉 ${url}`;
-  showShareSheet(url, text);
+  showProgressSheet(text, url);
+}
+
+function showProgressSheet(text, url){
+  document.getElementById('shareSheet')?.remove();
+  const sheet=document.createElement('div');
+  sheet.id='shareSheet';
+  sheet.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;background:rgba(0,0,0,.5)';
+  sheet.innerHTML=`
+    <div style="width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 32px;box-shadow:0 -8px 40px var(--sh)">
+      <div style="width:40px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 16px"></div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);margin-bottom:4px">📤 Dalintis pažanga</div>
+      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);margin-bottom:12px;white-space:pre-line;line-height:1.6">${text}</div>
+      <button onclick="nativeShare('${url.replace(/'/g,"\'")}',' ${text.replace(/'/g,"\'").replace(/
+/g,'\n')}')" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;margin-bottom:8px">📤 Siųsti</button>
+      <button onclick="document.getElementById('shareSheet').remove()" style="width:100%;background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--tm);cursor:pointer">Uždaryti</button>
+    </div>`;
+  sheet.addEventListener('click',e=>{if(e.target===sheet) sheet.remove();});
+  document.body.appendChild(sheet);
 }
 
 function showShareSheet(url, text){
@@ -3528,9 +3558,9 @@ function renderSocial(){
     <div class="social-title" style="margin-bottom:8px">🏆 Lyderių lentelė</div>
     ${!user?`
       <div class="lb-login-prompt">
-        <div class="lp-icon">🔐</div>
-        <div class="lp-text">Prisijunk su Google kad matytum lyderių lentelę ir atsirastum joje.</div>
-        <button class="auth-btn" onclick="fbLogin()">Prisijungti su Google</button>
+        <div class="lp-icon">🏆</div>
+        <div class="lp-text">Prisijunk kad matytum lyderių lentelę ir atsirastum joje.</div>
+        <button class="auth-btn" onclick="closeDrawer();openEmailModal()">Prisijungti</button>
       </div>`:''}
     <div class="lb-tabs">
       <div class="lb-tab ${_lbTab==='xp'?'on':''}" onclick="setLbTab('xp')">⭐ XP</div>
@@ -3549,18 +3579,30 @@ function setLbTab(tab){
   renderSocial();
 }
 
+const LB_CACHE_KEY='ss_lb_cache';
+const LB_CACHE_TTL=24*60*60*1000; // 24 hours
+
 async function loadLeaderboard(){
   const{db,collection,getDocs,query,orderBy,limit}=window._fb||{};
   if(!db) return;
   const el=document.getElementById('lbList');
   if(!el) return;
 
+  // Check 24hr cache
+  try{
+    const cached=JSON.parse(localStorage.getItem(LB_CACHE_KEY)||'null');
+    if(cached&&cached.tab===_lbTab&&(Date.now()-cached.ts)<LB_CACHE_TTL){
+      renderLbUsers(cached.users,el);
+      return;
+    }
+  }catch(e){}
+
   try{
     const field=_lbTab==='xp'?'totalXP':_lbTab==='spots'?'foundCount':'streak';
     let users=[];
     try{
-      // Try indexed query first (50 reads max, requires Firestore composite index)
-      const q=query(collection(db,'users'),orderBy(field,'desc'),limit(50));
+      // Try indexed query first (10 reads max)
+      const q=query(collection(db,'users'),orderBy(field,'desc'),limit(10));
       const snap=await getDocs(q);
       snap.forEach(d=>{
         const data=d.data();
@@ -3575,10 +3617,22 @@ async function loadLeaderboard(){
       });
       const sortKey=_lbTab==='xp'?'xp':_lbTab==='spots'?'spots':'streak';
       users.sort((a,b)=>b[sortKey]-a[sortKey]);
+      users=users.slice(0,10);
     }
 
+    // Save to cache
+    try{localStorage.setItem(LB_CACHE_KEY,JSON.stringify({tab:_lbTab,ts:Date.now(),users}));}catch(e){}
+
     if(!users.length){el.innerHTML='<div class="lb-empty">Dar nėra žaidėjų 👀</div>';return;}
-    const top=users.slice(0,20);
+    renderLbUsers(users,el);
+  }catch(e){
+    console.error('loadLeaderboard',e);
+    el.innerHTML='<div class="lb-empty">Nepavyko įkelti 😕</div>';
+  }
+}
+
+function renderLbUsers(users,el){
+    const top=users.slice(0,10);
     const myRank=users.findIndex(u=>u.uid===getMyUid())+1;
     const myData=users.find(u=>u.uid===getMyUid());
 
@@ -3588,7 +3642,7 @@ async function loadLeaderboard(){
     let html='';
 
     // My rank card if not in top 20
-    if(myData&&myRank>20){
+    if(myData&&myRank>10){
       const val=_lbTab==='xp'?myData.xp:_lbTab==='spots'?myData.spots:myData.streak;
       html+=`<div class="lb-me-row lb-row">
         <div class="lb-rank">#${myRank}</div>
@@ -3617,10 +3671,6 @@ async function loadLeaderboard(){
     });
 
     el.innerHTML=html||'<div class="lb-empty">Dar nėra žaidėjų 👀</div>';
-  }catch(e){
-    console.error('loadLeaderboard',e);
-    el.innerHTML='<div class="lb-empty">Nepavyko įkelti 😕</div>';
-  }
 }
 
 function lbMeta(u){
@@ -5799,7 +5849,69 @@ async function submitReview(){
   }
 })();
 
+
+// ═══════════ ONBOARDING ═══════════
+const OB_KEY='ss_onboarded_v1';
+const OB_SLIDES=[
+  {icon:'🗺',title:'Sveiki SpotSeekers!',text:'Atrask paslėptas Lietuvos vietas — pilis, bažnyčias, gamtos stebukleites ir daug daugiau.'},
+  {icon:'📍',title:'Surask vietą žemėlapyje',text:'Žemėlapyje matysi šimtus vietų. Kiekviena turi savo istoriją ir unikalų lygį.'},
+  {icon:'🚶',title:'Nuvyk ten fiziškai',text:'Norėdamas surinkti vietą — turi nuvykti ten iš tikrųjų. GPS patikrins, ar esi pakankamai arti.'},
+  {icon:'✅',title:'Surink vietą!',text:'Atsidūręs arti — spausk "Surinkti". Gausi XP taškų ir vieta bus pažymėta kaip surinkta.'},
+  {icon:'⭐',title:'Kylk lygiais',text:'Kuo daugiau vietų surinksi — tuo aukštesnį lygį pasieksi. Yra 50 lygių ir daugybė ženklelių!'},
+  {icon:'🏆',title:'Lenktyniauk!',text:'Lyderių lentelėje matysi, kas surinko daugiausia. Ar pavyks patekti į TOP 10?'},
+  {icon:'🎯',title:'Pradėk tyrinėti!',text:'Užsiregistruok arba prisijunk — ir leisk ekspedicijai prasidėti. Laukia šimtai vietų!'},
+];
+let _obSlide=0;
+
+function maybeShowOnboarding(){
+  if(localStorage.getItem(OB_KEY)) return;
+  showOnboarding();
+}
+
+function showOnboarding(){
+  let el=document.getElementById('obOverlay');
+  if(!el){
+    el=document.createElement('div');
+    el.id='obOverlay';
+    el.className='ob-overlay';
+    document.body.appendChild(el);
+  }
+  _obSlide=0;
+  renderObSlide(el);
+  el.style.display='flex';
+}
+
+function renderObSlide(el){
+  const s=OB_SLIDES[_obSlide];
+  const isLast=_obSlide===OB_SLIDES.length-1;
+  const dots=OB_SLIDES.map((_,i)=>`<div class="ob-dot${i===_obSlide?' on':''}"></div>`).join('');
+  el.innerHTML=`<div class="ob-card">
+    <div class="ob-dots">${dots}</div>
+    <div class="ob-icon">${s.icon}</div>
+    <div class="ob-title">${s.title}</div>
+    <div class="ob-text">${s.text}</div>
+    <button class="ob-btn" onclick="${isLast?'finishOnboarding()':'nextObSlide()'}">${isLast?'Pradėti →':'Toliau →'}</button>
+    ${!isLast?`<div class="ob-skip" onclick="finishOnboarding()">Praleisti</div>`:''}
+  </div>`;
+}
+
+function nextObSlide(){
+  const el=document.getElementById('obOverlay');
+  if(!el) return;
+  _obSlide=Math.min(_obSlide+1,OB_SLIDES.length-1);
+  renderObSlide(el);
+}
+
+function finishOnboarding(){
+  localStorage.setItem(OB_KEY,'1');
+  const el=document.getElementById('obOverlay');
+  if(el) el.style.display='none';
+  // Open auth after short delay
+  setTimeout(()=>openEmailModal(),400);
+}
+
 load();initMap();updateAll();startGPS();checkRefParam();
+maybeShowOnboarding();
 
 // ═══════════ PWA SETUP ═══════════
 (function(){
