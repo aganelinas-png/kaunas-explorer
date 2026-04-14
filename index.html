@@ -1236,9 +1236,12 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <button class="eauth-close" onclick="closeEmailModal()">✕</button>
     <div class="eauth-title" id="eauthTitle">Prisijungti</div>
     <div class="eauth-error" id="eauthError"></div>
-    <input class="eauth-input" id="eauthName" type="text" placeholder="Tavo vardas (rodomas lyderiu lentoje)" style="display:none" maxlength="30">
+    <input class="eauth-input" id="eauthName" type="text" placeholder="Slapyvardis" style="display:none" maxlength="30">
     <input class="eauth-input" id="eauthEmail" type="email" placeholder="El. paštas" autocomplete="email">
     <input class="eauth-input" id="eauthPass" type="password" placeholder="Slaptažodis" autocomplete="current-password">
+    <div id="eauthForgotWrap" style="text-align:right;margin:-6px 0 10px 0">
+      <span id="eauthForgotLink" onclick="fbForgotPassword()" style="font-size:.75rem;color:var(--td);cursor:pointer;text-decoration:underline;text-underline-offset:2px">Pamiršau slaptažodį</span>
+    </div>
     <button class="eauth-btn" id="eauthSubmit" onclick="fbLoginEmail()">Prisijungti</button>
     <div class="eauth-sep"><span class="eauth-sep-txt">arba</span></div>
     <!-- GIS Google Sign-In button rendered here -->
@@ -5127,8 +5130,16 @@ function isAdmin(){return window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0ky
 
 // ═══════════ USERNAME PROMPT ═══════════
 function maybePromptUsername(){
-  // Only show if user is logged in and name is still default or empty
+  // Only show if user is logged in
   if(!window._fbUser) return;
+  // If Firebase already has a displayName (set during email registration or from Google), use it
+  const fbName=window._fbUser.displayName;
+  if(fbName&&fbName.trim().length>0){
+    // Sync Firebase name to local playerName if still default
+    if(!playerName||playerName==='Tu') { playerName=fbName; save(); }
+    return; // don't prompt — they already have a name
+  }
+  // If local name is already set and non-default, skip
   if(playerName&&playerName!=='Tu'&&playerName.trim().length>0) return;
   // Only show once per session
   if(sessionStorage.getItem('kex_uname_prompted')) return;
@@ -5815,7 +5826,7 @@ load();initMap();updateAll();startGPS();checkRefParam();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v25';
+const CACHE='spotseekers-v26';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -6011,6 +6022,8 @@ function openEmailModal(){
   document.getElementById('eauthEmail').value='';
   document.getElementById('eauthPass').value='';
   document.getElementById('eauthName').value='';
+  const fw=document.getElementById('eauthForgotWrap');
+  if(fw) fw.style.display='';
   document.getElementById('eauthOverlay').classList.add('show');
 }
 
@@ -6027,6 +6040,9 @@ function toggleEmailMode(){
   document.getElementById('eauthToggle').innerHTML=_emailRegisterMode
     ?'Jau turi paskyrą? <span onclick="toggleEmailMode()">Prisijungti</span>'
     :'Neturi paskyros? <span onclick="toggleEmailMode()">Registruotis</span>';
+  // Hide forgot password link in register mode
+  const fw=document.getElementById('eauthForgotWrap');
+  if(fw) fw.style.display=_emailRegisterMode?'none':'';
   document.getElementById('eauthError').textContent='';
 }
 
@@ -6066,6 +6082,29 @@ async function fbLoginEmail(){
   }
   btn.disabled=false;
   btn.textContent=_emailRegisterMode?'Sukurti paskyrą':'Prisijungti';
+}
+
+async function fbForgotPassword(){
+  const{auth}=window._fb||{};
+  if(!auth){toast('Firebase dar kraunasi...','info');return;}
+  const email=document.getElementById('eauthEmail').value.trim();
+  const errEl=document.getElementById('eauthError');
+  errEl.textContent='';
+  if(!email){errEl.textContent='Įvesk el. paštą, kad atstatyti slaptažodį.';return;}
+  try{
+    const{sendPasswordResetEmail}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+    await sendPasswordResetEmail(auth,email);
+    errEl.style.color='var(--green)';
+    errEl.textContent='✓ Slaptažodžio atstatymo nuoroda išsiųsta! Patikrink el. paštą.';
+    setTimeout(()=>{errEl.style.color='';errEl.textContent='';},6000);
+  } catch(e){
+    const msgs={
+      'auth/user-not-found':'Vartotojas su šiuo el. paštu nerastas.',
+      'auth/invalid-email':'Neteisingas el. pašto formatas.',
+    };
+    errEl.style.color='';
+    errEl.textContent=msgs[e.code]||'Klaida. Bandyk dar kartą.';
+  }
 }
 
 function fbLogout(){
