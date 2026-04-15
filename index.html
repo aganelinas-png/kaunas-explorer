@@ -3414,15 +3414,30 @@ function showProgressSheet(text, url){
   const sheet=document.createElement('div');
   sheet.id='shareSheet';
   sheet.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;background:rgba(0,0,0,.5)';
-  sheet.innerHTML=`
-    <div style="width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 32px;box-shadow:0 -8px 40px var(--sh)">
-      <div style="width:40px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 16px"></div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);margin-bottom:4px">📤 Dalintis pažanga</div>
-      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);margin-bottom:12px;white-space:pre-line;line-height:1.6">${text}</div>
-      <button onclick="nativeShare('${url.replace(/'/g,"\'")}',' ${text.replace(/'/g,"\'").replace(/
-/g,'\n')}')" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;margin-bottom:8px">📤 Siųsti</button>
-      <button onclick="document.getElementById('shareSheet').remove()" style="width:100%;background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--tm);cursor:pointer">Uždaryti</button>
-    </div>`;
+  const inner=document.createElement('div');
+  inner.style.cssText='width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 32px;box-shadow:0 -8px 40px var(--sh)';
+  const preview=document.createElement('div');
+  preview.style.cssText='background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:.72rem;color:var(--td);margin-bottom:12px;white-space:pre-line;line-height:1.6';
+  preview.textContent=text;
+  const sendBtn=document.createElement('button');
+  sendBtn.style.cssText='width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:11px;font-family:DM Sans,sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;margin-bottom:8px';
+  sendBtn.textContent='📤 Siųsti';
+  sendBtn.onclick=()=>nativeShare(url,text);
+  const closeBtn=document.createElement('button');
+  closeBtn.style.cssText='width:100%;background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-family:DM Sans,sans-serif;font-size:.82rem;color:var(--tm);cursor:pointer';
+  closeBtn.textContent='Uždaryti';
+  closeBtn.onclick=()=>sheet.remove();
+  const handle=document.createElement('div');
+  handle.style.cssText='width:40px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 16px';
+  const title=document.createElement('div');
+  title.style.cssText="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);margin-bottom:4px";
+  title.textContent='📤 Dalintis pažanga';
+  inner.appendChild(handle);
+  inner.appendChild(title);
+  inner.appendChild(preview);
+  inner.appendChild(sendBtn);
+  inner.appendChild(closeBtn);
+  sheet.appendChild(inner);
   sheet.addEventListener('click',e=>{if(e.target===sheet) sheet.remove();});
   document.body.appendChild(sheet);
 }
