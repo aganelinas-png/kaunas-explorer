@@ -3,29 +3,30 @@
 
 const GITHUB_HTML = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
 const ADMIN_SECRET = 'lithuania2026';
-const FIREBASE_AUTH_ORIGIN = 'https://kaunas-explorer.firebaseapp.com';
+
+const ASSETLINKS = JSON.stringify([{
+  relation: ['delegate_permission/common.handle_all_urls'],
+  target: {
+    namespace: 'android_app',
+    package_name: 'net.spotseekers.app',
+    sha256_cert_fingerprints: [
+      'E0:8D:FB:97:13:CF:98:F1:B2:58:67:67:9C:DF:74:F2:05:49:57:9F:64:0F:77:E5:39:E5:DF:EE:31:29:F1:EA'
+    ]
+  }
+}]);
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // ── Firebase Auth proxy — /__/auth/* must be served from spotseekers.net ──
-    // This enables signInWithRedirect to work correctly in TWA
-    if (url.pathname.startsWith('/__/auth/')) {
-      const targetUrl = FIREBASE_AUTH_ORIGIN + url.pathname + url.search;
-      const proxyReq = new Request(targetUrl, {
-        method: request.method,
-        headers: request.headers,
-        body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-        redirect: 'follow',
-      });
-      const resp = await fetch(proxyReq);
-      // Forward response with CORS headers
-      const newHeaders = new Headers(resp.headers);
-      newHeaders.set('Access-Control-Allow-Origin', '*');
-      return new Response(resp.body, {
-        status: resp.status,
-        headers: newHeaders,
+    // ── GET /.well-known/assetlinks.json — TWA verification ──
+    if (url.pathname === '/.well-known/assetlinks.json') {
+      return new Response(ASSETLINKS, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=3600',
+          'Access-Control-Allow-Origin': '*'
+        }
       });
     }
 
