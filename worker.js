@@ -8,9 +8,10 @@ const ASSETLINKS = JSON.stringify([{
   relation: ['delegate_permission/common.handle_all_urls'],
   target: {
     namespace: 'android_app',
-    package_name: 'net.spotseekers.app',
+    package_name: 'com.spotseekers.app',
     sha256_cert_fingerprints: [
-      'E0:8D:FB:97:13:CF:98:F1:B2:58:67:67:9C:DF:74:F2:05:49:57:9F:64:0F:77:E5:39:E5:DF:EE:31:29:F1:EA'
+      'E0:8D:FB:97:13:CF:98:F1:B2:58:67:67:9C:DF:74:F2:05:49:57:9F:64:0F:77:E5:39:E5:DF:EE:31:29:F1:EA',
+      'E7:28:C9:61:E0:A5:E8:12:8F:A7:AF:B3:EA:09:C3:1A:FC:9F:0C:B3:89:03:A9:F5:AE:65:04:30:C9:4E:4E:ED:35'
     ]
   }
 }]);
