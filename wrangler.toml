@@ -2,6 +2,14 @@ name = "kaunas-explorer"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+# Production (default)
 [[kv_namespaces]]
 binding = "SPOTS_KV"
 id = "26ea063f7dc04775940dd1e00ad6393f"
+
+# Staging
+[env.staging]
+name = "spotseekers-staging"
+[[env.staging.kv_namespaces]]
+binding = "SPOTS_KV"
+id = "7d2d87a86b814873b90add9be63c8330"
