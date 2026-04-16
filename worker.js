@@ -3,21 +3,13 @@
 const GITHUB_HTML_PROD    = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
 const GITHUB_HTML_STAGING = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/staging/index.html';
 
-const PROD_FIREBASE_CONFIG = `const firebaseConfig={
+const FIREBASE_CONFIG_PLACEHOLDER = `const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
   authDomain:"kaunas-explorer.firebaseapp.com",
   projectId:"kaunas-explorer",
   storageBucket:"kaunas-explorer.firebasestorage.app",
   messagingSenderId:"241890115444",
   appId:"1:241890115444:web:7d9fa68c8a15e07a20b621"};`;
-
-const STAGING_FIREBASE_CONFIG = `const firebaseConfig={
-  apiKey:"AIzaSyA4PRIncl2ALST-eU5X1ezIpSYTlLbFYaA",
-  authDomain:"spotseekers-staging.firebaseapp.com",
-  projectId:"spotseekers-staging",
-  storageBucket:"spotseekers-staging.firebasestorage.app",
-  messagingSenderId:"284211079370",
-  appId:"1:284211079370:web:faf7ccbb9b1cd8ce33ac33"};`;
 
 export default {
   async fetch(request, env, ctx) {
@@ -83,9 +75,11 @@ export default {
     });
     let html = await htmlRes.text();
 
-    // Inject correct Firebase config
-    if (isStaging) {
-      html = html.replace(PROD_FIREBASE_CONFIG, STAGING_FIREBASE_CONFIG);
+    // Inject correct Firebase config from environment variable
+    if (env.FIREBASE_CONFIG) {
+      const cfg = JSON.parse(env.FIREBASE_CONFIG);
+      const injected = `const firebaseConfig={apiKey:"${cfg.apiKey}",authDomain:"${cfg.authDomain}",projectId:"${cfg.projectId}",storageBucket:"${cfg.storageBucket}",messagingSenderId:"${cfg.messagingSenderId}",appId:"${cfg.appId}"};`;
+      html = html.replace(FIREBASE_CONFIG_PLACEHOLDER, injected);
     }
 
     return new Response(html, {
