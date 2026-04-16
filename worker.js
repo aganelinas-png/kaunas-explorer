@@ -207,8 +207,7 @@ const DELETE_ACCOUNT_HTML = `<!DOCTYPE html>
     </ul>
     <p>Deletion is permanent and cannot be undone. Your leaderboard entry will also be removed.</p>
     <div class="card">
-      <p>To request deletion, send an email from your registered account address to:</p>
-      <a class="btn" href="mailto:aidas@spotseekers.net?subject=Account%20Deletion%20Request">Request Deletion</a>
+      <p>To request deletion, send an email from your registered account address to: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
       <p style="margin-top:12px;font-size:.8rem;color:#6a6050">We will process your request within 30 days.</p>
     </div>
   </div>
@@ -224,8 +223,7 @@ const DELETE_ACCOUNT_HTML = `<!DOCTYPE html>
     </ul>
     <p>Ištrynimas yra negrįžtamas. Jūsų įrašas lyderių lentelėje taip pat bus pašalintas.</p>
     <div class="card">
-      <p>Norėdami pateikti prašymą, išsiųskite el. laišką iš savo registruoto el. pašto adreso:</p>
-      <a class="btn" href="mailto:aidas@spotseekers.net?subject=Paskyros%20ištrynimo%20prašymas">Prašyti ištrynimo</a>
+      <p>Norėdami pateikti prašymą, rašykite iš savo registruoto el. pašto adreso į: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
       <p style="margin-top:12px;font-size:.8rem;color:#6a6050">Jūsų prašymą apdorosime per 30 dienų.</p>
     </div>
   </div>
