@@ -99,7 +99,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
     <p>We may update this policy as the app grows. The "last updated" date at the top reflects the most recent revision.</p>
 
     <h2>9. Contact</h2>
-    <p>Questions or data deletion requests: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
+    <p>Questions or data deletion requests: <a href="mailto:privacy@spotseekers.net">privacy@spotseekers.net</a></p>
   </div>
 
   <!-- LITHUANIAN -->
@@ -143,11 +143,93 @@ const PRIVACY_HTML = `<!DOCTYPE html>
     <p>Galime atnaujinti šią politiką augant programai. Viršuje esanti „paskutinio atnaujinimo" data rodo naujausią redakciją.</p>
 
     <h2>9. Kontaktai</h2>
-    <p>Klausimai arba prašymai ištrinti duomenis: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
+    <p>Klausimai arba prašymai ištrinti duomenis: <a href="mailto:privacy@spotseekers.net">privacy@spotseekers.net</a></p>
   </div>
 
   <hr>
   <div class="footer">© 2026 SpotSeekers · <a href="https://www.spotseekers.net">www.spotseekers.net</a></div>
+</div>
+<script>
+function switchLang(lang, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + lang).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>`;
+
+const DELETE_ACCOUNT_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delete Account — SpotSeekers</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:#0e0c09;color:#e8e0d0;padding:40px 20px;line-height:1.7}
+  .wrap{max-width:600px;margin:0 auto}
+  h1{font-size:1.8rem;color:#c9a84c;margin-bottom:6px}
+  h2{font-size:1.1rem;color:#c9a84c;margin:28px 0 8px}
+  p,li{font-size:.95rem;color:#c0b8a8;margin-bottom:8px}
+  ul{padding-left:20px;margin-bottom:16px}
+  .updated{font-size:.8rem;color:#6a6050;margin-bottom:32px}
+  .card{background:#1a1710;border:1px solid #2e2a20;border-radius:12px;padding:24px;margin-top:24px}
+  .btn{display:inline-block;margin-top:16px;background:#c9a84c;color:#0e0c09;padding:12px 28px;border-radius:24px;text-decoration:none;font-weight:600;font-size:.95rem}
+  a{color:#c9a84c}
+  hr{border:none;border-top:1px solid #2e2a20;margin:32px 0}
+  .footer{font-size:.75rem;color:#4a4538;text-align:center;margin-top:32px}
+  .lang-switch{display:flex;gap:12px;margin-bottom:32px}
+  .lang-btn{background:#1a1710;border:1px solid #2e2a20;color:#c9a84c;padding:6px 16px;border-radius:20px;cursor:pointer;font-size:.85rem}
+  .lang-btn.active{background:#c9a84c;color:#0e0c09}
+  .section{display:none}.section.active{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🗺 SpotSeekers</h1>
+  <div class="updated">Account Deletion · spotseekers.net</div>
+
+  <div class="lang-switch">
+    <button class="lang-btn active" onclick="switchLang('en',this)">English</button>
+    <button class="lang-btn" onclick="switchLang('lt',this)">Lietuviškai</button>
+  </div>
+
+  <div class="section active" id="sec-en">
+    <h2>Delete Your Account</h2>
+    <p>You can request deletion of your SpotSeekers account and all associated data at any time.</p>
+    <p>The following data will be permanently deleted:</p>
+    <ul>
+      <li>Your email address and login credentials</li>
+      <li>Your username</li>
+      <li>Your game progress — found spots, XP, streaks, badges</li>
+    </ul>
+    <p>Deletion is permanent and cannot be undone. Your leaderboard entry will also be removed.</p>
+    <div class="card">
+      <p>To request deletion, send an email from your registered account address to: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
+      <p style="margin-top:12px;font-size:.8rem;color:#6a6050">We will process your request within 30 days.</p>
+    </div>
+  </div>
+
+  <div class="section" id="sec-lt">
+    <h2>Ištrinkite Savo Paskyrą</h2>
+    <p>Galite bet kada paprašyti ištrinti savo SpotSeekers paskyrą ir visus susijusius duomenis.</p>
+    <p>Bus visam laikui ištrinti šie duomenys:</p>
+    <ul>
+      <li>Jūsų el. pašto adresas ir prisijungimo duomenys</li>
+      <li>Jūsų slapyvardis</li>
+      <li>Jūsų žaidimo progresas — surinktos vietos, XP, serijos, ženkleliai</li>
+    </ul>
+    <p>Ištrynimas yra negrįžtamas. Jūsų įrašas lyderių lentelėje taip pat bus pašalintas.</p>
+    <div class="card">
+      <p>Norėdami pateikti prašymą, rašykite iš savo registruoto el. pašto adreso į: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
+      <p style="margin-top:12px;font-size:.8rem;color:#6a6050">Jūsų prašymą apdorosime per 30 dienų.</p>
+    </div>
+  </div>
+
+  <hr>
+  <div class="footer">© 2026 SpotSeekers · <a href="https://www.spotseekers.net">www.spotseekers.net</a> · <a href="/privacy">Privacy Policy</a></div>
 </div>
 <script>
 function switchLang(lang, btn) {
@@ -180,6 +262,16 @@ export default {
     // ── GET /privacy ──
     if (url.pathname === '/privacy') {
       return new Response(PRIVACY_HTML, {
+        headers: {
+          'Content-Type': 'text/html;charset=utf-8',
+          'Cache-Control': 'public, max-age=86400'
+        }
+      });
+    }
+
+    // ── GET /delete-account ──
+    if (url.pathname === '/delete-account') {
+      return new Response(DELETE_ACCOUNT_HTML, {
         headers: {
           'Content-Type': 'text/html;charset=utf-8',
           'Cache-Control': 'public, max-age=86400'
