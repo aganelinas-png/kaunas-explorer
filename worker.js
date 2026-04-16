@@ -99,7 +99,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
     <p>We may update this policy as the app grows. The "last updated" date at the top reflects the most recent revision.</p>
 
     <h2>9. Contact</h2>
-    <p>Questions or data deletion requests: <a href="mailto:privacy@spotseekers.net">privacy@spotseekers.net</a></p>
+    <p>Questions or data deletion requests: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
   </div>
 
   <!-- LITHUANIAN -->
@@ -143,7 +143,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
     <p>Galime atnaujinti šią politiką augant programai. Viršuje esanti „paskutinio atnaujinimo" data rodo naujausią redakciją.</p>
 
     <h2>9. Kontaktai</h2>
-    <p>Klausimai arba prašymai ištrinti duomenis: <a href="mailto:privacy@spotseekers.net">privacy@spotseekers.net</a></p>
+    <p>Klausimai arba prašymai ištrinti duomenis: <a href="mailto:aidas@spotseekers.net">aidas@spotseekers.net</a></p>
   </div>
 
   <hr>
