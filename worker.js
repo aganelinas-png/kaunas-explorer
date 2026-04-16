@@ -71,9 +71,13 @@ export default {
 
     // ── Default — serve HTML ──
     const githubUrl = isStaging ? GITHUB_HTML_STAGING : GITHUB_HTML_PROD;
-    const htmlRes = await fetch(githubUrl, {
-      cf: { cacheTtl: 60, cacheEverything: true }
-    });
+
+    // Bypass cache for staging so config replacement always works
+    const fetchOptions = isStaging
+      ? { cache: 'no-store' }
+      : { cf: { cacheTtl: 60, cacheEverything: true } };
+
+    const htmlRes = await fetch(githubUrl, fetchOptions);
     let html = await htmlRes.text();
 
     // Inject correct Firebase config from environment variable
@@ -90,8 +94,9 @@ export default {
       html = html.replace(FIREBASE_CONFIG_PLACEHOLDER, injected);
     }
 
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=utf-8' }
-    });
+    const headers = { 'Content-Type': 'text/html;charset=utf-8' };
+    if (isStaging) headers['X-Environment'] = 'staging';
+
+    return new Response(html, { headers });
   }
 };
