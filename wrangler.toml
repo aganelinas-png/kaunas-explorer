@@ -2,7 +2,7 @@ name = "kaunas-explorer"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-# Production (default)
+# Production
 [[kv_namespaces]]
 binding = "SPOTS_KV"
 id = "26ea063f7dc04775940dd1e00ad6393f"
