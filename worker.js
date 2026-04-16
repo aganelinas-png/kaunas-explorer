@@ -5,16 +5,17 @@ const GITHUB_HTML_STAGING = 'https://raw.githubusercontent.com/aganelinas-png/ka
 
 const FIREBASE_CONFIG_PLACEHOLDER = `const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
-  authDomain:"kaunas-explorer.firebaseapp.com",
+  authDomain:"spotseekers.net",
   projectId:"kaunas-explorer",
   storageBucket:"kaunas-explorer.firebasestorage.app",
   messagingSenderId:"241890115444",
-  appId:"1:241890115444:web:7d9fa68c8a15e07a20b621"};`;
+  appId:"1:241890115444:web:7d9fa68c8a15e07a20b621"
+};`;
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const isStaging = url.hostname === 'staging.spotseekers.net';
+    const isStaging = url.hostname === 'staging.spotseekers.net' || url.hostname.includes('spotseekers-staging');
     const adminSecret = env.ADMIN_SECRET || 'lithuania2026';
 
     // ── GET /api/spots ──
@@ -78,7 +79,14 @@ export default {
     // Inject correct Firebase config from environment variable
     if (env.FIREBASE_CONFIG) {
       const cfg = JSON.parse(env.FIREBASE_CONFIG);
-      const injected = `const firebaseConfig={apiKey:"${cfg.apiKey}",authDomain:"${cfg.authDomain}",projectId:"${cfg.projectId}",storageBucket:"${cfg.storageBucket}",messagingSenderId:"${cfg.messagingSenderId}",appId:"${cfg.appId}"};`;
+      const injected = `const firebaseConfig={
+  apiKey:"${cfg.apiKey}",
+  authDomain:"${cfg.authDomain}",
+  projectId:"${cfg.projectId}",
+  storageBucket:"${cfg.storageBucket}",
+  messagingSenderId:"${cfg.messagingSenderId}",
+  appId:"${cfg.appId}"
+};`;
       html = html.replace(FIREBASE_CONFIG_PLACEHOLDER, injected);
     }
 
