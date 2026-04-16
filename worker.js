@@ -1,37 +1,24 @@
-// Lithuania Explorer — Cloudflare Worker
-// Serves index.html directly from GitHub — upload index.html to GitHub to deploy
+// SpotSeekers — Cloudflare Worker
 
-const GITHUB_HTML = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
-const ADMIN_SECRET = 'lithuania2026';
+const GITHUB_HTML_PROD    = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
+const GITHUB_HTML_STAGING = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/staging/index.html';
 
-const ASSETLINKS = JSON.stringify([{
-  relation: ['delegate_permission/common.handle_all_urls'],
-  target: {
-    namespace: 'android_app',
-    package_name: 'com.spotseekers.app',
-    sha256_cert_fingerprints: [
-      'E0:8D:FB:97:13:CF:98:F1:B2:58:67:67:9C:DF:74:F2:05:49:57:9F:64:0F:77:E5:39:E5:DF:EE:31:29:F1:EA',
-      'E7:28:C9:61:E0:A5:E8:12:8F:A7:AF:B3:EA:09:C3:1A:FC:9F:0C:B3:89:03:A9:F5:AE:65:04:30:C9:4E:4E:ED:35'
-    ]
-  }
-}]);
+const FIREBASE_CONFIG_PLACEHOLDER = `const firebaseConfig={
+  apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
+  authDomain:"spotseekers.net",
+  projectId:"kaunas-explorer",
+  storageBucket:"kaunas-explorer.firebasestorage.app",
+  messagingSenderId:"241890115444",
+  appId:"1:241890115444:web:7d9fa68c8a15e07a20b621"
+};`;
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const isStaging = url.hostname === 'staging.spotseekers.net' || url.hostname.includes('spotseekers-staging');
+    const adminSecret = env.ADMIN_SECRET || 'lithuania2026';
 
-    // ── GET /.well-known/assetlinks.json — TWA verification ──
-    if (url.pathname === '/.well-known/assetlinks.json') {
-      return new Response(ASSETLINKS, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=3600',
-          'Access-Control-Allow-Origin': '*'
-        }
-      });
-    }
-
-    // ── GET /api/spots — serve cached spots from KV ──
+    // ── GET /api/spots ──
     if (url.pathname === '/api/spots') {
       const spots = await env.SPOTS_KV.get('spots_v1');
       if (!spots) {
@@ -52,7 +39,7 @@ export default {
     // ── POST /api/admin/rebuild ──
     if (url.pathname === '/api/admin/rebuild' && request.method === 'POST') {
       const secret = request.headers.get('X-Admin-Secret');
-      if (secret !== ADMIN_SECRET) {
+      if (secret !== adminSecret) {
         return new Response('Forbidden', { status: 403 });
       }
       try {
@@ -82,13 +69,34 @@ export default {
       });
     }
 
-    // ── Default — fetch index.html from GitHub ──
-    const htmlRes = await fetch(GITHUB_HTML, {
-      cf: { cacheTtl: 60, cacheEverything: true }
-    });
-    const html = await htmlRes.text();
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=utf-8' }
-    });
+    // ── Default — serve HTML ──
+    const githubUrl = isStaging ? GITHUB_HTML_STAGING : GITHUB_HTML_PROD;
+
+    // Bypass cache for staging so config replacement always works
+    const fetchOptions = isStaging
+      ? { cache: 'no-store' }
+      : { cf: { cacheTtl: 60, cacheEverything: true } };
+
+    const htmlRes = await fetch(githubUrl, fetchOptions);
+    let html = await htmlRes.text();
+
+    // Inject correct Firebase config from environment variable
+    if (env.FIREBASE_CONFIG) {
+      const cfg = JSON.parse(env.FIREBASE_CONFIG);
+      const injected = `const firebaseConfig={
+  apiKey:"${cfg.apiKey}",
+  authDomain:"${cfg.authDomain}",
+  projectId:"${cfg.projectId}",
+  storageBucket:"${cfg.storageBucket}",
+  messagingSenderId:"${cfg.messagingSenderId}",
+  appId:"${cfg.appId}"
+};`;
+      html = html.replace(FIREBASE_CONFIG_PLACEHOLDER, injected);
+    }
+
+    const headers = { 'Content-Type': 'text/html;charset=utf-8' };
+    if (isStaging) headers['X-Environment'] = 'staging';
+
+    return new Response(html, { headers });
   }
 };
