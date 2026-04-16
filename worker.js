@@ -72,12 +72,12 @@ export default {
     // ── Default — serve HTML ──
     const githubUrl = isStaging ? GITHUB_HTML_STAGING : GITHUB_HTML_PROD;
 
-    // Bypass cache for staging so config replacement always works
-    const fetchOptions = isStaging
-      ? { cache: 'no-store' }
-      : { cf: { cacheTtl: 60, cacheEverything: true } };
-
-    const htmlRes = await fetch(githubUrl, fetchOptions);
+    // Bypass Cloudflare cache for staging so config replacement always works
+    const htmlRes = await fetch(githubUrl, {
+      cf: isStaging
+        ? { cacheEverything: false, cacheTtl: 0 }
+        : { cacheTtl: 60, cacheEverything: true }
+    });
     let html = await htmlRes.text();
 
     // Inject correct Firebase config from environment variable
