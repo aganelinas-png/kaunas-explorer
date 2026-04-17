@@ -590,9 +590,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .mob-filter-sheet{position:fixed;inset:0;z-index:400;display:none;align-items:flex-end}
 .mob-filter-sheet.open{display:flex;animation:fadeIn .2s}
 .mob-filter-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
-.mob-filter-panel{position:relative;width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 40px;max-height:80vh;overflow-y:auto}
-.mob-filter-handle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 18px}
-.mob-filter-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);margin-bottom:14px}
+.mob-filter-panel{position:relative;width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:16px 16px 40px;max-height:80vh;overflow-y:auto}
+.mob-filter-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mob-filter-close{background:var(--surf2);border:1px solid var(--bdr);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;color:var(--td);flex-shrink:0;-webkit-user-select:none;user-select:none}
+.mob-filter-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);margin-bottom:0}
 .mob-filter-group-title{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 8px}
 .mob-filter-chips{display:flex;flex-wrap:wrap;gap:8px}
 .mob-filter-chip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:7px 14px;font-size:.8rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
@@ -697,7 +698,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .country-sw-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:6px 12px;font-size:.75rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;-webkit-user-select:none;user-select:none;transition:background .15s,color .15s;flex:1;text-align:center}
 .country-sw-btn.on{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
 .country-sw-btn:active{opacity:.75}
-.drawer-country-row{padding:10px 14px 6px;border-top:1px solid var(--bdr)}
+.drawer-country-row{display:none}
 .drawer-country-label{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--tm);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
 .osm-ctrl-btn:disabled{opacity:.4;cursor:default}
 .osm-filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
@@ -1182,8 +1183,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 <div class="mob-filter-sheet" id="mobFilterSheet">
   <div class="mob-filter-bg" onclick="closeMobFilterSheet()"></div>
   <div class="mob-filter-panel">
-    <div class="mob-filter-handle"></div>
-    <div class="mob-filter-title">Filtruoti vietas</div>
+    <div class="mob-filter-header">
+      <div class="mob-filter-title">Filtruoti vietas</div>
+      <div class="mob-filter-close" onclick="closeMobFilterSheet()">✕</div>
+    </div>
     <div class="mob-filter-chips">
       <div class="mob-filter-chip on" data-cat="all" onclick="mobSetFilter('all')">🗺 Visos</div>
     </div>
@@ -1702,12 +1705,14 @@ const COUNTRY_CONFIG = {
   }
 };
 
-function detectCountryFromCoords(lat, lng) {
+function detectCountryFromCoords(lat, lng, borderBufferKm=0) {
+  // Convert km buffer to rough degrees (1 deg lat ≈ 111km)
+  const buf = borderBufferKm / 111;
   for (const [code, cfg] of Object.entries(COUNTRY_CONFIG)) {
     const b = cfg.bounds;
-    if (lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng) return code;
+    if (lat >= b.minLat+buf && lat <= b.maxLat-buf && lng >= b.minLng+buf && lng <= b.maxLng-buf) return code;
   }
-  return 'LT';
+  return null; // null = in border zone, don't switch
 }
 
 // ═══════════ STATE ═══════════
@@ -1797,22 +1802,21 @@ function spotRadius(spot){
 
 async function switchCountry(code, flyTo=true){
   if(code===activeCountry) return;
-  const prev=activeCountry;
   activeCountry=code;
   found=foundByCountry[code];
   localStorage.setItem('ke7_country',code);
   activeCity='all';
   _spotLevelMap=null;
   updateCountrySwitcherUI();
-  // Load spots for new country
   SPOTS=[];
   refreshMarkers();
   await fbLoadSpots();
-  // Fly map to country center
   if(flyTo){
     const cfg=COUNTRY_CONFIG[code];
     if(cfg&&map) map.flyTo(cfg.center,cfg.zoom,{duration:1.4});
   }
+  const cfg=COUNTRY_CONFIG[code];
+  if(cfg) toast(`${cfg.flag} ${cfg.name}`,'info');
   updateAll();
 }
 
@@ -2228,20 +2232,17 @@ function setCityFilter(city){
 
 function startGPS(){
   if(!navigator.geolocation){return;}
-  // Show waiting state on topbar until first fix
   const sub=document.getElementById('topSub');
   if(sub&&sub.textContent.includes('surinkta')) sub.textContent='📍 Laukiama GPS...';
   let firstFix=true;
   navigator.geolocation.watchPosition(pos=>{
     userLat=pos.coords.latitude;userLng=pos.coords.longitude;
     document.getElementById('gpsDot').className='gd on';
+    // Auto-detect country from GPS on every fix — switch only if clearly inside (30km border buffer)
+    const detected=detectCountryFromCoords(userLat,userLng,30);
+    if(detected&&detected!==activeCountry) switchCountry(detected,false);
     if(firstFix){
       firstFix=false;
-      // Auto-detect country from GPS if not manually set
-      if(!localStorage.getItem('ke7_country')){
-        const detected=detectCountryFromCoords(userLat,userLng);
-        if(detected!==activeCountry) switchCountry(detected,false);// false = don't fly, GPS will center
-      }
       map.setView([userLat,userLng],14);
       updateAll();
     }
@@ -2251,10 +2252,25 @@ function startGPS(){
     if(selectedSpot) updateDist(selectedSpot);
     if(!wxLoaded) fetchWeather(userLat,userLng);
     checkProximity();
-  },()=>{},{enableHighAccuracy:true,maximumAge:5000});
+  },err=>{
+    // GPS denied or unavailable — show re-prompt banner
+    if(err.code===1) showGpsDeniedBanner();
+  },{enableHighAccuracy:true,maximumAge:5000});
 }
 
 let _gpsRefreshTs=0;
+function showGpsDeniedBanner(){
+  if(document.getElementById('gpsDeniedBanner')) return;
+  const b=document.createElement('div');
+  b.id='gpsDeniedBanner';
+  b.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:800;background:var(--surf);border:1px solid var(--gold);border-radius:16px;padding:10px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);font-family:\'DM Sans\',sans-serif;font-size:.82rem;color:var(--txt);white-space:nowrap';
+  b.innerHTML=`<span>📍 GPS išjungtas</span><button onclick="retryGPS()" style="background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:6px 12px;font-family:\'DM Sans\',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer">Leisti GPS</button><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--tm);font-size:1rem;cursor:pointer;padding:0 2px">✕</button>`;
+  document.body.appendChild(b);
+}
+function retryGPS(){
+  document.getElementById('gpsDeniedBanner')?.remove();
+  startGPS();
+}
 function refreshGPS(){
   const now=Date.now();
   if(now-_gpsRefreshTs<8000){toast('⌛ Palaukite prieš atnaujinant','info');return;}
@@ -2840,9 +2856,15 @@ function closeUnlock(){
 // ═══════════ SURPRISE ═══════════
 
 function surpriseMe(){
-  const unfound=SPOTS.filter(s=>!found.has(s.id)&&isSpotVisible(s)&&s.cat!=='hidden'&&getSpotLevel(s)<=getPlayerLevel(totalXP));
+  const unfound=SPOTS.filter(s=>
+    !found.has(s.id)&&
+    isSpotVisible(s)&&
+    s.cat!=='hidden'&&
+    getSpotLevel(s)<=getPlayerLevel(totalXP)&&
+    (s.country===activeCountry||(activeCountry==='LT'&&!s.country))&&
+    (activeCity==='all'||spotInCity(s,activeCity))
+  );
   if(!unfound.length){toast('🎉 Viskas surinkta! Tu legenda!','gold');return;}
-  // Truly random — no proximity bias
   const pick=unfound[Math.floor(Math.random()*unfound.length)];
   map.setView([pick.lat,pick.lng],16);
   setTimeout(()=>openSheet(pick),300);
@@ -5322,6 +5344,192 @@ async function reclassifyKpdSpots(){
 let _wikiData=[];
 let _wikiSelected=new Set();
 let _wikiLoading=false;
+let _wikiFilter='all';
+
+const WIKIDATA_CAT_MAP={
+  Q16970:'church',Q2977:'church',Q108325:'church',Q44539:'church',
+  Q33506:'museum',Q207694:'museum',
+  Q16831714:'fort',Q57831:'fort',Q23413:'fort',Q44450:'fort',
+  Q570116:'mound',Q371204:'mound',
+  Q747074:'history',Q839954:'history',
+  Q5003624:'monument',Q4989906:'monument',Q179700:'monument',
+  Q5086:'nature',Q22698:'nature',Q728937:'nature',
+  Q1048835:'viewpoint',Q1311958:'viewpoint',
+  Q12280:'bridge',
+  Q18371:'cemetery',Q39614:'cemetery',
+};
+function wikidataCat(instanceIds){
+  for(const id of(instanceIds||[])){if(WIKIDATA_CAT_MAP[id]) return WIKIDATA_CAT_MAP[id];}
+  return 'history';
+}
+
+function wikiCacheKey(){return`kex_wiki_cache_${activeCountry}_v2`;}
+const WIKI_CACHE_TTL=48*60*60*1000;
+
+// Country-specific SPARQL config
+const WIKIDATA_COUNTRY_CFG={
+  LT:{qid:'Q37',minLat:53.8,maxLat:56.5,minLng:20.9,maxLng:26.9,wpLang:'lt'},
+  PL:{qid:'Q36',minLat:49.0,maxLat:54.9,minLng:14.1,maxLng:24.2,wpLang:'pl'},
+};
+
+function renderWikidataPanel(){
+  const cached=JSON.parse(localStorage.getItem(wikiCacheKey())||'null');
+  const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_wikiData.length} (${new Date(cached.ts).toLocaleDateString('lt-LT')})</span>`:'';
+  const wcats=['all','church','museum','fort','mound','history','monument','nature','viewpoint','bridge','cemetery'];
+  const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',bridge:'🌉',cemetery:'⚱️'};
+  const cfg=COUNTRY_CONFIG[activeCountry];
+  return`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">${cfg?cfg.flag:''} Wikidata · ${activeCountry}. ${cacheInfo}</div>
+    <div class="osm-controls">
+      <button class="osm-ctrl-btn" onclick="fetchWikidata(false)">🔄 Įkelti</button>
+      <button class="osm-ctrl-btn" onclick="fetchWikidata(true)">♻️ Atnaujinti</button>
+      <button class="osm-ctrl-btn" onclick="wikiSelectAll()">☑ Visos</button>
+      <button class="osm-ctrl-btn" onclick="wikiSelectNone()">☐ Nė viena</button>
+      <button class="osm-ctrl-btn pri" onclick="wikiImportSelected()">✅ Importuoti</button>
+    </div>
+    <div class="osm-filter-row" style="margin-top:6px">
+      ${wcats.map(wc=>`<div class="osm-fchip ${_wikiFilter===wc?'on':''}" onclick="_wikiFilter='${wc}';renderOsmImport()">${wcatLabels[wc]||wc}</div>`).join('')}
+    </div>
+    <div class="osm-status" id="wikiStatus">${_wikiData.length?`${_wikiData.length} vietų · ${_wikiData.filter(x=>x.alreadyIn).length} jau pridėta`:'Spausk "Įkelti" pradėti'}</div>
+    <div class="osm-list" id="wikiList"></div>
+  </div>`;
+}
+
+async function fetchWikidata(forceRefresh){
+  if(_wikiLoading) return;
+  _wikiLoading=true;
+  _wikiData=[];_wikiSelected.clear();
+  const setS=m=>{const e=document.getElementById('wikiStatus');if(e)e.textContent=m;};
+  if(!forceRefresh){
+    const cached=JSON.parse(localStorage.getItem(wikiCacheKey())||'null');
+    if(cached&&Date.now()-cached.ts<WIKI_CACHE_TTL){
+      _wikiData=cached.data;setS(`✅ ${_wikiData.length} vietų (talpykla)`);
+      _wikiLoading=false;renderWikidataList();return;
+    }
+  }
+  const cc=WIKIDATA_COUNTRY_CFG[activeCountry]||WIKIDATA_COUNTRY_CFG.LT;
+  const sparql=`SELECT DISTINCT ?item ?itemLabel ?itemDescription ?lat ?lon ?instanceOf ?wpLocal ?wpEN WHERE {
+  ?item wdt:P17 wd:${cc.qid}.
+  ?item p:P625 ?coord.
+  ?coord psv:P625 ?coordNode.
+  ?coordNode wikibase:geoLatitude ?lat.
+  ?coordNode wikibase:geoLongitude ?lon.
+  ?item wdt:P31 ?instanceOf.
+  ?item wdt:P31 ?inst.
+  VALUES ?inst {
+    wd:Q16970 wd:Q2977 wd:Q108325 wd:Q33506 wd:Q207694
+    wd:Q16831714 wd:Q23413 wd:Q44450 wd:Q570116 wd:Q371204
+    wd:Q747074 wd:Q839954 wd:Q5003624 wd:Q4989906 wd:Q179700
+    wd:Q22698 wd:Q39614 wd:Q1048835 wd:Q12280 wd:Q44539
+  }
+  FILTER(?lat > ${cc.minLat} && ?lat < ${cc.maxLat} && ?lon > ${cc.minLng} && ?lon < ${cc.maxLng})
+  OPTIONAL { ?wpLocal schema:about ?item; schema:inLanguage "${cc.wpLang}"; schema:isPartOf <https://${cc.wpLang}.wikipedia.org/>. }
+  OPTIONAL { ?wpEN schema:about ?item; schema:inLanguage "en"; schema:isPartOf <https://en.wikipedia.org/>. }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${cc.wpLang},en". }
+} LIMIT 3000`;
+  const url='https://query.wikidata.org/sparql?format=json&query='+encodeURIComponent(sparql);
+  setS('⏳ Kraunama iš Wikidata (iki 30s)...');
+  try{
+    const r=await fetch(url,{headers:{'Accept':'application/sparql-results+json','User-Agent':'SpotSeekers/1.0'},signal:AbortSignal.timeout(30000)});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const json=await r.json();
+    const rows=json.results.bindings;
+    setS(`⏳ Apdorojama ${rows.length} įrašų...`);
+    const byItem={};
+    for(const row of rows){
+      const id=row.item.value.split('/').pop();
+      if(!byItem[id]){byItem[id]={id:'wd_'+id,name:row.itemLabel?.value||'',lat:parseFloat(row.lat.value),lng:parseFloat(row.lon.value),instances:[],wdId:id,wdDesc:row.itemDescription?.value||'',wpLocal:'',wpEN:''};}
+      if(row.instanceOf) byItem[id].instances.push(row.instanceOf.value.split('/').pop());
+      if(row.wpLocal?.value) byItem[id].wpLocal=row.wpLocal.value.split('/wiki/').pop();
+      if(row.wpEN?.value) byItem[id].wpEN=row.wpEN.value.split('/wiki/').pop();
+    }
+    const processed=Object.values(byItem)
+      .filter(x=>x.name&&!x.name.startsWith('Q'))
+      .map(x=>({...x,cat:wikidataCat(x.instances),alreadyIn:SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005)}))
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0003&&Math.abs(y.lng-x.lng)<0.0003&&y.cat===x.cat)===i)
+      .sort((a,b)=>a.name.localeCompare(b.name));
+    _wikiData=processed;
+    try{localStorage.setItem(wikiCacheKey(),JSON.stringify({ts:Date.now(),data:_wikiData}));}catch(e){}
+    setS(`✅ ${_wikiData.length} vietų. Jau pridėta: ${_wikiData.filter(x=>x.alreadyIn).length}`);
+    renderWikidataList();
+  }catch(e){setS('❌ Klaida: '+e.message);}
+  _wikiLoading=false;
+}
+
+function renderWikidataList(){
+  const el=document.getElementById('wikiList');if(!el) return;
+  const cc=WIKIDATA_COUNTRY_CFG[activeCountry]||WIKIDATA_COUNTRY_CFG.LT;
+  const filtered=_wikiData.filter(x=>_wikiFilter==='all'||x.cat===_wikiFilter);
+  el.innerHTML=filtered.map((item,i)=>{
+    if(item.alreadyIn) return'';
+    const sel=_wikiSelected.has(i);
+    const cat=CATS[item.cat]||CATS.history;
+    return`<div class="osm-item ${sel?'selected':''}" onclick="wikiToggleItem(${i})">
+      <div class="osm-check">${sel?'✓':''}</div>
+      <div class="osm-emoji">${cat.emoji}</div>
+      <div class="osm-info">
+        <div class="osm-name">${item.name}</div>
+        <div class="osm-meta">${cat.label}${item.wdDesc?' · '+item.wdDesc:''}</div>
+        <div class="osm-meta" style="margin-top:2px">
+          <a href="https://www.wikidata.org/wiki/${item.wdId}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">WD ↗</a>
+          ${item.wpLocal?` <a href="https://${cc.wpLang}.wikipedia.org/wiki/${item.wpLocal}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">${cc.wpLang.toUpperCase()} Wiki ↗</a>`:''}
+          ${item.wpEN?` <a href="https://en.wikipedia.org/wiki/${item.wpEN}" target="_blank" onclick="event.stopPropagation()" style="color:var(--gold);text-decoration:none">EN Wiki ↗</a>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function wikiToggleItem(idx){if(_wikiSelected.has(idx))_wikiSelected.delete(idx);else _wikiSelected.add(idx);renderWikidataList();}
+function wikiSelectAll(){_wikiData.forEach((x,i)=>{if(!x.alreadyIn&&(_wikiFilter==='all'||x.cat===_wikiFilter))_wikiSelected.add(i);});renderWikidataList();}
+function wikiSelectNone(){_wikiSelected.clear();renderWikidataList();}
+
+async function wikiImportSelected(){
+  if(!_wikiSelected.size){toast('Nieko nepasirinkta','info');return;}
+  const cc=WIKIDATA_COUNTRY_CFG[activeCountry]||WIKIDATA_COUNTRY_CFG.LT;
+  const setS=m=>{const e=document.getElementById('wikiStatus');if(e)e.textContent=m;};
+  let imported=0;const toEnrich=[];
+  for(const idx of _wikiSelected){
+    const item=_wikiData[idx];if(!item||item.alreadyIn) continue;
+    const spot={name:item.name,cat:item.cat,tier:2,lat:item.lat,lng:item.lng,
+      radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
+      history:item.wdDesc?item.wdDesc+'.':'',year:'',tag:item.wdId,bring:[],
+      country:activeCountry};
+    try{
+      const fid=await fbSaveSpot(spot);
+      if(fid){spot.id=fid;spot._fid=fid;SPOTS.push(spot);item.alreadyIn=true;imported++;
+        if(item.wpLocal||item.wpEN) toEnrich.push({item,fid,lang:item.wpLocal?cc.wpLang:'en',title:item.wpLocal||item.wpEN});}
+    }catch(e){console.error('wikiImport',e);}
+  }
+  _wikiSelected.clear();
+  if(imported>0){refreshMarkers();updateAll();}
+  setS(`✅ Importuota ${imported}.${toEnrich.length?' Kraunami Wikipedia aprašymai...':''}`);
+  renderWikidataList();
+  if(toEnrich.length) enrichWithWikipedia(toEnrich,setS);
+}
+
+async function enrichWithWikipedia(items,setS){
+  let done=0;
+  for(const{fid,lang,title} of items){
+    try{
+      const r=await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(decodeURIComponent(title))}`,{signal:AbortSignal.timeout(8000)});
+      if(r.ok){
+        const d=await r.json();
+        const extract=(d.extract||'').split('. ').slice(0,3).join('. ').trim();
+        if(extract&&window._fb){
+          const{db,doc,updateDoc}=window._fb;
+          await updateDoc(doc(db,'spots',fid),{history:extract+(extract.endsWith('.')?'':'.'),wpTitle:title,wpLang:lang});
+          const spot=SPOTS.find(s=>s._fid===fid||s.id===fid);
+          if(spot) spot.history=extract;
+        }
+      }
+    }catch(e){}
+    done++;
+    if(setS) setS(`⏳ Wikipedia: ${done}/${items.length}...`);
+    await new Promise(r=>setTimeout(r,350));
+  }
+  if(setS) setS(`✅ Wikipedia aprašymai pridėti (${done}/${items.length})`);
+}
+
 function osmToggleManual(){
   _osmManualMode=!_osmManualMode;
   renderOsmImport();
@@ -6332,6 +6540,7 @@ async function fbLoginEmail(){
     if(_emailRegisterMode){
       const cred=await createUserWithEmailAndPassword(auth,email,pass);
       await updateProfile(cred.user,{displayName:name});
+      playerName=name; save(); // set immediately so maybePromptUsername() skips
       toast(`👋 Sveiki, ${name}!`,'success');
     } else {
       const cred=await signInWithEmailAndPassword(auth,email,pass);
@@ -6684,7 +6893,11 @@ async function fbLoadUserProgress(uid){
     const snap=await getDoc(doc(db,'users',uid));
     if(snap.exists()){
       const d=snap.data();
-      if(d.found) found=new Set(d.found);
+      if(d.found){
+        if(Array.isArray(d.found)){foundByCountry.LT=new Set(d.found);}// migrate old flat format
+        else{if(d.found.LT)foundByCountry.LT=new Set(d.found.LT);if(d.found.PL)foundByCountry.PL=new Set(d.found.PL);}
+        found=foundByCountry[activeCountry];
+      }
       if(d.streak!==undefined) streak=d.streak;
       if(d.lastDate) lastDate=d.lastDate;
       if(d.totalXP!==undefined) totalXP=d.totalXP;
@@ -6707,8 +6920,8 @@ async function fbSaveUserProgress(){
   if(!db||!user) return;
   try{
     await setDoc(doc(db,'users',user.uid),{
-      found:[...found],
-      foundCount:found.size,   // top-level for leaderboard sorting
+      found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},
+      foundCount:foundByCountry.LT.size+foundByCountry.PL.size, // total across all countries
       streak,lastDate,totalXP,notes,
       earnedBadges:[...earnedBadges],
       playerName,
