@@ -3,6 +3,8 @@
 const GITHUB_HTML_PROD    = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
 const GITHUB_HTML_STAGING = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/Staging/index.html';
 
+const ADMIN_SECRET_PLACEHOLDER = `window._adminSecret='ADMIN_SECRET_PLACEHOLDER';`;
+
 const FIREBASE_CONFIG_PLACEHOLDER = `const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
   authDomain:"spotseekers.net",
@@ -697,7 +699,11 @@ export default {
 
     // ── GET /api/spots ──
     if (url.pathname === '/api/spots') {
-      const spots = await env.SPOTS_KV.get('spots_v1');
+      const country = (url.searchParams.get('country') || 'LT').toUpperCase();
+      const kvKey = country === 'PL' ? 'spots_pl_v1' : 'spots_lt_v1';
+      let spots = await env.SPOTS_KV.get(kvKey);
+      // Backward compat: if spots_lt_v1 empty, try legacy spots_v1
+      if (!spots && country === 'LT') spots = await env.SPOTS_KV.get('spots_v1');
       if (!spots) {
         return new Response(JSON.stringify({error:'Cache empty — rebuild needed'}), {
           status: 503,
@@ -723,8 +729,12 @@ export default {
         const body = await request.text();
         const parsed = JSON.parse(body);
         if (!Array.isArray(parsed)) throw new Error('Expected array');
-        await env.SPOTS_KV.put('spots_v1', body);
-        return new Response(JSON.stringify({ ok: true, count: parsed.length }), {
+        const country = (url.searchParams.get('country') || 'LT').toUpperCase();
+        const kvKey = country === 'PL' ? 'spots_pl_v1' : 'spots_lt_v1';
+        await env.SPOTS_KV.put(kvKey, body);
+        // Also write legacy key for LT backward compat
+        if (country === 'LT') await env.SPOTS_KV.put('spots_v1', body);
+        return new Response(JSON.stringify({ ok: true, count: parsed.length, country, kvKey }), {
           headers: { 'Content-Type': 'application/json' }
         });
       } catch(e) {
@@ -736,12 +746,15 @@ export default {
 
     // ── GET /api/spots/status ──
     if (url.pathname === '/api/spots/status') {
-      const spots = await env.SPOTS_KV.get('spots_v1');
-      if (!spots) return new Response(JSON.stringify({ cached: false }), {
+      const country = (url.searchParams.get('country') || 'LT').toUpperCase();
+      const kvKey = country === 'PL' ? 'spots_pl_v1' : 'spots_lt_v1';
+      let spots = await env.SPOTS_KV.get(kvKey);
+      if (!spots && country === 'LT') spots = await env.SPOTS_KV.get('spots_v1');
+      if (!spots) return new Response(JSON.stringify({ cached: false, country }), {
         headers: { 'Content-Type': 'application/json' }
       });
       const arr = JSON.parse(spots);
-      return new Response(JSON.stringify({ cached: true, count: arr.length }), {
+      return new Response(JSON.stringify({ cached: true, count: arr.length, country, kvKey }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -769,6 +782,10 @@ export default {
 };`;
       html = html.replace(FIREBASE_CONFIG_PLACEHOLDER, injected);
     }
+
+    // Inject admin secret
+    const secret = env.ADMIN_SECRET || 'lithuania2026';
+    html = html.replace(ADMIN_SECRET_PLACEHOLDER, `window._adminSecret='${secret}';`);
 
     const headers = { 'Content-Type': 'text/html;charset=utf-8' };
     if (isStaging) headers['X-Environment'] = 'staging';
