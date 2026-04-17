@@ -258,10 +258,11 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 /* ── BOTTOM SHEET ── */
 .sback{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:199;pointer-events:none;transition:background .3s}
 .sback.open{background:rgba(0,0,0,.4);pointer-events:all}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:200;background:var(--surf);border-radius:20px 20px 0 0;border-top:1px solid var(--bdr);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:82vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -8px 40px var(--sh)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:200;background:var(--surf);border-radius:20px 20px 0 0;border-top:1px solid var(--bdr);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 -8px 40px var(--sh)}
 .sheet.open{transform:translateY(0)}
-.shandle{width:36px;height:4px;background:var(--bdr);border-radius:2px;margin:10px auto 0;flex-shrink:0}
-.sheet-close{position:absolute;top:10px;right:12px;background:var(--surf2);border:1px solid var(--bdr);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--td);z-index:2;line-height:1;-webkit-user-select:none;user-select:none}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1px solid var(--bdr);flex-shrink:0;gap:10px;min-height:48px}
+.sheet-header-name{font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.sheet-close{background:var(--surf2);border:1px solid var(--bdr);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--td);flex-shrink:0;line-height:1;-webkit-user-select:none;user-select:none}
 .sheet-close:active{background:var(--surf3)}
 .sscroll{overflow-y:auto;flex:1;padding:14px 18px 100px;-webkit-overflow-scrolling:touch}
 
@@ -938,7 +939,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 <!-- BOTTOM SHEET -->
 <div class="sheet" id="sheet">
-  <button class="sheet-close" onclick="closeSheet()">✕</button>
+  <div class="sheet-header" id="sheetHeader">
+    <div class="sheet-header-name" id="sheetHeaderName"></div>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
   <div class="sscroll" id="sheetContent"></div>
 </div>
 
@@ -2624,6 +2628,9 @@ function openSheet(spot){
   const tc=TIER_CONFIG[spot.tier||1];
   const content=document.getElementById('sheetContent');
   const r=spotRadius(spot);
+  // Update sticky header name
+  const headerName=document.getElementById('sheetHeaderName');
+  if(headerName) headerName.textContent=locked?'🔒 Užrakinta vieta':(spot.name||cat.label);
 
   if(locked){
     // Locked spots are invisible on map — this branch only triggers for admin previews
@@ -3322,7 +3329,7 @@ const CITY_BOUNDS_ALL={
 function getCityBounds(){return CITY_BOUNDS_ALL[activeCountry]||{};}
 
 function getCityStats(){
-  return Object.entries(CITY_BOUNDS).map(([city,b])=>{
+  return Object.entries(getCityBounds()).map(([city,b])=>{
     const inCity=SPOTS.filter(s=>s.cat!=='hidden'&&s.lat>=b.sw[0]&&s.lat<=b.ne[0]&&s.lng>=b.sw[1]&&s.lng<=b.ne[1]);
     const done=inCity.filter(s=>found.has(s.id)).length;
     return{city,total:inCity.length,done,pct:inCity.length?Math.round(done/inCity.length*100):0};
@@ -4581,7 +4588,7 @@ async function osmImportSelected(){
       const spot={
         name:item.name,cat:item.cat,tier:_osmTier,
         lat:item.lat,lng:item.lng,
-        country:activeCountry,
+        country:_getImportCountry(),
         radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
         history:'',bring:[],
         createdAt:serverTimestamp()
@@ -4598,10 +4605,26 @@ async function osmImportSelected(){
   renderOsmList();
 }
 
-let _importTab='osm'; // 'osm' | 'wikidata' | 'kpd'
+let _importTab='osm'; // 'osm' | 'wikidata' | 'kpd' | 'zabytek'
+let _importCountry=null; // null = follows activeCountry; set by admin selector
+
+function _getImportCountry(){return _importCountry||activeCountry;}
+
+function _countrySelector(){
+  const ic=_getImportCountry();
+  return`<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+    <span style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">Import šalis:</span>
+    ${Object.entries(COUNTRY_CONFIG).map(([code,cfg])=>`<div onclick="_importCountry='${code}';renderOsmImport()" style="padding:4px 10px;border-radius:8px;font-size:.72rem;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid ${ic===code?'var(--gold)':'var(--bdr)'};background:${ic===code?'var(--gold)':'var(--surf2)'};color:${ic===code?'#0e0c09':'var(--td)'};-webkit-user-select:none;user-select:none">${cfg.flag} ${code}</div>`).join('')}
+  </div>`;
+}
 
 function _tabBar(){
-  const tabs=[['osm','🗺 OSM'],['wikidata','📚 Wikidata'],['kpd','🏛 KPD']];
+  const ic=_getImportCountry();
+  const heritageTab=ic==='PL'?['zabytek','🏛 ZABYTEK']:['kpd','🏛 KPD'];
+  const tabs=[['osm','🗺 OSM'],['wikidata','📚 Wikidata'],heritageTab];
+  // Reset tab if switching country made current tab invalid
+  if(_importTab==='kpd'&&ic==='PL') _importTab='zabytek';
+  if(_importTab==='zabytek'&&ic!=='PL') _importTab='kpd';
   return`<div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
     ${tabs.map(([id,label])=>`<button onclick="_importTab='${id}';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab===id?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab===id?'var(--gold)':'var(--tm)'};cursor:pointer">${label}</button>`).join('')}
   </div>`;
@@ -4610,26 +4633,35 @@ function _tabBar(){
 function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
+  const ic=_getImportCountry();
   const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery'];
   const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės'};
 
   if(_importTab==='wikidata'){
-    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderWikidataPanel()}</div>`;
+    body.innerHTML=`<div class="osm-wrap">${_countrySelector()}${_tabBar()}${renderWikidataPanel()}</div>`;
     if(_wikiData.length) setTimeout(()=>renderWikidataList(),0);
     return;
   }
 
   if(_importTab==='kpd'){
-    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderKpdPanel()}</div>`;
+    body.innerHTML=`<div class="osm-wrap">${_countrySelector()}${_tabBar()}${renderKpdPanel()}</div>`;
     if(_kpdData.length) setTimeout(()=>renderKpdList(),0);
     return;
   }
 
+  if(_importTab==='zabytek'){
+    body.innerHTML=`<div class="osm-wrap">${_countrySelector()}${_tabBar()}${renderZabytekPanel()}</div>`;
+    if(_zabytekData.length) setTimeout(()=>renderZabytekList(),0);
+    return;
+  }
+
   // OSM tab
+  const countryLabel=COUNTRY_CONFIG[ic]?`${COUNTRY_CONFIG[ic].flag} ${COUNTRY_CONFIG[ic].name}`:'';
   body.innerHTML=`<div class="osm-wrap">
+    ${_countrySelector()}
     ${_tabBar()}
     <div style="margin-bottom:10px">
-      <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">🇱🇹 Visa Lietuva · area filtrais</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">${countryLabel} · area filtrais</div>
       <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">⚠ Greitesnis užklausimas nei anksčiau. Patikrink dublikatus prieš pridedant.</div>
     </div>
     <div class="osm-controls">
@@ -4916,8 +4948,8 @@ function renderKpdPanel(){
 
   // Cities with KPD spots
   const citiesWithKpd=total>0
-    ?Object.keys(CITY_BOUNDS).filter(city=>{
-        const b=(getCityBounds()||CITY_BOUNDS_ALL.LT)[city];
+    ?Object.keys(getCityBounds()).filter(city=>{
+        const b=getCityBounds()[city];
         return _kpdData.some(x=>x.lat>=b.sw[0]-0.05&&x.lat<=b.ne[0]+0.05&&x.lng>=b.sw[1]-0.05&&x.lng<=b.ne[1]+0.05);
       }).sort()
     :[];
@@ -4928,7 +4960,7 @@ function renderKpdPanel(){
     if(_kpdFilter!=='all'&&x.cat!==_kpdFilter) return false;
     if(_kpdSigFilter!=='all'&&x.reiksmingumas!==_kpdSigFilter) return false;
     if(_kpdCityFilter!=='all'){
-      const b=CITY_BOUNDS_ALL.LT[_kpdCityFilter];
+      const b=getCityBounds()[_kpdCityFilter];
       if(!b||x.lat<b.sw[0]-0.05||x.lat>b.ne[0]+0.05||x.lng<b.sw[1]-0.05||x.lng>b.ne[1]+0.05) return false;
     }
     return true;
@@ -4989,7 +5021,7 @@ function _kpdFiltered(){
     if(_kpdFilter!=='all'&&item.cat!==_kpdFilter) return;
     if(_kpdSigFilter!=='all'&&item.reiksmingumas!==_kpdSigFilter) return;
     if(_kpdCityFilter!=='all'){
-      const b=CITY_BOUNDS_ALL.LT[_kpdCityFilter];
+      const b=getCityBounds()[_kpdCityFilter];
       if(!b||item.lat<b.sw[0]-0.05||item.lat>b.ne[0]+0.05||item.lng<b.sw[1]-0.05||item.lng>b.ne[1]+0.05) return;
     }
     result.push({item,i});
@@ -5132,16 +5164,18 @@ async function kpdImportSelected(){
 const DEG_50M=0.00045; // ~50 metres in degrees
 
 function findDuplicateSpots(){
-  osmSetStatus('🔍 Ieškoma dublikatų...');
+  const ic=_getImportCountry();
+  const countrySpots=SPOTS.filter(s=>s.country===ic||(ic==='LT'&&!s.country));
+  osmSetStatus(`🔍 Ieškoma dublikatų (${ic})...`);
   const groups=[];
   const used=new Set();
-  for(let i=0;i<SPOTS.length;i++){
+  for(let i=0;i<countrySpots.length;i++){
     if(used.has(i)) continue;
-    const a=SPOTS[i];
+    const a=countrySpots[i];
     const group=[a];
-    for(let j=i+1;j<SPOTS.length;j++){
+    for(let j=i+1;j<countrySpots.length;j++){
       if(used.has(j)) continue;
-      const b=SPOTS[j];
+      const b=countrySpots[j];
       if(b.cat!==a.cat) continue;
       const dlat=Math.abs(a.lat-b.lat);
       const dlng=Math.abs(a.lng-b.lng);
@@ -5363,7 +5397,7 @@ function wikidataCat(instanceIds){
   return 'history';
 }
 
-function wikiCacheKey(){return`kex_wiki_cache_${activeCountry}_v2`;}
+function wikiCacheKey(){return`kex_wiki_cache_${_getImportCountry()}_v2`;}
 const WIKI_CACHE_TTL=48*60*60*1000;
 
 // Country-specific SPARQL config
@@ -5377,7 +5411,8 @@ function renderWikidataPanel(){
   const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_wikiData.length} (${new Date(cached.ts).toLocaleDateString('lt-LT')})</span>`:'';
   const wcats=['all','church','museum','fort','mound','history','monument','nature','viewpoint','bridge','cemetery'];
   const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',bridge:'🌉',cemetery:'⚱️'};
-  const cfg=COUNTRY_CONFIG[activeCountry];
+  const ic=_getImportCountry();
+  const cfg=COUNTRY_CONFIG[ic];
   return`<div>
     <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">${cfg?cfg.flag:''} Wikidata · ${activeCountry}. ${cacheInfo}</div>
     <div class="osm-controls">
@@ -5407,7 +5442,7 @@ async function fetchWikidata(forceRefresh){
       _wikiLoading=false;renderWikidataList();return;
     }
   }
-  const cc=WIKIDATA_COUNTRY_CFG[activeCountry]||WIKIDATA_COUNTRY_CFG.LT;
+  const cc=WIKIDATA_COUNTRY_CFG[_getImportCountry()]||WIKIDATA_COUNTRY_CFG.LT;
   const sparql=`SELECT DISTINCT ?item ?itemLabel ?itemDescription ?lat ?lon ?instanceOf ?wpLocal ?wpEN WHERE {
   ?item wdt:P17 wd:${cc.qid}.
   ?item p:P625 ?coord.
@@ -5458,7 +5493,7 @@ async function fetchWikidata(forceRefresh){
 
 function renderWikidataList(){
   const el=document.getElementById('wikiList');if(!el) return;
-  const cc=WIKIDATA_COUNTRY_CFG[activeCountry]||WIKIDATA_COUNTRY_CFG.LT;
+  const cc=WIKIDATA_COUNTRY_CFG[_getImportCountry()]||WIKIDATA_COUNTRY_CFG.LT;
   const filtered=_wikiData.filter(x=>_wikiFilter==='all'||x.cat===_wikiFilter);
   el.innerHTML=filtered.map((item,i)=>{
     if(item.alreadyIn) return'';
@@ -5485,7 +5520,7 @@ function wikiSelectNone(){_wikiSelected.clear();renderWikidataList();}
 
 async function wikiImportSelected(){
   if(!_wikiSelected.size){toast('Nieko nepasirinkta','info');return;}
-  const cc=WIKIDATA_COUNTRY_CFG[activeCountry]||WIKIDATA_COUNTRY_CFG.LT;
+  const cc=WIKIDATA_COUNTRY_CFG[_getImportCountry()]||WIKIDATA_COUNTRY_CFG.LT;
   const setS=m=>{const e=document.getElementById('wikiStatus');if(e)e.textContent=m;};
   let imported=0;const toEnrich=[];
   for(const idx of _wikiSelected){
@@ -5493,7 +5528,7 @@ async function wikiImportSelected(){
     const spot={name:item.name,cat:item.cat,tier:2,lat:item.lat,lng:item.lng,
       radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
       history:item.wdDesc?item.wdDesc+'.':'',year:'',tag:item.wdId,bring:[],
-      country:activeCountry};
+      country:_getImportCountry()};
     try{
       const fid=await fbSaveSpot(spot);
       if(fid){spot.id=fid;spot._fid=fid;SPOTS.push(spot);item.alreadyIn=true;imported++;
@@ -5528,6 +5563,207 @@ async function enrichWithWikipedia(items,setS){
     await new Promise(r=>setTimeout(r,350));
   }
   if(setS) setS(`✅ Wikipedia aprašymai pridėti (${done}/${items.length})`);
+}
+
+// ═══════════ ZABYTEK IMPORTER (Poland heritage register) ═══════════
+// API: api.zabytek.gov.pl/nidrestapi — REST, take/skip pagination, WGS84 coords
+// Equivalent of KPD for Poland
+
+const ZABYTEK_URL='https://api.zabytek.gov.pl/nidrestapi/api/data/geoportal/otwarteDaneZestawienieZrn';
+const ZABYTEK_CACHE_KEY='kex_zabytek_cache_v1';
+const ZABYTEK_CACHE_TTL=Infinity; // permanent like KPD
+const ZABYTEK_BATCH=500;
+
+let _zabytekData=[];
+let _zabytekSelected=new Set();
+let _zabytekLoading=false;
+let _zabytekFilter='all';
+let _zabytekCityFilter='all';
+
+// Map Polish heritage types to SpotSeekers categories
+function zabytekCat(rodzaj){
+  if(!rodzaj) return 'history';
+  const r=rodzaj.toLowerCase();
+  if(/kościół|kaplica|klasztor|katedra|bazylika/.test(r)) return 'church';
+  if(/zamek|fort|twierdza|bunkier/.test(r)) return 'fort';
+  if(/cmentarz/.test(r)) return 'cemetery';
+  if(/pomnik|obelisk|rzeźba|kolumna/.test(r)) return 'monument';
+  if(/muzeum/.test(r)) return 'museum';
+  if(/park|ogród/.test(r)) return 'nature';
+  if(/most/.test(r)) return 'bridge';
+  return 'history';
+}
+
+function renderZabytekPanel(){
+  const cached=JSON.parse(localStorage.getItem(ZABYTEK_CACHE_KEY)||'null');
+  const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_zabytekData.length} (${new Date(cached.ts).toLocaleDateString('pl-PL')})</span>`:'';
+  const cats=['all','church','fort','cemetery','monument','history','museum','nature','bridge'];
+  const catLabels={all:'Wszystkie',church:'⛪',fort:'🏰',cemetery:'⚱️',monument:'🗿',history:'⚔',museum:'🏛',nature:'🌿',bridge:'🌉'};
+
+  const citiesWithZab=_zabytekData.length>0
+    ?[...new Set(_zabytekData.map(x=>x.miejscowosc).filter(Boolean))].sort()
+    :[];
+
+  const total=_zabytekData.length;
+  const filteredNew=total>0?_zabytekData.filter(x=>{
+    if(x.alreadyIn) return false;
+    if(_zabytekFilter!=='all'&&x.cat!==_zabytekFilter) return false;
+    if(_zabytekCityFilter!=='all'&&x.miejscowosc!==_zabytekCityFilter) return false;
+    return true;
+  }).length:0;
+
+  return`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:6px">
+      🇵🇱 Rejestr Zabytków NID · ${total?`${total} załadowanych${cacheInfo}`:'Kliknij Załaduj'}
+    </div>
+    <div class="osm-controls">
+      <button class="osm-ctrl-btn" onclick="fetchZabytek(false)">🔄 Załaduj</button>
+      <button class="osm-ctrl-btn" onclick="fetchZabytek(true)">♻️ Odśwież</button>
+      <button class="osm-ctrl-btn" onclick="zabytekSelectAll()">☑ Wszystkie</button>
+      <button class="osm-ctrl-btn" onclick="zabytekSelectNone()">☐ Żadne</button>
+      <button class="osm-ctrl-btn pri" onclick="zabytekImportSelected()">✅ Importuj</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap">
+      <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">Miasto:</span>
+      <div class="osm-fchip ${_zabytekCityFilter==='all'?'on':''}" onclick="_zabytekCityFilter='all';renderOsmImport()">🇵🇱 Wszystkie</div>
+      ${citiesWithZab.slice(0,20).map(c=>`<div class="osm-fchip ${_zabytekCityFilter===c?'on':''}" onclick="_zabytekCityFilter='${c.replace(/'/g,"\\'")}';renderOsmImport()">${c}</div>`).join('')}
+    </div>
+    <div class="osm-filter-row">
+      ${cats.map(c=>`<div class="osm-fchip ${_zabytekFilter===c?'on':''}" onclick="_zabytekFilter='${c}';renderOsmImport()">${catLabels[c]||c}</div>`).join('')}
+    </div>
+    ${total>0?`<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin:6px 0">
+      Łącznie: ${total} · Nowych: <strong style="color:var(--gold)">${filteredNew}</strong> · Już dodanych: ${_zabytekData.filter(x=>x.alreadyIn).length}
+    </div>`:''}
+    <div class="osm-status" id="zabytekStatus">${total?'Wybierz i importuj':'Kliknij "Załaduj" aby rozpocząć'}</div>
+    <div class="osm-list" id="zabytekList"></div>
+  </div>`;
+}
+
+async function fetchZabytek(forceRefresh){
+  if(_zabytekLoading) return;
+  _zabytekLoading=true;
+  _zabytekData=[];_zabytekSelected.clear();
+  const setS=m=>{const e=document.getElementById('zabytekStatus');if(e)e.textContent=m;};
+
+  if(!forceRefresh){
+    const cached=JSON.parse(localStorage.getItem(ZABYTEK_CACHE_KEY)||'null');
+    if(cached&&cached.data){
+      _zabytekData=cached.data;
+      _zabytekData.forEach(x=>{x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);});
+      setS(`✅ ${_zabytekData.length} zabytków (cache)`);
+      _zabytekLoading=false;renderZabytekList();return;
+    }
+  }
+
+  setS('⏳ Pobieranie z rejestru NID...');
+  let allData=[];
+  let skip=0;
+  const MAX_RECORDS=10000;
+
+  try{
+    // Count total first
+    const countRes=await fetch(`${ZABYTEK_URL}?format=json&take=1`,{signal:AbortSignal.timeout(15000)});
+    if(!countRes.ok) throw new Error('HTTP '+countRes.status);
+    const countJson=await countRes.json();
+    const total=countJson.totalCount||countJson.total||MAX_RECORDS;
+    setS(`⏳ Pobieranie ${total} zabytków...`);
+
+    while(skip<Math.min(total,MAX_RECORDS)){
+      const url=`${ZABYTEK_URL}?format=json&take=${ZABYTEK_BATCH}&skip=${skip}`;
+      const res=await fetch(url,{signal:AbortSignal.timeout(20000)});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const json=await res.json();
+      const items=json.data||json.items||json||[];
+      if(!Array.isArray(items)||items.length===0) break;
+
+      for(const item of items){
+        // API returns WGS84 directly (unlike KPD which used LKS94)
+        const lat=parseFloat(item.szerokoscGeograficzna||item.lat||item.latitude||0);
+        const lng=parseFloat(item.dlugoscGeograficzna||item.lng||item.longitude||0);
+        if(!lat||!lng||lat<49||lat>55||lng<14||lng>25) continue;
+        allData.push({
+          id:'zab_'+(item.inspireId||item.id||skip+'_'+allData.length),
+          name:item.nazwaObiektu||item.nazwa||item.name||'Zabytek',
+          lat,lng,
+          rodzaj:item.rodzajObiektu||item.rodzaj||'',
+          miejscowosc:item.miejscowosc||item.miasto||'',
+          rejestr:item.nrRejestruZabytkow||item.numerRejestru||'',
+          cat:'history', // assigned below
+          alreadyIn:false
+        });
+      }
+      skip+=ZABYTEK_BATCH;
+      setS(`⏳ Pobrano ${allData.length}...`);
+      await new Promise(r=>setTimeout(r,500));
+    }
+
+    // Assign categories and deduplicate
+    allData=allData
+      .map(x=>({...x,cat:zabytekCat(x.rodzaj)}))
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0003&&Math.abs(y.lng-x.lng)<0.0003&&y.cat===x.cat)===i);
+    // Mark already imported
+    allData.forEach(x=>{x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);});
+
+    _zabytekData=allData;
+    try{localStorage.setItem(ZABYTEK_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_zabytekData}));}catch(e){}
+    setS(`✅ ${_zabytekData.length} zabytków. Już dodanych: ${_zabytekData.filter(x=>x.alreadyIn).length}`);
+    renderOsmImport(); // re-render to show city list
+  }catch(e){
+    setS('❌ Błąd: '+e.message+'. Spróbuj ponownie.');
+    console.error('fetchZabytek',e);
+  }
+  _zabytekLoading=false;
+}
+
+function renderZabytekList(){
+  const el=document.getElementById('zabytekList');if(!el) return;
+  const filtered=_zabytekData.filter(x=>{
+    if(x.alreadyIn) return false;
+    if(_zabytekFilter!=='all'&&x.cat!==_zabytekFilter) return false;
+    if(_zabytekCityFilter!=='all'&&x.miejscowosc!==_zabytekCityFilter) return false;
+    return true;
+  });
+  if(!filtered.length){el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--td);font-size:.82rem">Brak wyników dla wybranych filtrów</div>`;return;}
+  el.innerHTML=filtered.map((item,i)=>{
+    const realIdx=_zabytekData.indexOf(item);
+    const sel=_zabytekSelected.has(realIdx);
+    const cat=CATS[item.cat]||CATS.history;
+    return`<div class="osm-item ${sel?'selected':''}" onclick="zabytekToggleItem(${realIdx})">
+      <div class="osm-check">${sel?'✓':''}</div>
+      <div class="osm-emoji">${cat.emoji}</div>
+      <div class="osm-info">
+        <div class="osm-name">${item.name}</div>
+        <div class="osm-meta">${cat.label}${item.miejscowosc?' · '+item.miejscowosc:''}${item.rodzaj?' · '+item.rodzaj.slice(0,40):''}</div>
+        ${item.rejestr?`<div class="osm-meta" style="color:var(--tm)">Nr rej: ${item.rejestr}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function zabytekToggleItem(idx){if(_zabytekSelected.has(idx))_zabytekSelected.delete(idx);else _zabytekSelected.add(idx);renderZabytekList();}
+function zabytekSelectAll(){_zabytekData.forEach((x,i)=>{if(!x.alreadyIn&&(_zabytekFilter==='all'||x.cat===_zabytekFilter)&&(_zabytekCityFilter==='all'||x.miejscowosc===_zabytekCityFilter))_zabytekSelected.add(i);});renderZabytekList();}
+function zabytekSelectNone(){_zabytekSelected.clear();renderZabytekList();}
+
+async function zabytekImportSelected(){
+  if(!_zabytekSelected.size){toast('Nic nie wybrano','info');return;}
+  const setS=m=>{const e=document.getElementById('zabytekStatus');if(e)e.textContent=m;};
+  let imported=0;
+  for(const idx of _zabytekSelected){
+    const item=_zabytekData[idx];if(!item||item.alreadyIn) continue;
+    const spot={
+      name:item.name,cat:item.cat,tier:2,lat:item.lat,lng:item.lng,
+      radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
+      history:'',year:'',tag:'ZAB-'+item.rejestr,bring:[],
+      country:'PL'
+    };
+    try{
+      const fid=await fbSaveSpot(spot);
+      if(fid){spot.id=fid;spot._fid=fid;SPOTS.push(spot);item.alreadyIn=true;imported++;}
+    }catch(e){console.error('zabytekImport',e);}
+  }
+  _zabytekSelected.clear();
+  if(imported>0){refreshMarkers();updateAll();}
+  setS(`✅ Zaimportowano ${imported} obiektów`);
+  renderZabytekList();
 }
 
 function osmToggleManual(){
@@ -7013,9 +7249,11 @@ deleteSpot=async function(){
   let _backTimer=null;
 
   function getTopLayer(){
-    // Returns the topmost open layer in priority order
     if(document.getElementById('unameOverlay')?.classList.contains('show')) return'uname';
     if(document.getElementById('eauthOverlay')?.style.display==='flex'||document.getElementById('eauthOverlay')?.classList.contains('show')) return'eauth';
+    if(document.getElementById('suggestOverlay')?.classList.contains('show')) return'suggest';
+    if(document.getElementById('reviewOverlay')?.classList.contains('show')) return'review';
+    if(document.getElementById('mobPanelOverlay')?.classList.contains('open')) return'mobpanel';
     if(document.getElementById('mobFilterSheet')?.classList.contains('open')) return'mobfilter';
     if(document.getElementById('editorModal')?.classList.contains('open')) return'editor';
     if(document.getElementById('sheet')?.classList.contains('open')) return'sheet';
@@ -7031,6 +7269,9 @@ deleteSpot=async function(){
       // Close the topmost layer and push state again so next back still works
       if(layer==='uname'){document.getElementById('unameOverlay').classList.remove('show');}
       else if(layer==='eauth'){closeEmailModal();}
+      else if(layer==='suggest'){closeSuggestModal();}
+      else if(layer==='review'){closeReview(false);}
+      else if(layer==='mobpanel'){closeMobPanel();}
       else if(layer==='mobfilter'){closeMobFilterSheet();}
       else if(layer==='editor'){closeEditor();}
       else if(layer==='sheet'){closeSheet();}
