@@ -3,6 +3,8 @@
 const GITHUB_HTML_PROD    = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/main/index.html';
 const GITHUB_HTML_STAGING = 'https://raw.githubusercontent.com/aganelinas-png/kaunas-explorer/Staging/index.html';
 
+const ADMIN_SECRET_PLACEHOLDER = `window._adminSecret='ADMIN_SECRET_PLACEHOLDER';`;
+
 const FIREBASE_CONFIG_PLACEHOLDER = `const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
   authDomain:"spotseekers.net",
@@ -780,6 +782,10 @@ export default {
 };`;
       html = html.replace(FIREBASE_CONFIG_PLACEHOLDER, injected);
     }
+
+    // Inject admin secret
+    const secret = env.ADMIN_SECRET || 'lithuania2026';
+    html = html.replace(ADMIN_SECRET_PLACEHOLDER, `window._adminSecret='${secret}';`);
 
     const headers = { 'Content-Type': 'text/html;charset=utf-8' };
     if (isStaging) headers['X-Environment'] = 'staging';

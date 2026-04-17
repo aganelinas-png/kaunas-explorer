@@ -25,6 +25,7 @@
 <!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <!-- Firebase -->
+<script>window._adminSecret='ADMIN_SECRET_PLACEHOLDER';</script>
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -6563,7 +6564,7 @@ async function importSpotsCSV(input){
   SPOTS=updatedSpots;
   // Push to KV
   try{
-    const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Secret':'lithuania2026'},body:JSON.stringify(SPOTS)});
+    const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Secret':window._adminSecret||'lithuania2026'},body:JSON.stringify(SPOTS)});
     if(res.ok){
       const data=await res.json();
       try{localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots:SPOTS}));}catch(e){}
@@ -6591,7 +6592,7 @@ async function rebuildKVCache(){
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'X-Admin-Secret':'lithuania2026'
+        'X-Admin-Secret':window._adminSecret||'lithuania2026'
       },
       body:JSON.stringify(spotsToCache)
     });
