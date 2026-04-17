@@ -697,7 +697,11 @@ export default {
 
     // ── GET /api/spots ──
     if (url.pathname === '/api/spots') {
-      const spots = await env.SPOTS_KV.get('spots_v1');
+      const country = (url.searchParams.get('country') || 'LT').toUpperCase();
+      const kvKey = country === 'PL' ? 'spots_pl_v1' : 'spots_lt_v1';
+      let spots = await env.SPOTS_KV.get(kvKey);
+      // Backward compat: if spots_lt_v1 empty, try legacy spots_v1
+      if (!spots && country === 'LT') spots = await env.SPOTS_KV.get('spots_v1');
       if (!spots) {
         return new Response(JSON.stringify({error:'Cache empty — rebuild needed'}), {
           status: 503,
@@ -723,8 +727,12 @@ export default {
         const body = await request.text();
         const parsed = JSON.parse(body);
         if (!Array.isArray(parsed)) throw new Error('Expected array');
-        await env.SPOTS_KV.put('spots_v1', body);
-        return new Response(JSON.stringify({ ok: true, count: parsed.length }), {
+        const country = (url.searchParams.get('country') || 'LT').toUpperCase();
+        const kvKey = country === 'PL' ? 'spots_pl_v1' : 'spots_lt_v1';
+        await env.SPOTS_KV.put(kvKey, body);
+        // Also write legacy key for LT backward compat
+        if (country === 'LT') await env.SPOTS_KV.put('spots_v1', body);
+        return new Response(JSON.stringify({ ok: true, count: parsed.length, country, kvKey }), {
           headers: { 'Content-Type': 'application/json' }
         });
       } catch(e) {
@@ -736,12 +744,15 @@ export default {
 
     // ── GET /api/spots/status ──
     if (url.pathname === '/api/spots/status') {
-      const spots = await env.SPOTS_KV.get('spots_v1');
-      if (!spots) return new Response(JSON.stringify({ cached: false }), {
+      const country = (url.searchParams.get('country') || 'LT').toUpperCase();
+      const kvKey = country === 'PL' ? 'spots_pl_v1' : 'spots_lt_v1';
+      let spots = await env.SPOTS_KV.get(kvKey);
+      if (!spots && country === 'LT') spots = await env.SPOTS_KV.get('spots_v1');
+      if (!spots) return new Response(JSON.stringify({ cached: false, country }), {
         headers: { 'Content-Type': 'application/json' }
       });
       const arr = JSON.parse(spots);
-      return new Response(JSON.stringify({ cached: true, count: arr.length }), {
+      return new Response(JSON.stringify({ cached: true, count: arr.length, country, kvKey }), {
         headers: { 'Content-Type': 'application/json' }
       });
     }

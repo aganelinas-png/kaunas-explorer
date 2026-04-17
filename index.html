@@ -693,6 +693,11 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .osm-ctrl-btn{flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--txt);cursor:pointer;transition:all .2s;min-width:120px;text-align:center}
 .osm-ctrl-btn:active{background:var(--surf3)}
 .osm-ctrl-btn.pri{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
+.country-sw-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:6px 12px;font-size:.75rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;-webkit-user-select:none;user-select:none;transition:background .15s,color .15s;flex:1;text-align:center}
+.country-sw-btn.on{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
+.country-sw-btn:active{opacity:.75}
+.drawer-country-row{padding:10px 14px 6px;border-top:1px solid var(--bdr)}
+.drawer-country-label{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--tm);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
 .osm-ctrl-btn:disabled{opacity:.4;cursor:default}
 .osm-filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .osm-fchip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:4px 10px;font-size:.68rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
@@ -1020,6 +1025,13 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn" id="drawerSuggestionsBtn" onclick="openSubPanel('suggestions')" style="display:none">📬 Siūlymai</div>
       <div id="kvRebuildBtn" style="display:none"></div>
     </div>
+    <div class="drawer-country-row">
+      <div class="drawer-country-label">Šalis / Country</div>
+      <div style="display:flex;gap:6px">
+        <div class="country-sw-btn on" data-country="LT" onclick="switchCountry('LT')">🇱🇹 Lietuva</div>
+        <div class="country-sw-btn" data-country="PL" onclick="switchCountry('PL')">🇵🇱 Polska</div>
+      </div>
+    </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v24.03</div>
   </div>
 
@@ -1148,7 +1160,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <div class="intro-glyph">🗺</div>
   <div class="intro-title">Labas, Seeker'i! 👋<br>Sveiki į SpotSeekers</div>
   <div class="intro-sub">Tyrinėk Lietuvą, rink vietas ir tapk tikru Seeker'iu.</div>
-  <div class="intro-city">📍 Lietuva</div>
+  <div class="intro-city" id="introCityLabel">📍 Lietuva</div>
   <div class="intro-dots">
     <div class="intro-dot on" id="introD0"></div>
     <div class="intro-dot" id="introD1"></div>
@@ -1674,10 +1686,36 @@ const STREAK_MILES=[
 ];
 const STREAK_HIDDEN_SPOT={id:99,name:'Napoleono tiltas',cat:'history',tier:1,year:'1812',time:'20 min.',price:'Nemokama',radius:100,bring:['Smalsumą'],history:'Vieta kur 1812 m. Napoleono didžioji armija kirto Nemuną žygiuodama į Rusiją. Šiandien – tik atmintis ir vaizdas. Ši vieta atsiveria tik ištvermingiems tyrinėtojams.',lat:54.9012,lng:23.9108,tag:'Slaptoji'};
 
+// ═══════════ COUNTRY CONFIG ═══════════
+
+const COUNTRY_CONFIG = {
+  LT: {
+    name: 'Lietuva', flag: '🇱🇹',
+    bounds: { minLat: 53.8, maxLat: 56.5, minLng: 20.9, maxLng: 26.9 },
+    center: [55.17, 23.88], zoom: 7
+  },
+  PL: {
+    name: 'Polska', flag: '🇵🇱',
+    bounds: { minLat: 49.0, maxLat: 54.9, minLng: 14.1, maxLng: 24.2 },
+    center: [52.07, 19.48], zoom: 6
+  }
+};
+
+function detectCountryFromCoords(lat, lng) {
+  for (const [code, cfg] of Object.entries(COUNTRY_CONFIG)) {
+    const b = cfg.bounds;
+    if (lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng) return code;
+  }
+  return 'LT';
+}
+
 // ═══════════ STATE ═══════════
 
 let SPOTS=[...DEFAULT_SPOTS];
-let found=new Set(),streak=0,lastDate=null,notes={},earnedBadges=new Set();
+let activeCountry=localStorage.getItem('ke7_country')||'LT';
+let foundByCountry={LT:new Set(),PL:new Set()};
+let found=foundByCountry[activeCountry];
+let streak=0,lastDate=null,notes={},earnedBadges=new Set();
 let favorites=new Set(); // spot ids
 let selectedSpot=null,userLat=null,userLng=null;
 let isDark=false,activeFilter='all';
@@ -1754,11 +1792,43 @@ function spotRadius(spot){
   return spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS;
 }
 
+// ═══════════ COUNTRY SWITCHING ═══════════
+
+async function switchCountry(code, flyTo=true){
+  if(code===activeCountry) return;
+  const prev=activeCountry;
+  activeCountry=code;
+  found=foundByCountry[code];
+  localStorage.setItem('ke7_country',code);
+  activeCity='all';
+  _spotLevelMap=null;
+  updateCountrySwitcherUI();
+  // Load spots for new country
+  SPOTS=[];
+  refreshMarkers();
+  await fbLoadSpots();
+  // Fly map to country center
+  if(flyTo){
+    const cfg=COUNTRY_CONFIG[code];
+    if(cfg&&map) map.flyTo(cfg.center,cfg.zoom,{duration:1.4});
+  }
+  updateAll();
+}
+
+function updateCountrySwitcherUI(){
+  document.querySelectorAll('.country-sw-btn').forEach(btn=>{
+    btn.classList.toggle('on',btn.dataset.country===activeCountry);
+  });
+  const lbl=document.getElementById('introCityLabel');
+  if(lbl){const c=COUNTRY_CONFIG[activeCountry];lbl.textContent=`${c.flag} ${c.name}`;}
+}
+
 // ═══════════ PERSIST ═══════════
 
 function save(){
   localStorage.setItem('ke7_spots',JSON.stringify(SPOTS));
-  localStorage.setItem('ke7_found',JSON.stringify([...found]));
+  localStorage.setItem('ke7_found',JSON.stringify({LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]}));
+  localStorage.setItem('ke7_country',activeCountry);
   localStorage.setItem('ke7_streak',streak);
   localStorage.setItem('ke7_lastDate',lastDate||'');
   localStorage.setItem('ke7_notes',JSON.stringify(notes));
@@ -1776,7 +1846,16 @@ function save(){
 
 function load(){
   // Do NOT load spots from localStorage — Firestore is the source of truth
-  const f=localStorage.getItem('ke7_found');found=f?new Set(JSON.parse(f)):new Set();
+  const _fraw=localStorage.getItem('ke7_found');
+  if(_fraw){
+    try{
+      const _fp=JSON.parse(_fraw);
+      if(Array.isArray(_fp)){foundByCountry.LT=new Set(_fp);}// migrate old format
+      else{if(_fp.LT)foundByCountry.LT=new Set(_fp.LT);if(_fp.PL)foundByCountry.PL=new Set(_fp.PL);}
+    }catch(e){}
+  }
+  activeCountry=localStorage.getItem('ke7_country')||activeCountry;
+  found=foundByCountry[activeCountry];
   streak=parseInt(localStorage.getItem('ke7_streak')||'0');
   lastDate=localStorage.getItem('ke7_lastDate')||null;
   const n=localStorage.getItem('ke7_notes');notes=n?JSON.parse(n):{};
@@ -1969,7 +2048,7 @@ function addMarker(spot){
 }
 
 function spotInCity(spot,city){
-  const b=CITY_BOUNDS[city];
+  const b=getCityBounds()[city];
   if(!b) return true;
   return spot.lat>=b.sw[0]&&spot.lat<=b.ne[0]&&spot.lng>=b.sw[1]&&spot.lng<=b.ne[1];
 }
@@ -2107,12 +2186,12 @@ function showCityFilterSheet(){
     document.body.appendChild(el);
   }
   // Only show cities that actually have spots in the current SPOTS array
-  const citiesWithSpots=Object.keys(CITY_BOUNDS).filter(city=>{
-    const b=CITY_BOUNDS[city];
+  const citiesWithSpots=Object.keys(getCityBounds()).filter(city=>{
+    const b=getCityBounds()[city];
     return SPOTS.some(s=>s.cat!=='hidden'&&s.lat>=b.sw[0]&&s.lat<=b.ne[0]&&s.lng>=b.sw[1]&&s.lng<=b.ne[1]);
   }).sort();
   el.innerHTML=`
-    <div class="fcap ${activeCity==='all'?'on':''}" onclick="setCityFilter('all')">🇱🇹 Visos</div>
+    <div class="fcap ${activeCity==='all'?'on':''}" onclick="setCityFilter('all')">${COUNTRY_CONFIG[activeCountry].flag} Visos</div>
     ${citiesWithSpots.map(c=>`<div class="fcap ${activeCity===c?'on':''}" onclick="setCityFilter('${c}')">${c}</div>`).join('')}
   `;
   el.style.display='flex';
@@ -2136,8 +2215,8 @@ function setCityFilter(city){
   closeCityFilterSheet();
   refreshMarkers();
   // Fly to city if selected
-  if(city!=='all'&&CITY_BOUNDS[city]){
-    const b=CITY_BOUNDS[city];
+  if(city!=='all'&&getCityBounds()[city]){
+    const b=getCityBounds()[city];
     const clat=(b.sw[0]+b.ne[0])/2;
     const clng=(b.sw[1]+b.ne[1])/2;
     map.setView([clat,clng],13);
@@ -2157,8 +2236,13 @@ function startGPS(){
     document.getElementById('gpsDot').className='gd on';
     if(firstFix){
       firstFix=false;
+      // Auto-detect country from GPS if not manually set
+      if(!localStorage.getItem('ke7_country')){
+        const detected=detectCountryFromCoords(userLat,userLng);
+        if(detected!==activeCountry) switchCountry(detected,false);// false = don't fly, GPS will center
+      }
       map.setView([userLat,userLng],14);
-      updateAll(); // refresh topSub with real count now GPS is ready
+      updateAll();
     }
     if(!userMarker){
       userMarker=L.circleMarker([userLat,userLng],{radius:9,fillColor:'#c9a84c',color:'#e8c878',weight:2,fillOpacity:.95}).addTo(map);
@@ -2390,7 +2474,7 @@ function switchDrawerPanel(name){openSubPanel(name);}
 function renderCurrentPanel(name){if(name) openSubPanel(name);}
 
 function updateDrawerHeader(){
-  document.getElementById('drawerSub').textContent=`${found.size} / ${SPOTS.length} · ${getLevel(totalXP).icon} Lv.${getLevel(totalXP).level} · ⭐ ${totalXP} XP`;
+  document.getElementById('drawerSub').textContent=`${COUNTRY_CONFIG[activeCountry].flag} ${found.size} / ${SPOTS.length} · ${getLevel(totalXP).icon} Lv.${getLevel(totalXP).level} · ⭐ ${totalXP} XP`;
   const streakEl=document.getElementById('drawerStreak');
   if(streakEl) streakEl.textContent=streak>0?`🔥 ${streak} d. serija`:'Pradėk seriją!';
 }
@@ -2683,7 +2767,7 @@ function collectCurrent(){
   if(window._fbUser&&window._fb){
     const{db,doc,setDoc}=window._fb;
     setDoc(doc(db,'users',window._fbUser.uid),{
-      found:[...found],totalXP,streak,badges:[...earnedBadges],name:playerName
+      found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},totalXP,streak,badges:[...earnedBadges],name:playerName
     },{merge:true}).catch(()=>{});
   }
 
@@ -3110,58 +3194,109 @@ function renderWeeklySummary(){
 }
 
 // ═══════════ CITY COMPLETION ═══════════
-const CITY_BOUNDS={
-  'Kaunas':{sw:[54.84,23.82],ne:[54.95,24.05]},
-  'Vilnius':{sw:[54.63,25.05],ne:[54.74,25.36]},
-  'Klaipėda':{sw:[55.68,21.08],ne:[55.75,21.19]},
-  'Šiauliai':{sw:[55.89,23.26],ne:[55.96,23.38]},
-  'Panevėžys':{sw:[55.70,24.32],ne:[55.76,24.42]},
-  'Alytus':{sw:[54.38,24.02],ne:[54.42,24.08]},
-  'Marijampolė':{sw:[54.55,23.33],ne:[54.57,23.37]},
-  'Mažeikiai':{sw:[56.30,22.33],ne:[56.34,22.38]},
-  'Jonava':{sw:[55.07,24.27],ne:[55.10,24.30]},
-  'Utena':{sw:[55.49,25.59],ne:[55.52,25.63]},
-  'Kėdainiai':{sw:[55.27,23.96],ne:[55.30,24.02]},
-  'Tauragė':{sw:[55.25,22.27],ne:[55.28,22.32]},
-  'Telšiai':{sw:[55.97,22.23],ne:[56.00,22.27]},
-  'Ukmergė':{sw:[55.24,24.75],ne:[55.27,24.79]},
-  'Visaginas':{sw:[55.59,26.42],ne:[55.62,26.45]},
-  'Plungė':{sw:[55.91,21.84],ne:[55.94,21.88]},
-  'Kretinga':{sw:[55.88,21.22],ne:[55.91,21.25]},
-  'Šilutė':{sw:[55.34,21.46],ne:[55.37,21.50]},
-  'Radviliškis':{sw:[55.79,23.53],ne:[55.82,23.57]},
-  'Palanga':{sw:[55.90,21.04],ne:[55.96,21.09]},
-  'Druskininkai':{sw:[53.98,24.02],ne:[54.02,24.06]},
-  'Trakai':{sw:[54.63,24.92],ne:[54.66,24.95]},
-  'Anykščiai':{sw:[55.52,25.09],ne:[55.54,25.12]},
-  'Molėtai':{sw:[55.22,25.41],ne:[55.24,25.44]},
-  'Biržai':{sw:[56.19,24.75],ne:[56.22,24.79]},
-  'Rokiškis':{sw:[55.96,25.58],ne:[55.99,25.62]},
-  'Skuodas':{sw:[56.27,21.52],ne:[56.30,21.56]},
-  'Jurbarkas':{sw:[55.07,22.76],ne:[55.10,22.80]},
-  'Raseiniai':{sw:[55.37,23.11],ne:[55.40,23.14]},
-  'Elektrėnai':{sw:[54.77,24.64],ne:[54.80,24.67]},
-  'Varėna':{sw:[54.21,24.56],ne:[54.24,24.60]},
-  'Zarasai':{sw:[55.73,26.25],ne:[55.75,26.28]},
-  'Lazdijai':{sw:[54.23,23.51],ne:[54.26,23.54]},
-  'Švenčionys':{sw:[55.13,26.15],ne:[55.15,26.18]},
-  'Ignalina':{sw:[55.34,26.16],ne:[55.37,26.19]},
-  'Nida':{sw:[55.29,20.98],ne:[55.32,21.01]},
-  'Neringa':{sw:[55.29,20.98],ne:[55.50,21.05]},
-  'Kuršėnai':{sw:[55.99,22.91],ne:[56.02,22.95]},
-  'Garliava':{sw:[54.82,23.86],ne:[54.84,23.90]},
-  'Lentvaris':{sw:[54.64,25.05],ne:[54.66,25.08]},
-  'Prienai':{sw:[54.63,23.94],ne:[54.65,23.97]},
-  'Joniškis':{sw:[56.23,23.61],ne:[56.26,23.65]},
-  'Šakiai':{sw:[54.95,23.04],ne:[54.98,23.08]},
-  'Kazlų Rūda':{sw:[54.77,23.49],ne:[54.79,23.52]},
-  'Vilkaviškis':{sw:[54.65,23.03],ne:[54.67,23.06]},
-  'Kudirkos Naumiestis':{sw:[54.78,22.87],ne:[54.80,22.90]},
-  'Širvintos':{sw:[55.04,24.95],ne:[55.06,24.98]},
-  'Šalčininkai':{sw:[54.30,25.38],ne:[54.33,25.42]},
-  'Eišiškės':{sw:[54.18,24.99],ne:[54.20,25.02]},
-  'Vievis':{sw:[54.77,24.79],ne:[54.79,24.82]},
+const CITY_BOUNDS_ALL={
+  LT:{
+    'Kaunas':{sw:[54.84,23.82],ne:[54.95,24.05]},
+    'Vilnius':{sw:[54.63,25.05],ne:[54.74,25.36]},
+    'Klaipėda':{sw:[55.68,21.08],ne:[55.75,21.19]},
+    'Šiauliai':{sw:[55.89,23.26],ne:[55.96,23.38]},
+    'Panevėžys':{sw:[55.70,24.32],ne:[55.76,24.42]},
+    'Alytus':{sw:[54.38,24.02],ne:[54.42,24.08]},
+    'Marijampolė':{sw:[54.55,23.33],ne:[54.57,23.37]},
+    'Mažeikiai':{sw:[56.30,22.33],ne:[56.34,22.38]},
+    'Jonava':{sw:[55.07,24.27],ne:[55.10,24.30]},
+    'Utena':{sw:[55.49,25.59],ne:[55.52,25.63]},
+    'Kėdainiai':{sw:[55.27,23.96],ne:[55.30,24.02]},
+    'Tauragė':{sw:[55.25,22.27],ne:[55.28,22.32]},
+    'Telšiai':{sw:[55.97,22.23],ne:[56.00,22.27]},
+    'Ukmergė':{sw:[55.24,24.75],ne:[55.27,24.79]},
+    'Visaginas':{sw:[55.59,26.42],ne:[55.62,26.45]},
+    'Plungė':{sw:[55.91,21.84],ne:[55.94,21.88]},
+    'Kretinga':{sw:[55.88,21.22],ne:[55.91,21.25]},
+    'Šilutė':{sw:[55.34,21.46],ne:[55.37,21.50]},
+    'Radviliškis':{sw:[55.79,23.53],ne:[55.82,23.57]},
+    'Palanga':{sw:[55.90,21.04],ne:[55.96,21.09]},
+    'Druskininkai':{sw:[53.98,24.02],ne:[54.02,24.06]},
+    'Trakai':{sw:[54.63,24.92],ne:[54.66,24.95]},
+    'Anykščiai':{sw:[55.52,25.09],ne:[55.54,25.12]},
+    'Molėtai':{sw:[55.22,25.41],ne:[55.24,25.44]},
+    'Biržai':{sw:[56.19,24.75],ne:[56.22,24.79]},
+    'Rokiškis':{sw:[55.96,25.58],ne:[55.99,25.62]},
+    'Skuodas':{sw:[56.27,21.52],ne:[56.30,21.56]},
+    'Jurbarkas':{sw:[55.07,22.76],ne:[55.10,22.80]},
+    'Raseiniai':{sw:[55.37,23.11],ne:[55.40,23.14]},
+    'Elektrėnai':{sw:[54.77,24.64],ne:[54.80,24.67]},
+    'Varėna':{sw:[54.21,24.56],ne:[54.24,24.60]},
+    'Zarasai':{sw:[55.73,26.25],ne:[55.75,26.28]},
+    'Lazdijai':{sw:[54.23,23.51],ne:[54.26,23.54]},
+    'Švenčionys':{sw:[55.13,26.15],ne:[55.15,26.18]},
+    'Ignalina':{sw:[55.34,26.16],ne:[55.37,26.19]},
+    'Nida':{sw:[55.29,20.98],ne:[55.32,21.01]},
+    'Neringa':{sw:[55.29,20.98],ne:[55.50,21.05]},
+    'Kuršėnai':{sw:[55.99,22.91],ne:[56.02,22.95]},
+    'Garliava':{sw:[54.82,23.86],ne:[54.84,23.90]},
+    'Lentvaris':{sw:[54.64,25.05],ne:[54.66,25.08]},
+    'Prienai':{sw:[54.63,23.94],ne:[54.65,23.97]},
+    'Joniškis':{sw:[56.23,23.61],ne:[56.26,23.65]},
+    'Šakiai':{sw:[54.95,23.04],ne:[54.98,23.08]},
+    'Kazlų Rūda':{sw:[54.77,23.49],ne:[54.79,23.52]},
+    'Vilkaviškis':{sw:[54.65,23.03],ne:[54.67,23.06]},
+    'Kudirkos Naumiestis':{sw:[54.78,22.87],ne:[54.80,22.90]},
+    'Širvintos':{sw:[55.04,24.95],ne:[55.06,24.98]},
+    'Šalčininkai':{sw:[54.30,25.38],ne:[54.33,25.42]},
+    'Eišiškės':{sw:[54.18,24.99],ne:[54.20,25.02]},
+    'Vievis':{sw:[54.77,24.79],ne:[54.79,24.82]},
+  },
+  PL:{
+    'Warszawa':{sw:[52.09,20.85],ne:[52.37,21.27]},
+    'Kraków':{sw:[49.96,19.79],ne:[50.13,20.22]},
+    'Gdańsk':{sw:[54.28,18.47],ne:[54.43,18.76]},
+    'Wrocław':{sw:[51.04,16.86],ne:[51.18,17.15]},
+    'Poznań':{sw:[52.32,16.79],ne:[52.47,17.07]},
+    'Łódź':{sw:[51.68,19.35],ne:[51.82,19.60]},
+    'Lublin':{sw:[51.19,22.47],ne:[51.29,22.63]},
+    'Katowice':{sw:[50.19,18.95],ne:[50.28,19.07]},
+    'Szczecin':{sw:[53.37,14.48],ne:[53.51,14.68]},
+    'Bydgoszcz':{sw:[53.09,17.95],ne:[53.17,18.09]},
+    'Białystok':{sw:[53.09,23.07],ne:[53.17,23.23]},
+    'Gdynia':{sw:[54.46,18.49],ne:[54.55,18.59]},
+    'Częstochowa':{sw:[50.77,19.06],ne:[50.84,19.17]},
+    'Toruń':{sw:[53.00,18.53],ne:[53.06,18.66]},
+    'Rzeszów':{sw:[49.99,22.00],ne:[50.05,22.10]},
+    'Olsztyn':{sw:[53.75,20.44],ne:[53.80,20.52]},
+    'Kielce':{sw:[50.85,20.60],ne:[50.90,20.68]},
+    'Gliwice':{sw:[50.27,18.63],ne:[50.32,18.72]},
+    'Zabrze':{sw:[50.29,18.74],ne:[50.33,18.80]},
+    'Bielsko-Biała':{sw:[49.81,18.98],ne:[49.86,19.06]},
+    'Bytom':{sw:[50.34,18.88],ne:[50.39,18.96]},
+    'Zielona Góra':{sw:[51.91,15.47],ne:[51.96,15.55]},
+    'Rybnik':{sw:[50.07,18.52],ne:[50.12,18.58]},
+    'Ruda Śląska':{sw:[50.25,18.83],ne:[50.29,18.89]},
+    'Opole':{sw:[50.64,17.90],ne:[50.69,17.98]},
+    'Tychy':{sw:[50.12,18.96],ne:[50.17,19.02]},
+    'Gorzów Wielkopolski':{sw:[52.72,15.21],ne:[52.76,15.28]},
+    'Elbląg':{sw:[54.14,19.38],ne:[54.19,19.46]},
+    'Płock':{sw:[52.53,19.66],ne:[52.57,19.73]},
+    'Wałbrzych':{sw:[50.76,16.26],ne:[50.80,16.33]},
+    'Koszalin':{sw:[54.17,16.18],ne:[54.21,16.24]},
+    'Tarnów':{sw:[49.99,20.97],ne:[50.03,21.04]},
+    'Chorzów':{sw:[50.29,18.93],ne:[50.33,18.99]},
+    'Radom':{sw:[51.39,21.12],ne:[51.43,21.18]},
+    'Sosnowiec':{sw:[50.27,19.10],ne:[50.32,19.17]},
+    'Kalisz':{sw:[51.75,18.07],ne:[51.79,18.12]},
+    'Legnica':{sw:[51.19,16.15],ne:[51.23,16.22]},
+    'Grudziądz':{sw:[53.48,18.74],ne:[53.52,18.81]},
+    'Jaworzno':{sw:[50.20,19.25],ne:[50.24,19.31]},
+    'Zakopane':{sw:[49.28,19.94],ne:[49.31,19.99]},
+    'Malbork':{sw:[54.02,19.02],ne:[54.05,19.05]},
+    'Wieliczka':{sw:[49.98,20.04],ne:[50.00,20.07]},
+    'Zamość':{sw:[50.71,23.24],ne:[50.74,23.28]},
+    'Nowy Sącz':{sw:[49.61,20.69],ne:[49.64,20.73]},
+    'Przemyśl':{sw:[49.77,22.77],ne:[49.80,22.80]},
+    'Suwałki':{sw:[54.10,22.92],ne:[54.13,22.96]},
+  }
 };
+function getCityBounds(){return CITY_BOUNDS_ALL[activeCountry]||{};}
 
 function getCityStats(){
   return Object.entries(CITY_BOUNDS).map(([city,b])=>{
@@ -3742,7 +3877,7 @@ function saveSpot(){
     const idx=SPOTS.findIndex(s=>s.id==id);
     if(idx!==-1){SPOTS[idx]={...SPOTS[idx],...data};toast(`✅ ${name} atnaujinta`,'success');}
   } else {
-    data.id=Date.now();SPOTS.push(data);toast(`📍 ${name} pridėta!`,'success');
+    data.id=Date.now();data.country=activeCountry;SPOTS.push(data);toast(`📍 ${name} pridėta!`,'success');
   }
   save();refreshMarkers();updateAll();closeEditor();
 }
@@ -4423,6 +4558,7 @@ async function osmImportSelected(){
       const spot={
         name:item.name,cat:item.cat,tier:_osmTier,
         lat:item.lat,lng:item.lng,
+        country:activeCountry,
         radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
         history:'',bring:[],
         createdAt:serverTimestamp()
@@ -4758,7 +4894,7 @@ function renderKpdPanel(){
   // Cities with KPD spots
   const citiesWithKpd=total>0
     ?Object.keys(CITY_BOUNDS).filter(city=>{
-        const b=CITY_BOUNDS[city];
+        const b=(getCityBounds()||CITY_BOUNDS_ALL.LT)[city];
         return _kpdData.some(x=>x.lat>=b.sw[0]-0.05&&x.lat<=b.ne[0]+0.05&&x.lng>=b.sw[1]-0.05&&x.lng<=b.ne[1]+0.05);
       }).sort()
     :[];
@@ -4769,7 +4905,7 @@ function renderKpdPanel(){
     if(_kpdFilter!=='all'&&x.cat!==_kpdFilter) return false;
     if(_kpdSigFilter!=='all'&&x.reiksmingumas!==_kpdSigFilter) return false;
     if(_kpdCityFilter!=='all'){
-      const b=CITY_BOUNDS[_kpdCityFilter];
+      const b=CITY_BOUNDS_ALL.LT[_kpdCityFilter];
       if(!b||x.lat<b.sw[0]-0.05||x.lat>b.ne[0]+0.05||x.lng<b.sw[1]-0.05||x.lng>b.ne[1]+0.05) return false;
     }
     return true;
@@ -4830,7 +4966,7 @@ function _kpdFiltered(){
     if(_kpdFilter!=='all'&&item.cat!==_kpdFilter) return;
     if(_kpdSigFilter!=='all'&&item.reiksmingumas!==_kpdSigFilter) return;
     if(_kpdCityFilter!=='all'){
-      const b=CITY_BOUNDS[_kpdCityFilter];
+      const b=CITY_BOUNDS_ALL.LT[_kpdCityFilter];
       if(!b||item.lat<b.sw[0]-0.05||item.lat>b.ne[0]+0.05||item.lng<b.sw[1]-0.05||item.lng>b.ne[1]+0.05) return;
     }
     result.push({item,i});
@@ -5996,7 +6132,11 @@ window.onFbAuthReady=async function(user){
       const snap=await getDoc(doc(db,'users',user.uid));
       if(snap.exists()){
         const d=snap.data();
-        if(d.found&&Array.isArray(d.found)) found=new Set(d.found);
+        if(d.found){
+          if(Array.isArray(d.found)){foundByCountry.LT=new Set(d.found);}// migrate old format
+          else{if(d.found.LT)foundByCountry.LT=new Set(d.found.LT);if(d.found.PL)foundByCountry.PL=new Set(d.found.PL);}
+          found=foundByCountry[activeCountry];
+        }
         if(d.name) playerName=d.name;
         if(d.totalXP) totalXP=d.totalXP;
         if(d.streak) streak=d.streak;
@@ -6251,7 +6391,7 @@ function setSyncDot(state){
   d.className='sync-dot'+(state==='synced'?' synced':state==='syncing'?' syncing':'');
 }
 
-const SPOTS_CACHE_KEY='kex_spots_kv_v1';
+function spotsCacheKey(){return`kex_spots_kv_${activeCountry}_v1`;}
 const SPOTS_CACHE_TTL=7*24*60*60*1000; // 7 days
 
 async function fbLoadSpots(){
@@ -6259,7 +6399,7 @@ async function fbLoadSpots(){
 
   // 1. Try localStorage cache first (fast, zero reads)
   try{
-    const cached=JSON.parse(localStorage.getItem(SPOTS_CACHE_KEY)||'null');
+    const cached=JSON.parse(localStorage.getItem(spotsCacheKey())||'null');
     if(cached&&cached.ts&&Date.now()-cached.ts<SPOTS_CACHE_TTL&&Array.isArray(cached.spots)&&cached.spots.length>0){
       SPOTS=cached.spots;
       refreshMarkers();
@@ -6273,14 +6413,14 @@ async function fbLoadSpots(){
 
   // 2. Fetch from KV via Worker endpoint
   try{
-    const res=await fetch('/api/spots');
+    const res=await fetch(`/api/spots?country=${activeCountry}`);
     if(res.ok){
       const spots=await res.json();
       if(Array.isArray(spots)&&spots.length>0){
         SPOTS=spots;
         // Save to localStorage cache
         try{
-          localStorage.setItem(SPOTS_CACHE_KEY,JSON.stringify({ts:Date.now(),spots}));
+          localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots}));
         }catch(e){console.warn('Cache write error',e);}
         refreshMarkers();
         updateAll();
@@ -6422,10 +6562,10 @@ async function importSpotsCSV(input){
   SPOTS=updatedSpots;
   // Push to KV
   try{
-    const res=await fetch('/api/admin/rebuild',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Secret':'lithuania2026'},body:JSON.stringify(SPOTS)});
+    const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Secret':'lithuania2026'},body:JSON.stringify(SPOTS)});
     if(res.ok){
       const data=await res.json();
-      try{localStorage.setItem(SPOTS_CACHE_KEY,JSON.stringify({ts:Date.now(),spots:SPOTS}));}catch(e){}
+      try{localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots:SPOTS}));}catch(e){}
       toast(`✅ ${updated} vietų atnaujinta, ${data.count} KV talpykloje`,'success');
       refreshMarkers();updateAll();
     } else {throw new Error(`HTTP ${res.status}`);}
@@ -6446,7 +6586,7 @@ async function rebuildKVCache(){
     if(btn){btn.textContent='⏳ Siunčiama į KV...';}
     // Strip Firestore-only fields that aren't needed client-side
     const spotsToCache=SPOTS.map(s=>({...s}));
-    const res=await fetch('/api/admin/rebuild',{
+    const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
@@ -6458,7 +6598,7 @@ async function rebuildKVCache(){
       const data=await res.json();
       // Also update localStorage cache
       try{
-        localStorage.setItem(SPOTS_CACHE_KEY,JSON.stringify({ts:Date.now(),spots:spotsToCache}));
+        localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots:spotsToCache}));
       }catch(e){}
       toast(`✅ KV atnaujinta! ${data.count} vietų talpykloje.`,'success');
       if(btn){btn.style.opacity='1';btn.style.pointerEvents='';btn.textContent='🔄 Atnaujinti KV talpyklą';}
@@ -6473,7 +6613,7 @@ async function rebuildKVCache(){
 
 // Clear local spots cache (force fresh load next time)
 function clearSpotsCache(){
-  localStorage.removeItem(SPOTS_CACHE_KEY);
+  localStorage.removeItem(spotsCacheKey());
   toast('🗑 Talpykla išvalyta — perkrauk puslapį','info');
 }
 
@@ -6583,7 +6723,7 @@ async function fbSaveUserProgress(){
 const _localSave=save;
 save=function(){
   // Save everything EXCEPT spots (Firestore owns spots now)
-  localStorage.setItem('ke7_found',JSON.stringify([...found]));
+  localStorage.setItem('ke7_found',JSON.stringify({LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]}));
   localStorage.setItem('ke7_streak',streak);
   localStorage.setItem('ke7_lastDate',lastDate||'');
   localStorage.setItem('ke7_notes',JSON.stringify(notes));
