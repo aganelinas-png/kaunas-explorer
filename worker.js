@@ -242,6 +242,411 @@ function switchLang(lang, btn) {
 </body>
 </html>`;
 
+const DOWNLOAD_HTML = `<!DOCTYPE html>
+<html lang="lt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atsisiųsti — SpotSeekers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0c09;
+  --surf:#141210;
+  --surf2:#1a1710;
+  --bdr:#2e2a20;
+  --gold:#c9a84c;
+  --gold2:#e8c96a;
+  --txt:#e8e0d0;
+  --td:#9a9080;
+  --tm:#6a6050;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  min-height:100vh;
+  padding:0;
+  overflow-x:hidden;
+}
+
+/* Background grain */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:0;
+  opacity:.4;
+}
+
+.wrap{
+  max-width:520px;
+  margin:0 auto;
+  padding:48px 20px 60px;
+  position:relative;
+  z-index:1;
+}
+
+/* Header */
+.header{text-align:center;margin-bottom:48px}
+.logo-glyph{font-size:2.8rem;margin-bottom:12px;display:block;animation:float 4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.logo-name{
+  font-family:'Playfair Display',serif;
+  font-size:2rem;
+  color:var(--gold);
+  letter-spacing:.01em;
+  margin-bottom:6px;
+}
+.logo-sub{
+  font-family:'DM Mono',monospace;
+  font-size:.72rem;
+  color:var(--tm);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.header-desc{
+  margin-top:16px;
+  font-size:.95rem;
+  color:var(--td);
+  line-height:1.6;
+  max-width:360px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* Divider */
+.divider{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:24px;
+}
+.divider::before,.divider::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:var(--bdr);
+}
+.divider-text{
+  font-family:'DM Mono',monospace;
+  font-size:.65rem;
+  color:var(--tm);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+/* Device cards */
+.cards{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+
+.card{
+  background:var(--surf);
+  border:1px solid var(--bdr);
+  border-radius:16px;
+  overflow:hidden;
+  transition:border-color .2s,transform .15s;
+  cursor:pointer;
+}
+.card:hover{border-color:rgba(201,168,76,.4);transform:translateY(-1px)}
+.card.disabled{opacity:.55;cursor:default}
+.card.disabled:hover{border-color:var(--bdr);transform:none}
+
+.card-header{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:18px 20px;
+  user-select:none;
+}
+.card-icon{
+  font-size:1.8rem;
+  width:44px;
+  text-align:center;
+  flex-shrink:0;
+}
+.card-info{flex:1;min-width:0}
+.card-title{
+  font-size:1rem;
+  font-weight:600;
+  color:var(--txt);
+  margin-bottom:2px;
+}
+.card-meta{
+  font-family:'DM Mono',monospace;
+  font-size:.68rem;
+  color:var(--td);
+}
+.card-badge{
+  font-family:'DM Mono',monospace;
+  font-size:.6rem;
+  font-weight:500;
+  padding:3px 9px;
+  border-radius:20px;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.badge-rec{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3)}
+.badge-soon{background:rgba(100,90,70,.15);color:var(--tm);border:1px solid rgba(100,90,70,.3)}
+.card-chevron{
+  color:var(--tm);
+  font-size:1rem;
+  transition:transform .25s;
+  flex-shrink:0;
+}
+.card.open .card-chevron{transform:rotate(90deg)}
+
+/* Instructions panel */
+.card-body{
+  display:none;
+  border-top:1px solid var(--bdr);
+  padding:20px;
+  background:var(--surf2);
+}
+.card.open .card-body{display:block}
+
+.steps{display:flex;flex-direction:column;gap:16px;margin-bottom:20px}
+.step{display:flex;gap:14px;align-items:flex-start}
+.step-num{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:rgba(201,168,76,.12);
+  border:1px solid rgba(201,168,76,.3);
+  color:var(--gold);
+  font-family:'DM Mono',monospace;
+  font-size:.72rem;
+  font-weight:500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  margin-top:1px;
+}
+.step-text{font-size:.88rem;color:var(--td);line-height:1.55}
+.step-text strong{color:var(--txt);font-weight:600}
+
+.warning-box{
+  background:rgba(201,168,76,.06);
+  border:1px solid rgba(201,168,76,.2);
+  border-radius:10px;
+  padding:12px 14px;
+  font-size:.78rem;
+  color:var(--td);
+  line-height:1.5;
+  margin-bottom:16px;
+}
+.warning-box strong{color:var(--gold)}
+
+.action-btn{
+  display:block;
+  width:100%;
+  background:var(--gold);
+  color:#0e0c09;
+  border:none;
+  border-radius:12px;
+  padding:14px 20px;
+  font-family:'DM Sans',sans-serif;
+  font-size:.95rem;
+  font-weight:700;
+  text-align:center;
+  text-decoration:none;
+  cursor:pointer;
+  transition:background .2s,transform .15s;
+  letter-spacing:.01em;
+}
+.action-btn:hover{background:var(--gold2);transform:scale(1.01)}
+.action-btn:active{transform:scale(.98)}
+
+.soon-box{
+  text-align:center;
+  padding:8px 0 4px;
+}
+.soon-icon{font-size:2rem;margin-bottom:8px}
+.soon-text{font-size:.88rem;color:var(--td);line-height:1.6}
+.soon-text strong{color:var(--txt)}
+
+/* Footer */
+.footer{
+  text-align:center;
+  padding-top:32px;
+  border-top:1px solid var(--bdr);
+}
+.footer a{
+  color:var(--gold);
+  text-decoration:none;
+  font-size:.85rem;
+  font-weight:500;
+  transition:opacity .2s;
+}
+.footer a:hover{opacity:.7}
+.footer-copy{
+  font-family:'DM Mono',monospace;
+  font-size:.65rem;
+  color:var(--tm);
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <span class="logo-glyph">🗺</span>
+    <div class="logo-name">SpotSeekers</div>
+    <div class="logo-sub">Atrask · Surink · Laimėk</div>
+    <p class="header-desc">Pasirink, kaip nori naudoti SpotSeekers — kaip programėlę ar tiesiai naršyklėje.</p>
+  </div>
+
+  <div class="divider"><span class="divider-text">Pasirink įrenginį</span></div>
+
+  <div class="cards">
+
+    <!-- Android PWA -->
+    <div class="card" id="card-android-pwa" onclick="toggleCard('android-pwa')">
+      <div class="card-header">
+        <div class="card-icon">🤖</div>
+        <div class="card-info">
+          <div class="card-title">Android — naršyklė kaip programėlė</div>
+          <div class="card-meta">Chrome · Pridėti į ekraną</div>
+        </div>
+        <span class="card-badge badge-rec">Rekomenduojama</span>
+        <span class="card-chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Atidaryk <strong>Chrome</strong> naršyklę ir eik į <strong>spotseekers.net</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">Viršuje dešinėje spustelėk <strong>⋮ meniu</strong> (trys taškai)</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Pasirink <strong>„Pridėti į pradinį ekraną"</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">Patvirtink — SpotSeekers atsiras kaip programėlė tavo telefone 🎉</div>
+          </div>
+        </div>
+        <a class="action-btn" href="https://www.spotseekers.net" target="_blank">Atidaryti SpotSeekers →</a>
+      </div>
+    </div>
+
+    <!-- iPhone PWA -->
+    <div class="card" id="card-iphone-pwa" onclick="toggleCard('iphone-pwa')">
+      <div class="card-header">
+        <div class="card-icon">🍎</div>
+        <div class="card-info">
+          <div class="card-title">iPhone — naršyklė kaip programėlė</div>
+          <div class="card-meta">Safari · Pridėti į ekraną</div>
+        </div>
+        <span class="card-chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Atidaryk <strong>Safari</strong> naršyklę ir eik į <strong>spotseekers.net</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">Apačioje viduryje spustelėk <strong>„Dalintis"</strong> mygtuką (□↑)</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Slinkite žemyn ir pasirink <strong>„Pridėti į pradinį ekraną"</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">Patvirtink — SpotSeekers atsiras kaip programėlė tavo iPhone 🎉</div>
+          </div>
+        </div>
+        <a class="action-btn" href="https://www.spotseekers.net" target="_blank">Atidaryti SpotSeekers →</a>
+      </div>
+    </div>
+
+    <!-- Android APK -->
+    <div class="card" id="card-apk" onclick="toggleCard('apk')">
+      <div class="card-header">
+        <div class="card-icon">📦</div>
+        <div class="card-info">
+          <div class="card-title">Android — APK diegimas</div>
+          <div class="card-meta">Tiesioginis atsisiuntimas</div>
+        </div>
+        <span class="card-chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="warning-box">
+          ⚠️ <strong>Svarbu:</strong> Prieš diegiant reikės leisti įdiegti programas iš nežinomų šaltinių. Tai saugu — tai oficiali SpotSeekers programėlė.
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-text">Atsisiųsk APK failą žemiau esančiu mygtuku</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-text">Eik į <strong>Nustatymai → Saugumas</strong> ir įjunk <strong>„Nežinomi šaltiniai"</strong> arba leisk diegimą kai telefono paprašys</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Atidaryk atsisiųstą <strong>.apk</strong> failą ir spustelėk <strong>„Įdiegti"</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-text">Paleisk SpotSeekers ir pradėk tyrinėti! 🗺</div>
+          </div>
+        </div>
+        <a class="action-btn" href="https://cdn.spotseekers.net/app-release.apk" download>⬇ Atsisiųsti APK</a>
+      </div>
+    </div>
+
+    <!-- iOS native — coming soon -->
+    <div class="card disabled" id="card-ios">
+      <div class="card-header">
+        <div class="card-icon" style="opacity:.5">🍏</div>
+        <div class="card-info">
+          <div class="card-title" style="color:var(--td)">iPhone — native programėlė</div>
+          <div class="card-meta">App Store</div>
+        </div>
+        <span class="card-badge badge-soon">Netrukus</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <a href="https://www.spotseekers.net">← Grįžti į SpotSeekers</a>
+    <div class="footer-copy">© 2026 SpotSeekers · <a href="/privacy" style="color:var(--tm);font-size:.65rem">Privatumo politika</a></div>
+  </div>
+
+</div>
+
+<script>
+function toggleCard(id) {
+  const card = document.getElementById('card-' + id);
+  if (!card || card.classList.contains('disabled')) return;
+  const isOpen = card.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.card.open').forEach(c => c.classList.remove('open'));
+  // Toggle clicked
+  if (!isOpen) card.classList.add('open');
+}
+</script>
+</body>
+</html>`;
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -275,6 +680,17 @@ export default {
         headers: {
           'Content-Type': 'text/html;charset=utf-8',
           'Cache-Control': 'public, max-age=86400'
+        }
+      });
+    }
+
+
+    // ── GET /download ──
+    if (url.pathname === '/download') {
+      return new Response(DOWNLOAD_HTML, {
+        headers: {
+          'Content-Type': 'text/html;charset=utf-8',
+          'Cache-Control': 'public, max-age=3600'
         }
       });
     }
