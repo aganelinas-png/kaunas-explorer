@@ -2655,7 +2655,7 @@ function openSheet(spot){
         <div class="dbadge" id="distBadge">—</div>
         <button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button>
         <button class="editbtn" id="favBtn" onclick="toggleFavorite()" title="Mėgstamiausi" style="font-size:18px;padding:10px 12px">${favorites.has(String(spot.id))||favorites.has(spot.id)?'♥':'♡'}</button>
-        ${(window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1')?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
+        ${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
       </div>
     `;
   }
@@ -5327,7 +5327,8 @@ function osmToggleManual(){
 }
 
 // ═══════════ ADMIN HELPER ═══════════
-function isAdmin(){return window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';}
+const ADMIN_UIDS=['Q0pPckRvI7e6T0kylcpfCsKV61x1','wHLbJaH5zYNLlKRLBTYnlahsWQ73'];
+function isAdmin(){return window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid);}
 
 // ═══════════ USERNAME PROMPT ═══════════
 function maybePromptUsername(){
@@ -6147,7 +6148,7 @@ window.onFbAuthReady=async function(user){
     }catch(e){console.log('Firestore load:',e.message);}
   }
   document.getElementById('authBar').classList.remove('hidden');
-  const isAdmin=user&&user.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
+  const isAdmin=user&&ADMIN_UIDS.includes(user.uid);
   // Show admin-only UI
   document.getElementById('adminFab').style.display=isAdmin?'flex':'none';
   document.getElementById('drawerAddBtn').style.display=isAdmin?'':'none';
@@ -6449,7 +6450,7 @@ async function fbLoadSpotsFromFirestore(){
   try{
     const snapshot=await getDocs(collection(db,'spots'));
     if(snapshot.empty){
-      const isAdmin=window._fbUser&&window._fbUser.uid==='Q0pPckRvI7e6T0kylcpfCsKV61x1';
+      const isAdmin=window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid);
       if(!isAdmin||_fbSeeding) return;
       _fbSeeding=true;
       const flagRef=doc(db,'_meta','seeded');
@@ -6740,7 +6741,7 @@ save=function(){
 
 const _origSaveSpot=saveSpot;
 saveSpot=async function(){
-  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
+  if(!window._fbUser||!ADMIN_UIDS.includes(window._fbUser.uid)){
     toast('⚠ Tik administratorius gali pridėti vietas','info');return;
   }
   const name=document.getElementById('eName').value.trim();
@@ -6776,7 +6777,7 @@ saveSpot=async function(){
 
 const _origDeleteSpot=deleteSpot;
 deleteSpot=async function(){
-  if(!window._fbUser||window._fbUser.uid!=='Q0pPckRvI7e6T0kylcpfCsKV61x1'){
+  if(!window._fbUser||!ADMIN_UIDS.includes(window._fbUser.uid)){
     toast('⚠ Tik administratorius gali trinti vietas','info');return;
   }
   const id=document.getElementById('eId').value;if(!id)return;
