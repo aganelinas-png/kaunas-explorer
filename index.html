@@ -1722,7 +1722,6 @@ function detectCountryFromCoords(lat, lng, borderBufferKm=0) {
 // ═══════════ STATE ═══════════
 
 let SPOTS=[...DEFAULT_SPOTS];
-let _adminSpotsCache={}; // {LT:[...], PL:[...]} — admin world view
 let activeCountry=localStorage.getItem('ke7_country')||'LT';
 let foundByCountry={LT:new Set(),PL:new Set()};
 let found=foundByCountry[activeCountry];
@@ -2090,17 +2089,12 @@ function scheduleViewportRender(){
 function renderViewportMarkers(){
   if(!map||!clusterGroup) return;
   const bounds=map.getBounds().pad(0.5); // 50% padding beyond viewport
-  const zoom=map.getZoom();
-  const adminWorldView=isAdmin()&&zoom<6&&Object.keys(_adminSpotsCache).length>1;
-  const spotsToRender=adminWorldView
-    ?Object.values(_adminSpotsCache).flat()
-    :SPOTS;
   clusterGroup.clearLayers();
-  spotsToRender.forEach(s=>{
+  SPOTS.forEach(s=>{
     if(!isSpotVisible(s)||s.cat==='hidden') return;
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(!show) return;
-    if(!adminWorldView&&activeCity!=='all'&&!spotInCity(s,activeCity)) return;
+    if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
     if(!bounds.contains([s.lat,s.lng])) return;
     if(!markers[s.id]){
       const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
@@ -4299,12 +4293,6 @@ function processOsmElement(e){
 }
 
 let _osmManualMode=false;
-let _osmCityBboxes=[]; // current country city list — rebuilt when manual UI renders
-function _getOsmCityBboxes(){
-  return Object.entries(CITY_BOUNDS_ALL[_getImportCountry()]||{}).map(([city,b])=>
-    [city,`${b.sw[0]},${b.sw[1]},${b.ne[0]},${b.ne[1]}`]
-  );
-}
 
 const CITY_BBOXES_GLOBAL=[
   ['Kaunas','54.84,23.82,54.95,24.05'],
@@ -4415,8 +4403,8 @@ async function fetchOsmRegion(cityName, bbox, btnId){
   const cache=osmGetManualCache();
   cache[cityName]={ts:Date.now(),count:deduped.length};
   osmSaveManualCache(cache);
-  // save merged to main cache (per country)
-  try{ localStorage.setItem(`kex_osm_cache_${_getImportCountry().toLowerCase()}_v3`,JSON.stringify({ts:Date.now(),data:_osmImportData})); }catch(e){}
+  // save merged to main cache
+  try{ localStorage.setItem('kex_osm_cache_lt_v3',JSON.stringify({ts:Date.now(),data:_osmImportData})); }catch(e){}
   osmSetStatus(`✅ ${cityName}: +${added} naujų. Iš viso: ${_osmImportData.length}`);
   renderOsmManualUI();
   renderOsmList();
@@ -4425,18 +4413,17 @@ async function fetchOsmRegion(cityName, bbox, btnId){
 function renderOsmManualUI(){
   const el=document.getElementById('osmManualGrid');
   if(!el) return;
-  _osmCityBboxes=_getOsmCityBboxes();
   const cache=osmGetManualCache();
   el.innerHTML=`
     <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-      <button class="osm-ctrl-btn" onclick="osmCheckAll(true)">☑ All</button>
-      <button class="osm-ctrl-btn" onclick="osmCheckAll(false)">☐ None</button>
-      <button class="osm-ctrl-btn pri" onclick="osmFetchChecked()" id="osmFetchCheckedBtn">🔄 Fetch selected</button>
+      <button class="osm-ctrl-btn" onclick="osmCheckAll(true)">☑ Visi</button>
+      <button class="osm-ctrl-btn" onclick="osmCheckAll(false)">☐ Jokie</button>
+      <button class="osm-ctrl-btn pri" onclick="osmFetchChecked()" id="osmFetchCheckedBtn">🔄 Fetch pasirinktus</button>
     </div>
-    ${_osmCityBboxes.map(([city,bbox],i)=>{
+    ${CITY_BBOXES_GLOBAL.map(([city,bbox],i)=>{
       const c=cache[city];
       const status=c
-        ?`<span style="color:var(--gold);font-size:.6rem">✓ ${c.count} · ${new Date(c.ts).toLocaleDateString()}</span>`
+        ?`<span style="color:var(--gold);font-size:.6rem">✓ ${c.count} · ${new Date(c.ts).toLocaleDateString('lt-LT')}</span>`
         :`<span style="color:var(--tm);font-size:.6rem">—</span>`;
       return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--bdr)">
         <input type="checkbox" id="osmChk_${i}" style="accent-color:var(--gold);width:14px;height:14px;flex-shrink:0">
@@ -4449,18 +4436,18 @@ function renderOsmManualUI(){
 }
 
 function osmCheckAll(val){
-  _osmCityBboxes.forEach((_,i)=>{
+  CITY_BBOXES_GLOBAL.forEach((_,i)=>{
     const chk=document.getElementById(`osmChk_${i}`);
     if(chk) chk.checked=val;
   });
 }
 
 async function osmFetchChecked(){
-  const selected=_osmCityBboxes.filter((_,i)=>{
+  const selected=CITY_BBOXES_GLOBAL.filter((_,i)=>{
     const chk=document.getElementById(`osmChk_${i}`);
     return chk&&chk.checked;
   });
-  if(!selected.length){toast('⚠ No cities selected','info');return;}
+  if(!selected.length){toast('⚠ Nepasirinkta jokių miestų','info');return;}
   const btn=document.getElementById('osmFetchCheckedBtn');
   if(btn){btn.disabled=true;btn.textContent=`⏳ 0/${selected.length}...`;}
   for(let i=0;i<selected.length;i++){
@@ -4473,35 +4460,32 @@ async function osmFetchChecked(){
     await fetchOsmRegion(city,bbox,tmpId);
     if(i<selected.length-1) await new Promise(r=>setTimeout(r,1200));
   }
-  if(btn){btn.disabled=false;btn.textContent='🔄 Fetch selected';}
-  toast(`✅ Done! ${selected.length} cities imported`,'success');
+  if(btn){btn.disabled=false;btn.textContent='🔄 Fetch pasirinktus';}
+  toast(`✅ Baigta! ${selected.length} miestų importuota`,'success');
 }
 
 async function fetchOsmData(){
   if(_osmLoading) return;
   _osmLoading=true;
   _osmForceRefresh=false;
-  const ic=_getImportCountry();
 
-  // ── OSM CACHE (per country) ──
-  const OSM_CACHE_KEY=`kex_osm_cache_${ic.toLowerCase()}_v3`;
+  // ── OSM CACHE ──
+  const OSM_CACHE_KEY=`kex_osm_cache_lt_v3`;
   const OSM_CACHE_TTL=24*60*60*1000;
   const cached=JSON.parse(localStorage.getItem(OSM_CACHE_KEY)||'null');
   if(cached&&Date.now()-cached.ts<OSM_CACHE_TTL&&!_osmForceRefresh){
     _osmImportData=cached.data;
-    osmSetStatus(`✅ ${_osmImportData.length} spots (cached · ${new Date(cached.ts).toLocaleDateString()}). Already added: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+    osmSetStatus(`✅ ${_osmImportData.length} vietų (iš talpyklos · ${new Date(cached.ts).toLocaleDateString('lt-LT')}). Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
     _osmLoading=false;
     renderOsmList();
     return;
   }
 
-  const cityBboxes=_getOsmCityBboxes();
-
   try{
     const allElements=[];
-    for(let i=0;i<cityBboxes.length;i++){
-      const [cityName,bbox]=cityBboxes[i];
-      osmSetStatus(`⏳ ${i+1}/${cityBboxes.length} · ${cityName}...`);
+    for(let i=0;i<CITY_BBOXES_GLOBAL.length;i++){
+      const [cityName,bbox]=CITY_BBOXES_GLOBAL[i];
+      osmSetStatus(`⏳ ${i+1}/${CITY_BBOXES_GLOBAL.length} · ${cityName}...`);
       const body=makeOsmQuery(bbox);
       const MIRRORS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
       let text=null;
@@ -4512,17 +4496,17 @@ async function fetchOsmData(){
           if(r.status===504||(t.trim().startsWith('<')&&(r.status>=500))) throw new Error('504');
           text=t; break;
         }catch(e){
-          if(mi<MIRRORS.length-1){osmSetStatus(`⏳ ${i+1}/${cityBboxes.length} · ${cityName} · mirror ${mi+2}...`);await new Promise(r=>setTimeout(r,1500));}
-          else throw new Error(`${cityName}: all servers unreachable`);
+          if(mi<MIRRORS.length-1){osmSetStatus(`⏳ ${i+1}/${CITY_BBOXES_GLOBAL.length} · ${cityName} · mirror ${mi+2}...`);await new Promise(r=>setTimeout(r,1500));}
+          else throw new Error(`${cityName}: visi serveriai nepasiekiami`);
         }
       }
       if(text.trim().startsWith('<')){
-        if(text.includes('Too Many Requests')) throw new Error('429 — wait ~2 min 🕐');
-        const remark=text.match(/<remark>(.*?)<\/remark>/s)?.[1]?.trim()||'Server error';
+        if(text.includes('Too Many Requests')) throw new Error('429 — palaukite ~2 min. 🕐');
+        const remark=text.match(/<remark>(.*?)<\/remark>/s)?.[1]?.trim()||'Serverio klaida';
         throw new Error(`${cityName}: ${remark}`);
       }
       allElements.push(...(JSON.parse(text).elements||[]));
-      if(i<cityBboxes.length-1) await new Promise(res=>setTimeout(res,1000));
+      if(i<CITY_BBOXES_GLOBAL.length-1) await new Promise(res=>setTimeout(res,1000));
     }
 
     // All elements from all cities — process and dedupe
@@ -4530,14 +4514,14 @@ async function fetchOsmData(){
 
     _osmImportData=processed
       .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002&&y.cat===x.cat)===i)
-      .sort((a,b)=>a.name.localeCompare(b.name));
+      .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
 
-    osmSetStatus(`✅ Found ${_osmImportData.length} spots across ${cityBboxes.length} cities. Already added: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
+    osmSetStatus(`✅ Rasta ${_osmImportData.length} vietų iš ${CITY_BBOXES_GLOBAL.length} miestų. Jau pridėta: ${_osmImportData.filter(x=>x.alreadyIn).length}`);
 
     try{ localStorage.setItem(OSM_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_osmImportData})); }catch(e){}
     renderOsmList();
   }catch(e){
-    osmSetStatus('❌ Error: '+e.message);
+    osmSetStatus('❌ Klaida: '+e.message);
   }
   _osmLoading=false;
 }
@@ -5430,7 +5414,7 @@ function renderWikidataPanel(){
   const ic=_getImportCountry();
   const cfg=COUNTRY_CONFIG[ic];
   return`<div>
-    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">${cfg?cfg.flag:''} Wikidata · ${ic}. ${cacheInfo}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">${cfg?cfg.flag:''} Wikidata · ${activeCountry}. ${cacheInfo}</div>
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchWikidata(false)">🔄 Įkelti</button>
       <button class="osm-ctrl-btn" onclick="fetchWikidata(true)">♻️ Atnaujinti</button>
@@ -5677,18 +5661,16 @@ async function fetchZabytek(forceRefresh){
   const MAX_RECORDS=10000;
 
   try{
-    // Count total first (via worker proxy to bypass CORS)
-    const adminSecret=window._adminSecret||'lithuania2026';
-    const proxyFetch=(params)=>fetch(`/api/zabytek?${params}`,{headers:{'X-Admin-Secret':adminSecret},signal:AbortSignal.timeout(20000)});
-    const countRes=await proxyFetch('format=json&take=1');
+    // Count total first
+    const countRes=await fetch(`${ZABYTEK_URL}?format=json&take=1`,{signal:AbortSignal.timeout(15000)});
     if(!countRes.ok) throw new Error('HTTP '+countRes.status);
     const countJson=await countRes.json();
     const total=countJson.totalCount||countJson.total||MAX_RECORDS;
     setS(`⏳ Pobieranie ${total} zabytków...`);
 
     while(skip<Math.min(total,MAX_RECORDS)){
-      const url=`format=json&take=${ZABYTEK_BATCH}&skip=${skip}`;
-      const res=await proxyFetch(url);
+      const url=`${ZABYTEK_URL}?format=json&take=${ZABYTEK_BATCH}&skip=${skip}`;
+      const res=await fetch(url,{signal:AbortSignal.timeout(20000)});
       if(!res.ok) throw new Error('HTTP '+res.status);
       const json=await res.json();
       const items=json.data||json.items||json||[];
@@ -6867,7 +6849,6 @@ async function fbLoadSpots(){
     const cached=JSON.parse(localStorage.getItem(spotsCacheKey())||'null');
     if(cached&&cached.ts&&Date.now()-cached.ts<SPOTS_CACHE_TTL&&Array.isArray(cached.spots)&&cached.spots.length>0){
       SPOTS=cached.spots;
-      _adminSpotsCache[activeCountry]=cached.spots;
       refreshMarkers();
       updateAll();
       setSyncDot('synced');
@@ -6884,7 +6865,6 @@ async function fbLoadSpots(){
       const spots=await res.json();
       if(Array.isArray(spots)&&spots.length>0){
         SPOTS=spots;
-        _adminSpotsCache[activeCountry]=spots; // cache for admin world view
         // Save to localStorage cache
         try{
           localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots}));
@@ -6894,16 +6874,6 @@ async function fbLoadSpots(){
         setSyncDot('synced');
         const sub=document.getElementById('authSub');
         if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
-        // Admin: silently prefetch other countries into cache
-        if(isAdmin()){
-          Object.keys(COUNTRY_CONFIG).forEach(async cc=>{
-            if(cc===activeCountry||_adminSpotsCache[cc]) return;
-            try{
-              const r=await fetch(`/api/spots?country=${cc}`);
-              if(r.ok){const s=await r.json();if(Array.isArray(s)&&s.length>0)_adminSpotsCache[cc]=s;}
-            }catch(e){}
-          });
-        }
         return;
       }
     }

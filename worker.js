@@ -759,34 +759,6 @@ export default {
       });
     }
 
-    // ── GET /api/zabytek — CORS proxy to Polish heritage registry (NID) ──
-    if (url.pathname === '/api/zabytek') {
-      const secret = request.headers.get('X-Admin-Secret');
-      if (secret !== adminSecret) {
-        return new Response('Forbidden', { status: 403 });
-      }
-      const zabyUrl = new URL('https://api.zabytek.gov.pl/nidrestapi/api/data/geoportal/otwarteDaneZestawienieZrn');
-      for (const [k, v] of url.searchParams) zabyUrl.searchParams.set(k, v);
-      try {
-        const res = await fetch(zabyUrl.toString(), {
-          headers: { 'Accept': 'application/json' }
-        });
-        const body = await res.text();
-        return new Response(body, {
-          status: res.status,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          }
-        });
-      } catch(e) {
-        return new Response(JSON.stringify({ error: e.message }), {
-          status: 502,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-        });
-      }
-    }
-
     // ── Default — serve HTML ──
     const githubUrl = isStaging ? GITHUB_HTML_STAGING : GITHUB_HTML_PROD;
 
