@@ -1722,6 +1722,7 @@ function detectCountryFromCoords(lat, lng, borderBufferKm=0) {
 // ═══════════ STATE ═══════════
 
 let SPOTS=[...DEFAULT_SPOTS];
+let _adminSpotsCache={}; // {LT:[...], PL:[...]} — admin world view
 let activeCountry=localStorage.getItem('ke7_country')||'LT';
 let foundByCountry={LT:new Set(),PL:new Set()};
 let found=foundByCountry[activeCountry];
@@ -2089,12 +2090,17 @@ function scheduleViewportRender(){
 function renderViewportMarkers(){
   if(!map||!clusterGroup) return;
   const bounds=map.getBounds().pad(0.5); // 50% padding beyond viewport
+  const zoom=map.getZoom();
+  const adminWorldView=isAdmin()&&zoom<6&&Object.keys(_adminSpotsCache).length>1;
+  const spotsToRender=adminWorldView
+    ?Object.values(_adminSpotsCache).flat()
+    :SPOTS;
   clusterGroup.clearLayers();
-  SPOTS.forEach(s=>{
+  spotsToRender.forEach(s=>{
     if(!isSpotVisible(s)||s.cat==='hidden') return;
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(!show) return;
-    if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
+    if(!adminWorldView&&activeCity!=='all'&&!spotInCity(s,activeCity)) return;
     if(!bounds.contains([s.lat,s.lng])) return;
     if(!markers[s.id]){
       const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
@@ -4409,8 +4415,8 @@ async function fetchOsmRegion(cityName, bbox, btnId){
   const cache=osmGetManualCache();
   cache[cityName]={ts:Date.now(),count:deduped.length};
   osmSaveManualCache(cache);
-  // save merged to main cache
-  try{ localStorage.setItem('kex_osm_cache_lt_v3',JSON.stringify({ts:Date.now(),data:_osmImportData})); }catch(e){}
+  // save merged to main cache (per country)
+  try{ localStorage.setItem(`kex_osm_cache_${_getImportCountry().toLowerCase()}_v3`,JSON.stringify({ts:Date.now(),data:_osmImportData})); }catch(e){}
   osmSetStatus(`✅ ${cityName}: +${added} naujų. Iš viso: ${_osmImportData.length}`);
   renderOsmManualUI();
   renderOsmList();
@@ -6861,6 +6867,7 @@ async function fbLoadSpots(){
     const cached=JSON.parse(localStorage.getItem(spotsCacheKey())||'null');
     if(cached&&cached.ts&&Date.now()-cached.ts<SPOTS_CACHE_TTL&&Array.isArray(cached.spots)&&cached.spots.length>0){
       SPOTS=cached.spots;
+      _adminSpotsCache[activeCountry]=cached.spots;
       refreshMarkers();
       updateAll();
       setSyncDot('synced');
@@ -6877,6 +6884,7 @@ async function fbLoadSpots(){
       const spots=await res.json();
       if(Array.isArray(spots)&&spots.length>0){
         SPOTS=spots;
+        _adminSpotsCache[activeCountry]=spots; // cache for admin world view
         // Save to localStorage cache
         try{
           localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots}));
@@ -6886,6 +6894,16 @@ async function fbLoadSpots(){
         setSyncDot('synced');
         const sub=document.getElementById('authSub');
         if(sub) sub.textContent=`${SPOTS.length} vietos sinchronizuotos`;
+        // Admin: silently prefetch other countries into cache
+        if(isAdmin()){
+          Object.keys(COUNTRY_CONFIG).forEach(async cc=>{
+            if(cc===activeCountry||_adminSpotsCache[cc]) return;
+            try{
+              const r=await fetch(`/api/spots?country=${cc}`);
+              if(r.ok){const s=await r.json();if(Array.isArray(s)&&s.length>0)_adminSpotsCache[cc]=s;}
+            }catch(e){}
+          });
+        }
         return;
       }
     }
