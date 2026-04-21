@@ -598,6 +598,27 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .mob-filter-group-title{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);text-transform:uppercase;letter-spacing:.1em;margin:14px 0 8px}
 .mob-filter-chips{display:flex;flex-wrap:wrap;gap:8px}
 .mob-filter-chip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:7px 14px;font-size:.8rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
+
+/* ── SETTINGS SHEET ── */
+.settings-sheet{position:fixed;inset:0;z-index:410;display:none;align-items:flex-end}
+.settings-sheet.open{display:flex;animation:fadeIn .2s}
+.settings-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.settings-panel{position:relative;width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:16px 16px calc(24px + env(safe-area-inset-bottom));max-height:80vh;overflow-y:auto}
+.settings-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.settings-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt)}
+.settings-close{background:var(--surf2);border:1px solid var(--bdr);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;color:var(--td);-webkit-user-select:none;user-select:none}
+.settings-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--bdr);cursor:pointer;-webkit-user-select:none;user-select:none}
+.settings-row:last-child{border-bottom:none}
+.settings-row:active{opacity:.7}
+.set-icon{font-size:22px;width:30px;text-align:center;flex-shrink:0}
+.set-label{flex:1}
+.set-name{font-size:.92rem;font-weight:500;color:var(--txt);margin-bottom:2px}
+.set-sub{font-size:.72rem;font-family:'DM Mono',monospace;color:var(--td)}
+.set-toggle{width:44px;height:26px;border-radius:13px;background:var(--bdr);position:relative;transition:background .2s;flex-shrink:0;border:none;cursor:pointer}
+.set-toggle.on{background:var(--gold)}
+.set-toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.set-toggle.on::after{transform:translateX(18px)}
+.set-danger{color:var(--red);font-size:.85rem}
 .mob-filter-chip.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
 .mob-filter-chip:active{transform:scale(.95)}
 
@@ -1016,6 +1037,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dnav-main-item" id="mySuggestionsNavItem" style="display:none" onclick="openSubPanel('mysuggestions')">
         <span class="dnmi-icon">🗂</span><span class="dnmi-label">Mano siūlymai</span><span class="dnmi-arrow">›</span>
       </div>
+      <!-- Settings -->
+      <div class="dnav-main-item" onclick="closeDrawer();openSettings()">
+        <span class="dnmi-icon">⚙️</span><span class="dnmi-label">Nustatymai</span><span class="dnmi-arrow">›</span>
+      </div>
       <!-- Admin data tools — only visible to admin -->
       <div id="adminDataSection" style="display:none;margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px">
         <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;padding:2px 4px 6px">Admin įrankiai</div>
@@ -1195,6 +1220,49 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="mob-filter-chip on" data-cat="all" onclick="mobSetFilter('all')">🗺 Visos</div>
     </div>
     <div id="mobFilterGroups"></div>
+  </div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="settings-sheet" id="settingsSheet">
+  <div class="settings-bg" onclick="closeSettings()"></div>
+  <div class="settings-panel">
+    <div class="settings-header">
+      <div class="settings-title">⚙️ Nustatymai</div>
+      <div class="settings-close" onclick="closeSettings()">✕</div>
+    </div>
+    <div class="settings-row" onclick="toggleTheme();updateSettingsUI()">
+      <div class="set-icon">🌙</div>
+      <div class="set-label">
+        <div class="set-name">Temos režimas</div>
+        <div class="set-sub" id="setThemeSub">Tamsus</div>
+      </div>
+      <button class="set-toggle on" id="setThemeToggle" onclick="event.stopPropagation();toggleTheme();updateSettingsUI()"></button>
+    </div>
+    <div class="settings-row" onclick="toggleHideCollected();updateSettingsUI()">
+      <div class="set-icon">👁</div>
+      <div class="set-label">
+        <div class="set-name">Surinktos vietos žemėlapyje</div>
+        <div class="set-sub" id="setCollectedSub">Paslėptos</div>
+      </div>
+      <button class="set-toggle" id="setCollectedToggle" onclick="event.stopPropagation();toggleHideCollected();updateSettingsUI()"></button>
+    </div>
+    <div class="settings-row" onclick="window.open('https://www.spotseekers.net/privacy','_blank')">
+      <div class="set-icon">🔒</div>
+      <div class="set-label">
+        <div class="set-name">Privatumo politika</div>
+        <div class="set-sub">spotseekers.net/privacy</div>
+      </div>
+      <span style="color:var(--tm);font-size:1rem">›</span>
+    </div>
+    <div class="settings-row" id="setDeleteRow" onclick="deleteAccountPrompt()" style="display:none">
+      <div class="set-icon">🗑</div>
+      <div class="set-label">
+        <div class="set-name set-danger">Ištrinti paskyrą</div>
+        <div class="set-sub">Negrįžtamai pašalinti duomenis</div>
+      </div>
+      <span style="color:var(--red);font-size:1rem">›</span>
+    </div>
   </div>
 </div>
 
@@ -1732,6 +1800,8 @@ let isDark=false,activeFilter='all';
 let map,userMarker,markers={},tileLayer,areaCircles={},clusterGroup=null;
 let pickingForEditor=false,wxOpen=false,wxLoaded=false;
 let proxSpotId=null,proxDismissedIds=new Set();
+let hideCollected=localStorage.getItem('ke7_hideCollected')!=='false'; // default true
+let _collectPromptActive=false;
 // Daily quest state
 let dailyQuestDone=false;
 let dailyQuestDate=null;
@@ -1903,6 +1973,52 @@ function applyTheme(){
   refreshMarkers();
 }
 function toggleTheme(){isDark=!isDark;applyTheme();save();}
+
+// ═══════════ SETTINGS ═══════════
+
+function openSettings(){
+  const el=document.getElementById('settingsSheet');
+  if(!el) return;
+  el.classList.add('open');
+  updateSettingsUI();
+  history.pushState({ss:'app'},'');
+  // Show delete row only if logged in
+  const delRow=document.getElementById('setDeleteRow');
+  if(delRow) delRow.style.display=window._fbUser?'flex':'none';
+}
+function closeSettings(){
+  document.getElementById('settingsSheet')?.classList.remove('open');
+}
+function updateSettingsUI(){
+  const themeToggle=document.getElementById('setThemeToggle');
+  const themeSub=document.getElementById('setThemeSub');
+  const collToggle=document.getElementById('setCollectedToggle');
+  const collSub=document.getElementById('setCollectedSub');
+  if(themeToggle){themeToggle.classList.toggle('on',isDark);} 
+  if(themeSub){themeSub.textContent=isDark?'Tamsus':'Šviesus';}
+  // hideCollected=true means spots ARE hidden → toggle should be OFF (not showing)
+  // toggle ON = showing collected, toggle OFF = hidden
+  if(collToggle){collToggle.classList.toggle('on',!hideCollected);}
+  if(collSub){collSub.textContent=hideCollected?'Paslėptos':'Rodomos';}
+}
+function toggleHideCollected(){
+  hideCollected=!hideCollected;
+  localStorage.setItem('ke7_hideCollected',hideCollected?'true':'false');
+  refreshMarkers();
+}
+function deleteAccountPrompt(){
+  if(!window._fbUser){toast('Neprisijungęs','info');return;}
+  if(!confirm('Ar tikrai norite ištrinti paskyrą? Visi duomenys bus pašalinti negrįžtamai.')) return;
+  const uid=window._fbUser.uid;
+  const{db,doc,deleteDoc,signOut,auth}=window._fb;
+  deleteDoc(doc(db,'users',uid)).then(()=>{
+    return signOut(auth);
+  }).then(()=>{
+    localStorage.clear();
+    toast('Paskyra ištrinta','info');
+    setTimeout(()=>location.reload(),1500);
+  }).catch(e=>{toast('Klaida: '+e.message,'info');});
+}
 
 // ═══════════ MAP ═══════════
 
@@ -2092,6 +2208,7 @@ function renderViewportMarkers(){
   clusterGroup.clearLayers();
   SPOTS.forEach(s=>{
     if(!isSpotVisible(s)||s.cat==='hidden') return;
+    if(hideCollected&&found.has(s.id)) return;
     const show=activeFilter==='all'||activeFilter===s.cat;
     if(!show) return;
     if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
@@ -2298,6 +2415,13 @@ const GPS_VIEW_RADIUS=50000; // 50km — only show spots within this range when 
 
 function checkProximity(){
   if(userLat===null) return;
+  // Lock: if a collect prompt is already active, don't switch to another spot
+  if(_collectPromptActive) return;
+  // Re-eligibility: remove dismissed spots once user is >400m away
+  proxDismissedIds.forEach(id=>{
+    const s=SPOTS.find(x=>x.id===id);
+    if(!s||dist(userLat,userLng,s.lat,s.lng)>400) proxDismissedIds.delete(id);
+  });
   let best=null,bestDist=Infinity;
   SPOTS.forEach(s=>{
     if(found.has(s.id)) return;
@@ -2338,6 +2462,7 @@ function checkProximity(){
       else{proxBtn.textContent='⭐ Surinkti vietą!';proxBtn.style.opacity='0.4';}
     }
     document.getElementById('proxPopup').classList.add('show');
+    _collectPromptActive=true;
   } else {
     if(proxSpotId!==null){
       const cur=SPOTS.find(s=>s.id===proxSpotId);
@@ -2347,7 +2472,7 @@ function checkProximity(){
   if(selectedSpot) updateCollectBtn(selectedSpot);
 }
 
-function hideProxPopup(){proxSpotId=null;document.getElementById('proxPopup').classList.remove('show');}
+function hideProxPopup(){proxSpotId=null;_collectPromptActive=false;document.getElementById('proxPopup').classList.remove('show');}
 function dismissProx(){if(proxSpotId!==null) proxDismissedIds.add(proxSpotId);hideProxPopup();}
 
 function collectFromProx(){
@@ -7242,54 +7367,52 @@ deleteSpot=async function(){
 
 // ═══════════ ANDROID BACK BUTTON (TWA) ═══════════
 (function(){
-  // Push an initial history entry so the first back press doesn't exit immediately
+  // Seed history stack so first back never exits immediately
   history.pushState({ss:'app'},'');
 
   let _backPressedOnce=false;
   let _backTimer=null;
 
-  function getTopLayer(){
-    if(document.getElementById('unameOverlay')?.classList.contains('show')) return'uname';
-    if(document.getElementById('eauthOverlay')?.style.display==='flex'||document.getElementById('eauthOverlay')?.classList.contains('show')) return'eauth';
-    if(document.getElementById('suggestOverlay')?.classList.contains('show')) return'suggest';
-    if(document.getElementById('reviewOverlay')?.classList.contains('show')) return'review';
-    if(document.getElementById('mobPanelOverlay')?.classList.contains('open')) return'mobpanel';
-    if(document.getElementById('mobFilterSheet')?.classList.contains('open')) return'mobfilter';
-    if(document.getElementById('editorModal')?.classList.contains('open')) return'editor';
-    if(document.getElementById('sheet')?.classList.contains('open')) return'sheet';
-    if(document.getElementById('drawerSubPanel')?.classList.contains('open')) return'subpanel';
-    if(document.getElementById('drawer')?.classList.contains('open')) return'drawer';
-    return null;
+  function anyLayerOpen(){
+    const ids=['unameOverlay','eauthOverlay','suggestOverlay','reviewOverlay',
+               'mobPanelOverlay','mobFilterSheet','settingsSheet','editorModal',
+               'sheet','drawerSubPanel','drawer'];
+    return ids.some(id=>{
+      const el=document.getElementById(id);
+      if(!el) return false;
+      return el.classList.contains('show')||el.classList.contains('open')||el.style.display==='flex';
+    });
+  }
+
+  function closeAllLayers(){
+    // Close every possible panel — order doesn't matter, all close at once
+    try{document.getElementById('unameOverlay')?.classList.remove('show');}catch(e){}
+    try{closeEmailModal();}catch(e){}
+    try{closeSuggestModal();}catch(e){}
+    try{closeReview(false);}catch(e){}
+    try{closeMobPanel();}catch(e){}
+    try{closeMobFilterSheet();}catch(e){}
+    try{closeSettings();}catch(e){}
+    try{closeEditor();}catch(e){}
+    try{closeSheet();}catch(e){}
+    try{closeSubPanel();}catch(e){}
+    try{closeDrawer();}catch(e){}
   }
 
   window.addEventListener('popstate',function(e){
-    const layer=getTopLayer();
-
-    if(layer){
-      // Close the topmost layer and push state again so next back still works
-      if(layer==='uname'){document.getElementById('unameOverlay').classList.remove('show');}
-      else if(layer==='eauth'){closeEmailModal();}
-      else if(layer==='suggest'){closeSuggestModal();}
-      else if(layer==='review'){closeReview(false);}
-      else if(layer==='mobpanel'){closeMobPanel();}
-      else if(layer==='mobfilter'){closeMobFilterSheet();}
-      else if(layer==='editor'){closeEditor();}
-      else if(layer==='sheet'){closeSheet();}
-      else if(layer==='subpanel'){closeSubPanel();}
-      else if(layer==='drawer'){closeDrawer();}
-      // Re-push so back still intercepts on next press
+    if(anyLayerOpen()){
+      closeAllLayers();
+      // Re-push so next back press still intercepts
       history.pushState({ss:'app'},'');
     } else {
       // Nothing open — double-back to exit
       if(_backPressedOnce){
         clearTimeout(_backTimer);
-        // Let the default popstate through (exits TWA)
         history.go(-1);
         return;
       }
       _backPressedOnce=true;
       toast('⬅ Spausk dar kartą, kad išeitum','info');
-      // Re-push so we stay in app for now
       history.pushState({ss:'app'},'');
       _backTimer=setTimeout(()=>{_backPressedOnce=false;},2000);
     }
