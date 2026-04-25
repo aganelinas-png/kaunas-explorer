@@ -619,6 +619,23 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .set-toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .set-toggle.on::after{transform:translateX(18px)}
 .set-danger{color:var(--red);font-size:.85rem}
+/* ── DELETE ACCOUNT MODAL ── */
+.del-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.del-modal-bg.open{display:flex;animation:fadeIn .15s}
+.del-modal{background:var(--surf);border-radius:16px;border:1px solid var(--bdr);padding:24px 20px 20px;width:100%;max-width:340px;text-align:center}
+.del-modal-icon{font-size:2rem;margin-bottom:8px}
+.del-modal-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);margin-bottom:8px}
+.del-modal-desc{font-size:.8rem;color:var(--td);line-height:1.5;margin-bottom:16px}
+.del-modal-desc strong{color:var(--txt)}
+.del-modal-label{font-size:.72rem;font-family:'DM Mono',monospace;color:var(--td);margin-bottom:6px;text-align:left}
+.del-modal-label code{color:var(--txt);background:var(--surf2);padding:1px 5px;border-radius:4px}
+.del-modal-input{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:.9rem;color:var(--txt);outline:none;margin-bottom:12px;letter-spacing:.05em}
+.del-modal-input:focus{border-color:var(--red)}
+.del-modal-btn{width:100%;padding:11px;border:none;border-radius:10px;background:var(--tm);color:var(--td);font-family:'DM Sans',sans-serif;font-weight:600;font-size:.88rem;cursor:not-allowed;transition:background .2s,color .2s;margin-bottom:8px}
+.del-modal-btn:not([disabled]){background:var(--red);color:#fff;cursor:pointer}
+.del-modal-btn:not([disabled]):active{opacity:.8}
+.del-modal-cancel{font-size:.78rem;color:var(--td);cursor:pointer;padding:4px}
+.del-modal-cancel:active{opacity:.6}
 .mob-filter-chip.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
 .mob-filter-chip:active{transform:scale(.95)}
 
@@ -1255,14 +1272,30 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       </div>
       <span style="color:var(--tm);font-size:1rem">›</span>
     </div>
-    <div class="settings-row" id="setDeleteRow" onclick="deleteAccountPrompt()" style="display:none">
-      <div class="set-icon">🗑</div>
+    <div class="settings-row" id="setAppRow" onclick="window.open('https://www.spotseekers.net/download','_blank')" style="display:none">
+      <div class="set-icon">📱</div>
       <div class="set-label">
-        <div class="set-name set-danger">Ištrinti paskyrą</div>
-        <div class="set-sub">Negrįžtamai pašalinti duomenis</div>
+        <div class="set-name">Įdiegti programėlę</div>
+        <div class="set-sub">Android APK · iPhone PWA</div>
       </div>
-      <span style="color:var(--red);font-size:1rem">›</span>
+      <span style="color:var(--tm);font-size:1rem">›</span>
     </div>
+    <div id="setDeleteRow" style="display:none;text-align:center;padding:14px 0 2px">
+      <span onclick="deleteAccountPrompt()" style="font-size:.72rem;color:var(--tm);font-family:'DM Mono',monospace;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Ištrinti paskyrą</span>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT MODAL -->
+<div class="del-modal-bg" id="delModalBg" onclick="closeDeleteModal()">
+  <div class="del-modal" onclick="event.stopPropagation()">
+    <div class="del-modal-icon">🗑</div>
+    <div class="del-modal-title">Ištrinti paskyrą?</div>
+    <div class="del-modal-desc">Visi tavo duomenys — surinktos vietos, XP, ženkleliai — bus <strong>negrįžtamai pašalinti</strong>.</div>
+    <div class="del-modal-label">Įvesk <code>TRINTI</code> norėdamas patvirtinti</div>
+    <input class="del-modal-input" id="delModalInput" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="TRINTI" oninput="onDelInput()">
+    <button class="del-modal-btn" id="delModalBtn" disabled onclick="deleteAccountConfirmed()">Ištrinti paskyrą</button>
+    <div class="del-modal-cancel" onclick="closeDeleteModal()">Atšaukti</div>
   </div>
 </div>
 
@@ -1984,7 +2017,10 @@ function openSettings(){
   history.pushState({ss:'app'},'');
   // Show delete row only if logged in
   const delRow=document.getElementById('setDeleteRow');
-  if(delRow) delRow.style.display=window._fbUser?'flex':'none';
+  if(delRow) delRow.style.display=window._fbUser?'block':'none';
+  // Show app install row only when NOT running as standalone/TWA
+  const appRow=document.getElementById('setAppRow');
+  if(appRow) appRow.style.display=window.matchMedia('(display-mode: standalone)').matches?'none':'flex';
 }
 function closeSettings(){
   document.getElementById('settingsSheet')?.classList.remove('open');
@@ -2008,13 +2044,28 @@ function toggleHideCollected(){
 }
 function deleteAccountPrompt(){
   if(!window._fbUser){toast('Neprisijungęs','info');return;}
-  if(!confirm('Ar tikrai norite ištrinti paskyrą? Visi duomenys bus pašalinti negrįžtamai.')) return;
+  const inp=document.getElementById('delModalInput');
+  if(inp) inp.value='';
+  const btn=document.getElementById('delModalBtn');
+  if(btn) btn.disabled=true;
+  document.getElementById('delModalBg').classList.add('open');
+}
+function closeDeleteModal(){
+  document.getElementById('delModalBg').classList.remove('open');
+}
+function onDelInput(){
+  const val=document.getElementById('delModalInput').value.trim().toUpperCase();
+  document.getElementById('delModalBtn').disabled=(val!=='TRINTI');
+}
+function deleteAccountConfirmed(){
+  if(!window._fbUser) return;
   const uid=window._fbUser.uid;
   const{db,doc,deleteDoc,signOut,auth}=window._fb;
   deleteDoc(doc(db,'users',uid)).then(()=>{
     return signOut(auth);
   }).then(()=>{
     localStorage.clear();
+    closeDeleteModal();
     toast('Paskyra ištrinta','info');
     setTimeout(()=>location.reload(),1500);
   }).catch(e=>{toast('Klaida: '+e.message,'info');});
@@ -7376,7 +7427,7 @@ deleteSpot=async function(){
   function anyLayerOpen(){
     const ids=['unameOverlay','eauthOverlay','suggestOverlay','reviewOverlay',
                'mobPanelOverlay','mobFilterSheet','settingsSheet','editorModal',
-               'sheet','drawerSubPanel','drawer'];
+               'sheet','drawerSubPanel','drawer','delModalBg'];
     return ids.some(id=>{
       const el=document.getElementById(id);
       if(!el) return false;
@@ -7397,6 +7448,7 @@ deleteSpot=async function(){
     try{closeSheet();}catch(e){}
     try{closeSubPanel();}catch(e){}
     try{closeDrawer();}catch(e){}
+    try{closeDeleteModal();}catch(e){}
   }
 
   window.addEventListener('popstate',function(e){
