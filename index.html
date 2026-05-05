@@ -1862,6 +1862,7 @@ function getGuestId(){
 function getMyUid(){return window._fbUser?window._fbUser.uid:getGuestId();}
 // Level tracking
 let prevLevel=1;
+let claimedStreakMiles=new Set(); // tracks which streak milestone days have been awarded
 // Suggest state
 let nextSuggestId=null;
 let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
@@ -1956,6 +1957,7 @@ function save(){
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
+  localStorage.setItem('ke7_sm',JSON.stringify([...claimedStreakMiles]));
   localStorage.setItem('ke7_favs',JSON.stringify([...favorites]));
 }
 
@@ -1980,6 +1982,7 @@ function load(){
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
   dailyQuestDone=localStorage.getItem('ke7_dqdone')==='1';
+  const sm=localStorage.getItem('ke7_sm');claimedStreakMiles=sm?new Set(JSON.parse(sm)):new Set();
   const fv=localStorage.getItem('ke7_favs');favorites=fv?new Set(JSON.parse(fv)):new Set();
   prevLevel=getLevel(totalXP).level;
   // Reset daily quest if new day
@@ -4249,7 +4252,8 @@ function renderStreakCard(){
 
 function checkStreakMilestones(){
   STREAK_MILES.forEach(m=>{
-    if(streak>=m.day){
+    if(streak>=m.day&&!claimedStreakMiles.has(m.day)){
+      claimedStreakMiles.add(m.day);
       addXP(m.reward);showXPBurst(m.reward);
       toast(`${m.icon} ${m.day}d. serija! +${m.reward} XP`,'gold');
       save();
@@ -4266,7 +4270,7 @@ function checkStreakBreakOnLoad(){
   if(streak>=2){
     const lostStreak=streak;
     const lastSeen=lastDate?new Date(lastDate).toLocaleDateString('lt-LT',{month:'short',day:'numeric'}):'nežinoma';
-    streak=0;save();
+    streak=0;claimedStreakMiles.clear();save();
     setTimeout(()=>{
       const el=document.getElementById('streakBreakOverlay');
       if(!el) return;
@@ -7370,6 +7374,7 @@ save=function(){
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
+  localStorage.setItem('ke7_sm',JSON.stringify([...claimedStreakMiles]));
   fbSaveUserProgress(); // sync progress to Firestore if logged in
 };
 
