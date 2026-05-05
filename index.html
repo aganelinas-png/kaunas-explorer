@@ -239,6 +239,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 /* ── FILTER BAR ── */
 .fcap{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:5px 12px;font-size:.7rem;font-family:'DM Mono',monospace;color:var(--td);white-space:nowrap;cursor:pointer;box-shadow:0 2px 8px var(--sh);transition:all .2s;flex-shrink:0;-webkit-user-select:none;user-select:none}
 .fcap.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
+.fcap.off{opacity:.4;text-decoration:line-through}
 .fcap:active{transform:scale(.95)}
 
 /* Group filter pills */
@@ -637,6 +638,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .del-modal-cancel{font-size:.78rem;color:var(--td);cursor:pointer;padding:4px}
 .del-modal-cancel:active{opacity:.6}
 .mob-filter-chip.on{background:var(--gold);color:#0e0c09;border-color:var(--gold)}
+.mob-filter-chip.off{opacity:.45;text-decoration:line-through}
 .mob-filter-chip:active{transform:scale(.95)}
 
 @media(max-width:600px){
@@ -1234,7 +1236,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="mob-filter-close" onclick="closeMobFilterSheet()">✕</div>
     </div>
     <div class="mob-filter-chips">
-      <div class="mob-filter-chip on" data-cat="all" onclick="mobSetFilter('all')">🗺 Visos</div>
+      <div class="mob-filter-chip on" data-cat="all" onclick="mobSetFilter('all')">🗺 Rodyti viską</div>
     </div>
     <div id="mobFilterGroups"></div>
   </div>
@@ -1829,10 +1831,16 @@ let found=foundByCountry[activeCountry];
 let streak=0,lastDate=null,notes={},earnedBadges=new Set();
 let favorites=new Set(); // spot ids
 let selectedSpot=null,userLat=null,userLng=null;
-let isDark=false,activeFilter='all';
+let isDark=false;
+// Filter: Set of HIDDEN category ids. Empty = show all. Toggle-off model.
+let activeFilterHidden=new Set();
+// Keep activeFilter as alias for any legacy single-filter reads (maps to 'all' if nothing hidden)
+Object.defineProperty(window,'activeFilter',{get:()=>activeFilterHidden.size===0?'all':'multi',set:()=>{}});
 let map,userMarker,markers={},tileLayer,areaCircles={},clusterGroup=null;
 let pickingForEditor=false,wxOpen=false,wxLoaded=false;
 let proxSpotId=null,proxDismissedIds=new Set();
+let _proxCooldownTs=0; // global 5s cooldown after any popup shows
+let _proxSoftDismiss=new Map(); // spotId → timestamp of dismiss (60s block)
 let hideCollected=localStorage.getItem('ke7_hideCollected')!=='false'; // default true
 let _collectPromptActive=false;
 // Daily quest state
@@ -1900,9 +1908,9 @@ function catsForTier(tier){
 
 }
 
-// Spot collection radius
+// Spot collection radius — 0.85× across the board (tighter zones, especially in dense cities)
 function spotRadius(spot){
-  return spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS;
+  return Math.round((spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS) * 0.85);
 }
 
 // ═══════════ COUNTRY SWITCHING ═══════════
@@ -2218,7 +2226,7 @@ function addMarker(spot){
   m._isMarker=true;
   m.on('click',()=>openSheet(spot));
   markers[spot.id]=m;
-  const show=activeFilter==='all'||activeFilter===spot.cat;
+  const show=activeFilterHidden.size===0||!activeFilterHidden.has(spot.cat);
   if(show&&clusterGroup) clusterGroup.addLayer(m);
   else m._hiddenFromCluster=true;
 }
@@ -2260,7 +2268,7 @@ function renderViewportMarkers(){
   SPOTS.forEach(s=>{
     if(!isSpotVisible(s)||s.cat==='hidden') return;
     if(hideCollected&&found.has(s.id)) return;
-    const show=activeFilter==='all'||activeFilter===s.cat;
+    const show=activeFilterHidden.size===0||!activeFilterHidden.has(s.cat);
     if(!show) return;
     if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
     if(!bounds.contains([s.lat,s.lng])) return;
@@ -2287,26 +2295,14 @@ let activeGroup=null;
 
 function toggleFilterGroup(gid){
   if(activeGroup===gid){
-    // clicking active group — close it, reset to all
     activeGroup=null;
-    setFilter('all');
   } else {
-    // switching to a different group — always reset filter to 'all' first
-    // this prevents the stuck state where activeFilter is from a different group
     activeGroup=gid;
-    if(activeFilter!=='all'){
-      const oldGroup=FILTER_GROUPS.find(g=>g.cats.includes(activeFilter));
-      if(!oldGroup||oldGroup.id!==gid){
-        // filter was from a different group — reset it
-        activeFilter='all';
-      }
-    }
     renderFilterSub();
   }
   document.querySelectorAll('.fgroup').forEach(el=>el.classList.toggle('on',el.dataset.group===activeGroup));
-  // Also sync the "Visos" pill
-  document.querySelector('.fcap[data-cat="all"]')?.classList.toggle('on',activeFilter==='all');
-  refreshMarkers();
+  document.querySelector('.fcap[data-cat="all"]')?.classList.toggle('on',activeFilterHidden.size===0);
+  if(!activeGroup) renderFilterSub();
 }
 
 function renderFilterSub(){
@@ -2316,28 +2312,52 @@ function renderFilterSub(){
   if(!grp){row.innerHTML='';row.classList.remove('show');return;}
   row.innerHTML=grp.cats.map(c=>{
     const cat=CATS[c];if(!cat) return '';
-    return `<div class="fcap sub ${activeFilter===c?'on':''}" data-cat="${c}" onclick="setFilter('${c}')">${cat.emoji} ${cat.label}</div>`;
+    const hidden=activeFilterHidden.has(c);
+    return `<div class="fcap sub ${hidden?'off':'on'}" data-cat="${c}" onclick="setFilter('${c}')">${cat.emoji} ${cat.label}${hidden?' ✕':''}</div>`;
   }).join('');
   row.classList.add('show');
 }
 
 function setFilter(cat){
-  activeFilter=cat;
-  document.querySelector('.fcap[data-cat="all"]')?.classList.toggle('on',cat==='all');
-  document.querySelectorAll('.fgroup').forEach(el=>{
-    const grp=FILTER_GROUPS.find(g=>g.id===el.dataset.group);
-    const childActive=grp&&grp.cats.includes(cat);
-    el.classList.toggle('has-active',childActive&&activeGroup!==el.dataset.group);
-    el.classList.toggle('on',el.dataset.group===activeGroup);
+  // Toggle-off model: 'all' resets everything; otherwise toggle the cat in/out of hidden set
+  if(cat==='all'){
+    activeFilterHidden.clear();
+  } else {
+    if(activeFilterHidden.has(cat)) activeFilterHidden.delete(cat);
+    else activeFilterHidden.add(cat);
+  }
+  _syncFilterUI();
+  refreshMarkers();
+}
+
+function _syncFilterUI(){
+  // Desktop top filter pills
+  document.querySelector('.fcap[data-cat="all"]')?.classList.toggle('on',activeFilterHidden.size===0);
+  document.querySelectorAll('.fcap.sub[data-cat]').forEach(el=>{
+    const c=el.dataset.cat;
+    el.classList.toggle('off',activeFilterHidden.has(c));
+    el.classList.toggle('on',!activeFilterHidden.has(c)&&c!=='all');
   });
-  renderFilterSub();
+  // Mobile filter chips
+  document.querySelectorAll('.mob-filter-chip').forEach(el=>{
+    el.classList.toggle('off',activeFilterHidden.has(el.dataset.cat));
+    el.classList.toggle('on',!activeFilterHidden.has(el.dataset.cat));
+  });
+  // Mobile nav label
   const mobLabel=document.getElementById('mobFilterLabel');
   const mobBtn=document.getElementById('mobFilterBtn');
+  const hiddenCount=activeFilterHidden.size;
   if(mobLabel&&mobBtn){
-    if(cat==='all'){mobLabel.textContent='Visos vietos';mobBtn.classList.remove('active-filter');}
-    else{const c=CATS[cat];mobLabel.textContent=c?c.emoji+' '+c.label:'Filtruota';mobBtn.classList.add('active-filter');}
+    if(hiddenCount===0){mobLabel.textContent='Visos vietos';mobBtn.classList.remove('active-filter');}
+    else{mobLabel.textContent=`-${hiddenCount} kategorija`;mobBtn.classList.add('active-filter');}
   }
-  refreshMarkers();
+  // Mobile nav bar filter icon
+  const mfi=document.getElementById('mobNavFilterIcon');
+  const mfl=document.getElementById('mobNavFilterLabel');
+  if(mfi&&mfl){
+    if(activeFilterHidden.size===0){mfi.textContent='🎛';mfl.textContent='Filtras';}
+    else{mfi.textContent='🎛';mfl.textContent=`-${activeFilterHidden.size}`;}
+  }
 }
 
 // ═══════════ CITY FILTER ═══════════
@@ -2468,17 +2488,23 @@ function checkProximity(){
   if(userLat===null) return;
   // Lock: if a collect prompt is already active, don't switch to another spot
   if(_collectPromptActive) return;
+  // Global 5s cooldown after any popup was shown
+  if(Date.now()-_proxCooldownTs<5000) return;
   // Re-eligibility: remove dismissed spots once user is >400m away
   proxDismissedIds.forEach(id=>{
     const s=SPOTS.find(x=>x.id===id);
     if(!s||dist(userLat,userLng,s.lat,s.lng)>400) proxDismissedIds.delete(id);
   });
+  // Expire 60s soft-dismissals
+  const now=Date.now();
+  _proxSoftDismiss.forEach((ts,id)=>{if(now-ts>60000) _proxSoftDismiss.delete(id);});
   let best=null,bestDist=Infinity;
   SPOTS.forEach(s=>{
     if(found.has(s.id)) return;
     // hidden spots: always proximity-eligible (no tier lock)
     if(s.cat!=='hidden'&&!isSpotVisible(s)) return;
     if(proxDismissedIds.has(s.id)) return;
+    if(_proxSoftDismiss.has(s.id)) return;
     const d=dist(userLat,userLng,s.lat,s.lng);
     if(d<=PROX_DISPLAY_RADIUS&&d<bestDist){bestDist=d;best=s;}
   });
@@ -2487,7 +2513,7 @@ function checkProximity(){
       // Update distance display live
       const r=spotRadius(best);
       const inZone=bestDist<=r;
-      const inForce=bestDist<=250;
+      const inForce=bestDist<=r*2;
       const distEl=document.getElementById('proxDist');
       const proxBtn=document.getElementById('proxBtn');
       if(distEl) distEl.textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
@@ -2504,7 +2530,7 @@ function checkProximity(){
     document.getElementById('proxEmoji').textContent=best.cat==='hidden'?'🔮':cat.emoji;
     document.getElementById('proxName').textContent=best.cat==='hidden'?'??? Paslėpta vieta':best.name;
     const inZone=bestDist<=r;
-    const inForce=bestDist<=250;
+    const inForce=bestDist<=r*2;
     document.getElementById('proxDist').textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
     const proxBtn=document.getElementById('proxBtn');
     if(proxBtn){
@@ -2513,6 +2539,7 @@ function checkProximity(){
       else{proxBtn.textContent='⭐ Surinkti vietą!';proxBtn.style.opacity='0.4';}
     }
     document.getElementById('proxPopup').classList.add('show');
+    _proxCooldownTs=Date.now(); // start 5s cooldown
     _collectPromptActive=true;
   } else {
     if(proxSpotId!==null){
@@ -2524,7 +2551,13 @@ function checkProximity(){
 }
 
 function hideProxPopup(){proxSpotId=null;_collectPromptActive=false;document.getElementById('proxPopup').classList.remove('show');}
-function dismissProx(){if(proxSpotId!==null) proxDismissedIds.add(proxSpotId);hideProxPopup();}
+function dismissProx(){
+  if(proxSpotId!==null){
+    // 60s soft block — re-prompts after user walks away and comes back
+    _proxSoftDismiss.set(proxSpotId,Date.now());
+  }
+  hideProxPopup();
+}
 
 function collectFromProx(){
   const s=SPOTS.find(x=>x.id===proxSpotId);
@@ -2532,7 +2565,8 @@ function collectFromProx(){
   if(userLat!==null){
     const d=dist(userLat,userLng,s.lat,s.lng);
     const r=spotRadius(s);
-    if(d>250){toast(`📍 Per toli (${Math.round(d)}m)`,'info');return;}
+    const forceR=r*2;
+    if(d>forceR){toast(`📍 Per toli (${Math.round(d)}m)`,'info');return;}
     if(d>r){
       const btn=document.getElementById('proxBtn');
       if(btn&&!btn.dataset.forceConfirm){
@@ -2890,7 +2924,7 @@ function updateCollectBtn(spot){
   if(userLat===null){btn.textContent='⌛ GPS nėra';btn.className='cbtn gps-wait';return;}
   const d=dist(userLat,userLng,spot.lat,spot.lng);
   const r=spotRadius(spot);
-  const FORCE_RADIUS=250;
+  const FORCE_RADIUS=r*2;
   if(d<=r){
     btn.textContent='⭐ Surinkti!';btn.className='cbtn gps-close';
   } else if(d<=FORCE_RADIUS){
@@ -2934,7 +2968,7 @@ function collectCurrent(){
   if(!selectedSpot||found.has(selectedSpot.id)) return;
   const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
     const r=spotRadius(selectedSpot);
-    const FORCE_RADIUS=250;
+    const FORCE_RADIUS=r*2;
     if(d>r&&d<=FORCE_RADIUS){
       // Show force-collect confirmation
       const btn=document.getElementById('collectBtn');
@@ -4119,8 +4153,10 @@ function updateAll(){
   // Mobile filter icon update
   const mfi=document.getElementById('mobNavFilterIcon');
   const mfl=document.getElementById('mobNavFilterLabel');
-  if(mfi&&mfl&&activeFilter!=='all'){const c=CATS[activeFilter];if(c){mfi.textContent=c.emoji;mfl.textContent=c.label.substring(0,7);}}
-  else if(mfi&&mfl){mfi.textContent='🎛';mfl.textContent='Filtras';}
+  if(mfi&&mfl){
+    if(activeFilterHidden.size===0){mfi.textContent='🎛';mfl.textContent='Filtras';}
+    else{mfi.textContent='🎛';mfl.textContent=`-${activeFilterHidden.size}`;}
+  }
 }
 
 // ═══════════ CONFETTI ═══════════
@@ -6334,17 +6370,14 @@ function buildMobFilterSheet(){
     <div class="mob-filter-chips">
       ${grp.cats.map(c=>{
         const cat=CATS[c];if(!cat) return '';
-        return `<div class="mob-filter-chip" data-cat="${c}" onclick="mobSetFilter('${c}')">${cat.emoji} ${cat.label}</div>`;
+        const hidden=activeFilterHidden.has(c);
+        return `<div class="mob-filter-chip ${hidden?'off':'on'}" data-cat="${c}" onclick="mobToggleFilter('${c}')">${cat.emoji} ${cat.label}${hidden?' ✕':''}</div>`;
       }).join('')}
     </div>`).join('');
 }
 
 function openMobFilterSheet(){
   buildMobFilterSheet();
-  // Sync active state
-  document.querySelectorAll('.mob-filter-chip').forEach(el=>{
-    el.classList.toggle('on',el.dataset.cat===activeFilter);
-  });
   document.getElementById('mobFilterSheet').classList.add('open');
 }
 
@@ -6352,26 +6385,21 @@ function closeMobFilterSheet(){
   document.getElementById('mobFilterSheet').classList.remove('open');
 }
 
-function mobSetFilter(cat){
+function mobToggleFilter(cat){
   setFilter(cat);
-  // Update mobile filter button
-  const btn=document.getElementById('mobFilterBtn');
-  const label=document.getElementById('mobFilterLabel');
-  if(cat==='all'){
-    if(label) label.textContent='Visos vietos';
-    if(btn) btn.classList.remove('active-filter');
-  } else {
-    const c=CATS[cat];
-    if(label) label.textContent=c?c.emoji+' '+c.label:'Filtruota';
-    if(btn) btn.classList.add('active-filter');
-  }
-  // Update chip states
-  document.querySelectorAll('.mob-filter-chip').forEach(el=>{
-    el.classList.toggle('on',el.dataset.cat===cat);
-  });
-  // Sync bottom nav
+  buildMobFilterSheet(); // re-render chips with new states
+  _syncFilterUI();
   updateAll();
-  closeMobFilterSheet();
+  // Don't close sheet — user may want to toggle multiple
+}
+
+function mobSetFilter(cat){
+  // Legacy: called with 'all' to reset
+  setFilter(cat);
+  buildMobFilterSheet();
+  _syncFilterUI();
+  updateAll();
+  if(cat==='all') closeMobFilterSheet();
 }
 
 // ═══════════ MARKER CLUSTERING (viewport-based) ═══════════
