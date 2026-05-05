@@ -1791,11 +1791,10 @@ function isSpotVisible(spot){
 const STREAK_MILES=[
   {day:3,reward:25,label:'3d.',desc:'+25 XP',icon:'⚡'},
   {day:5,reward:50,label:'5d.',desc:'+50 XP',icon:'🔥'},
-  {day:7,reward:100,label:'7d.',desc:'+100 XP + vieta',icon:'💎',unlocksHidden:true},
+  {day:7,reward:100,label:'7d.',desc:'+100 XP',icon:'💎'},
   {day:14,reward:200,label:'14d.',desc:'+200 XP',icon:'🏆'},
   {day:30,reward:500,label:'30d.',desc:'+500 XP',icon:'👑'},
 ];
-const STREAK_HIDDEN_SPOT={id:99,name:'Napoleono tiltas',cat:'history',tier:1,year:'1812',time:'20 min.',price:'Nemokama',radius:100,bring:['Smalsumą'],history:'Vieta kur 1812 m. Napoleono didžioji armija kirto Nemuną žygiuodama į Rusiją. Šiandien – tik atmintis ir vaizdas. Ši vieta atsiveria tik ištvermingiems tyrinėtojams.',lat:54.9012,lng:23.9108,tag:'Slaptoji'};
 
 // ═══════════ COUNTRY CONFIG ═══════════
 
@@ -1863,9 +1862,6 @@ function getGuestId(){
 function getMyUid(){return window._fbUser?window._fbUser.uid:getGuestId();}
 // Level tracking
 let prevLevel=1;
-let streakRewards=new Set();
-let hiddenSpotUnlocked=false;
-let oldStreak=0;
 // Suggest state
 let nextSuggestId=null;
 let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
@@ -1909,7 +1905,9 @@ function catsForTier(tier){
 }
 
 // Spot collection radius — 0.85× across the board (tighter zones, especially in dense cities)
+// Hidden spots: fixed 80m, no multiplier (GPS unreliable near unusual locations)
 function spotRadius(spot){
+  if(spot.cat==='hidden') return 80;
   return Math.round((spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS) * 0.85);
 }
 
@@ -1958,9 +1956,6 @@ function save(){
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
-  localStorage.setItem('ke7_sr',JSON.stringify([...streakRewards]));
-  localStorage.setItem('ke7_hspot',hiddenSpotUnlocked?'1':'0');
-  localStorage.setItem('ke7_os',oldStreak);
   localStorage.setItem('ke7_favs',JSON.stringify([...favorites]));
 }
 
@@ -1985,16 +1980,11 @@ function load(){
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
   dailyQuestDone=localStorage.getItem('ke7_dqdone')==='1';
-  const sr=localStorage.getItem('ke7_sr');streakRewards=sr?new Set(JSON.parse(sr)):new Set();
-  hiddenSpotUnlocked=localStorage.getItem('ke7_hspot')==='1';
-  oldStreak=parseInt(localStorage.getItem('ke7_os')||'0');
   const fv=localStorage.getItem('ke7_favs');favorites=fv?new Set(JSON.parse(fv)):new Set();
   prevLevel=getLevel(totalXP).level;
   // Reset daily quest if new day
   const today=new Date().toDateString();
   if(dailyQuestDate!==today){dailyQuestDone=false;dailyQuestDate=today;}
-  // Restore hidden spot if earned
-  if(hiddenSpotUnlocked&&!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});}
   // Clear any stale spots from localStorage
   localStorage.removeItem('ke7_spots');
   checkStreakBreakOnLoad();
@@ -2513,7 +2503,7 @@ function checkProximity(){
       // Update distance display live
       const r=spotRadius(best);
       const inZone=bestDist<=r;
-      const inForce=bestDist<=r*2;
+      const inForce=bestDist<=(best.cat==='hidden'?200:r*2);
       const distEl=document.getElementById('proxDist');
       const proxBtn=document.getElementById('proxBtn');
       if(distEl) distEl.textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
@@ -2530,7 +2520,7 @@ function checkProximity(){
     document.getElementById('proxEmoji').textContent=best.cat==='hidden'?'🔮':cat.emoji;
     document.getElementById('proxName').textContent=best.cat==='hidden'?'??? Paslėpta vieta':best.name;
     const inZone=bestDist<=r;
-    const inForce=bestDist<=r*2;
+    const inForce=bestDist<=(best.cat==='hidden'?200:r*2);
     document.getElementById('proxDist').textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
     const proxBtn=document.getElementById('proxBtn');
     if(proxBtn){
@@ -2565,7 +2555,7 @@ function collectFromProx(){
   if(userLat!==null){
     const d=dist(userLat,userLng,s.lat,s.lng);
     const r=spotRadius(s);
-    const forceR=r*2;
+    const forceR=s.cat==='hidden'?200:r*2;
     if(d>forceR){toast(`📍 Per toli (${Math.round(d)}m)`,'info');return;}
     if(d>r){
       const btn=document.getElementById('proxBtn');
@@ -2924,7 +2914,7 @@ function updateCollectBtn(spot){
   if(userLat===null){btn.textContent='⌛ GPS nėra';btn.className='cbtn gps-wait';return;}
   const d=dist(userLat,userLng,spot.lat,spot.lng);
   const r=spotRadius(spot);
-  const FORCE_RADIUS=r*2;
+  const FORCE_RADIUS=spot.cat==='hidden'?200:r*2;
   if(d<=r){
     btn.textContent='⭐ Surinkti!';btn.className='cbtn gps-close';
   } else if(d<=FORCE_RADIUS){
@@ -2968,7 +2958,7 @@ function collectCurrent(){
   if(!selectedSpot||found.has(selectedSpot.id)) return;
   const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
     const r=spotRadius(selectedSpot);
-    const FORCE_RADIUS=r*2;
+    const FORCE_RADIUS=selectedSpot.cat==='hidden'?200:r*2;
     if(d>r&&d<=FORCE_RADIUS){
       // Show force-collect confirmation
       const btn=document.getElementById('collectBtn');
@@ -3036,7 +3026,6 @@ function updateStreak(){
   const yest=new Date(Date.now()-86400000).toDateString();
   streak=(lastDate===yest)?streak+1:1;
   lastDate=today;
-  oldStreak=streak;
   setTimeout(()=>checkStreakMilestones(),300);
   addXP(10);
   setTimeout(()=>showXPBurst(10),150);
@@ -4260,15 +4249,9 @@ function renderStreakCard(){
 
 function checkStreakMilestones(){
   STREAK_MILES.forEach(m=>{
-    if(streak>=m.day&&!streakRewards.has(m.day)){
-      streakRewards.add(m.day);
+    if(streak>=m.day){
       addXP(m.reward);showXPBurst(m.reward);
       toast(`${m.icon} ${m.day}d. serija! +${m.reward} XP`,'gold');
-      if(m.unlocksHidden&&!hiddenSpotUnlocked){
-        hiddenSpotUnlocked=true;
-        if(!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});refreshMarkers();}
-        setTimeout(()=>toast('🗺 Slapta vieta atrakinta žemėlapyje!','gold'),1500);
-      }
       save();
     }
   });
@@ -4280,11 +4263,10 @@ function checkStreakBreakOnLoad(){
   if(lastDate===today) return;
   const yest=new Date(Date.now()-86400000).toDateString();
   if(lastDate===yest) return;
-  if(oldStreak>=2){
-    const lostStreak=oldStreak;
+  if(streak>=2){
+    const lostStreak=streak;
     const lastSeen=lastDate?new Date(lastDate).toLocaleDateString('lt-LT',{month:'short',day:'numeric'}):'nežinoma';
-    streakRewards.clear();
-    oldStreak=0;streak=0;save();
+    streak=0;save();
     setTimeout(()=>{
       const el=document.getElementById('streakBreakOverlay');
       if(!el) return;
