@@ -4650,7 +4650,7 @@ out center tags;`,
     allElements.push(...(JSON.parse(text).elements||[]));
     if(qi<QUERIES.length-1) await new Promise(r=>setTimeout(r,1000));
   }
-  if(!text){_abandonedLoading=false;return;}
+  if(!allElements.length){_abandonedLoading=false;return;}
 
   try{
     const elements=allElements;
