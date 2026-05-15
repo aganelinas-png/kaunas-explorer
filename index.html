@@ -1404,6 +1404,8 @@ const CATS={
   // — Urban / City —
   mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
+  // — Abandoned —
+  abandoned:{label:'Griuvėsiai',emoji:'🏚',color:'#6a5a4a'},
   // — Hidden —
   hidden:{label:'Paslėpta',emoji:'🔮',color:'#6a3a8a'},
 };
@@ -1412,6 +1414,7 @@ const FILTER_GROUPS=[
   {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['church','monument','mound','fort','museum','history','cemetery']},
   {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint','bridge','trail']},
   {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower']},
+  {id:'urbex',label:'Griuvėsiai',emoji:'🏚',cats:['abandoned']},
 ];
 
 // TIER_CONFIG kept for display labels only — unlock logic replaced by player level system
@@ -1437,6 +1440,7 @@ const CAT_DEFAULT_RADIUS={
   nature:150,
   mound:160,
   cemetery:220,
+  abandoned:120,
 };
 
 const DEFAULT_SPOTS=[]; // removed — KV/Firestore is always populated
@@ -1473,6 +1477,12 @@ const BADGE_GROUPS=[
     {id:'h2',name:'Praeities balsas',desc:'Aplankyk 10 istorinių vietų',icon:'⚔️',need:10,xpReward:20},
     {id:'h3',name:'Laikų Mašina',desc:'Aplankyk 25 istorinių vietų',icon:'⏳',need:25,xpReward:20},
     {id:'h4',name:'Gyvas Istorijos Vadovėlis',desc:'Aplankyk 50 istorinių vietų',icon:'💎',need:50,xpReward:50},
+  ]},
+  {id:'abandoned',title:'Urbex tyrinėtojas',icon:'🏚',cat:'abandoned',sub:true,badges:[
+    {id:'ab1',name:'Pirmas griuvėsis',desc:'Aplankyk 1 apleistą vietą',icon:'🏚',need:1,xpReward:15},
+    {id:'ab2',name:'Urbex pradedantysis',desc:'Aplankyk 5 apleistas vietas',icon:'🔦',need:5,xpReward:30},
+    {id:'ab3',name:'Griuvėsių tyrinėtojas',desc:'Aplankyk 15 apleistų vietų',icon:'🗺',need:15,xpReward:60},
+    {id:'ab4',name:'Urbex meistras',desc:'Aplankyk 30 apleistų vietų',icon:'💎',need:30,xpReward:120},
   ]},
   {id:'watertowers',title:'Vandens bokštų medžiotojas',icon:'🗼',cat:'watertower',sub:true,badges:[
     {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1,xpReward:10},
@@ -4275,7 +4285,7 @@ function resolveOsmCat(t){
 const OSM_CAT_EMOJI={
   church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',
   monument:'🗿',mound:'⛰',viewpoint:'🔭',watertower:'🗼',
-  trail:'🥾',mural:'🎨',cemetery:'⚱️',
+  trail:'🥾',mural:'🎨',cemetery:'⚱️',abandoned:'🏚',
 };
 
 let _osmImportData=[];
@@ -4284,6 +4294,15 @@ let _osmFilter='all';
 let _osmTier=1;
 let _osmLoading=false;
 let _osmForceRefresh=false;
+
+// ── ABANDONED (Griuvėsiai) state ──
+let _abandonedData=[];
+let _abandonedSelected=new Set();
+let _abandonedLoading=false;
+let _abandonedTier=1;
+const ABANDONED_CACHE_KEY='kex_abandoned_lt_v1';
+const ABANDONED_CACHE_TTL=7*24*60*60*1000; // 7 days
+const ABANDONED_BBOX='54.0,20.9,56.5,26.8'; // full Lithuania
 
 // Generate a display name for infrastructure items that OSM rarely names
 function osmGenerateName(t, cat){
@@ -4393,7 +4412,6 @@ const CITY_BBOXES_GLOBAL=[
   ['Birštonas','54.61,24.02,54.63,24.05'],
   ['Vievis','54.77,24.79,54.79,24.82'],
   ['Lentvaris','54.64,25.05,54.66,25.08'],
-  ['Elektrėnai','54.77,24.64,54.80,24.67'],
 ];
 
 const OSM_CACHE_KEY_MANUAL='kex_osm_manual_regions_v1';
@@ -4511,6 +4529,253 @@ async function osmFetchChecked(){
   }
   if(btn){btn.disabled=false;btn.textContent='🔄 Fetch pasirinktus';}
   toast(`✅ Baigta! ${selected.length} miestų importuota`,'success');
+}
+
+// ═══════════ ABANDONED (Griuvėsiai) IMPORT ═══════════
+
+function abandonedSetStatus(msg){
+  const el=document.getElementById('abandonedStatus');
+  if(el) el.textContent=msg;
+}
+
+function processAbandonedElement(e, idx){
+  const lat=parseFloat(((e.lat||(e.center&&e.center.lat)||0)).toFixed(6));
+  const lng=parseFloat(((e.lon||(e.center&&e.center.lon)||0)).toFixed(6));
+  if(!lat||!lng) return null;
+  // Must be inside Lithuania bounding box (sanity check)
+  if(lat<53.5||lat>56.6||lng<20.5||lng>27.0) return null;
+  const t=e.tags||{};
+  // Build display name — prefer Lithuanian name, then any name, then auto-generate
+  const rawName=t['name:lt']||t.name||'';
+  let name=rawName.trim();
+  if(!name){
+    const kind=(t['abandoned:building']||t['abandoned:amenity']||t['abandoned:man_made']||t.building||t['building:ruins']||t.amenity||t.man_made||'pastatas').replace(/_/g,' ');
+    const city=t['addr:city']||t['addr:suburb']||t['addr:district']||'';
+    const street=[t['addr:street'],t['addr:housenumber']].filter(Boolean).join(' ');
+    const loc=city||(street?street:'');
+    name='Apleistas '+kind.charAt(0).toUpperCase()+kind.slice(1)+(loc?' · '+loc:' #'+idx);
+  }
+  const osmTag='OSM-'+e.type+'-'+e.id;
+  // Determine subtype for display
+  const typeKey=t.historic||t['abandoned:building']||t['abandoned:amenity']||t.building||t.amenity||t.man_made||t.ruins||'abandoned';
+  // Already imported? Check by OSM ID tag first, then tight coord radius
+  const alreadyIn=SPOTS.some(s=>
+    (s.tag&&s.tag===osmTag)
+    ||(Math.abs(s.lat-lat)<0.0003&&Math.abs(s.lng-lng)<0.0003&&s.cat==='abandoned')
+  );
+  return{name,lat,lng,cat:'abandoned',typeKey,osmTag,alreadyIn,tags:t};
+}
+
+async function fetchAbandonedData(forceRefresh){
+  if(_abandonedLoading) return;
+  _abandonedLoading=true;
+
+  // Cache check
+  if(!forceRefresh){
+    try{
+      const c=JSON.parse(localStorage.getItem(ABANDONED_CACHE_KEY)||'null');
+      if(c&&Date.now()-c.ts<ABANDONED_CACHE_TTL&&c.data?.length){
+        _abandonedData=c.data;
+        // Recheck alreadyIn against current SPOTS
+        _abandonedData.forEach(x=>{
+          x.alreadyIn=SPOTS.some(s=>
+            (s.tag&&s.tag===x.osmTag)
+            ||(Math.abs(s.lat-x.lat)<0.0003&&Math.abs(s.lng-x.lng)<0.0003&&s.cat==='abandoned')
+          );
+        });
+        abandonedSetStatus(`✅ ${_abandonedData.length} vietų (talpykla · ${new Date(c.ts).toLocaleDateString('lt-LT')}) · Jau pridėta: ${_abandonedData.filter(x=>x.alreadyIn).length}`);
+        _abandonedLoading=false;
+        renderAbandonedList();
+        return;
+      }
+    }catch(e){}
+  }
+
+  abandonedSetStatus('⏳ Kraunama iš OSM (visas Lietuvos bbox)...');
+  const MIRRORS=[
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  ];
+  const query=`data=[out:json][timeout:60];
+(
+  node["abandoned"="yes"](${ABANDONED_BBOX});
+  way["abandoned"="yes"](${ABANDONED_BBOX});
+  node["ruins"="yes"](${ABANDONED_BBOX});
+  way["ruins"="yes"](${ABANDONED_BBOX});
+  node["historic"="ruins"](${ABANDONED_BBOX});
+  way["historic"="ruins"](${ABANDONED_BBOX});
+  node["building"="ruins"](${ABANDONED_BBOX});
+  way["building"="ruins"](${ABANDONED_BBOX});
+  node["disused"="yes"]["building"](${ABANDONED_BBOX});
+  way["disused"="yes"]["building"](${ABANDONED_BBOX});
+);
+out center tags;`;
+
+  let text=null;
+  for(let mi=0;mi<MIRRORS.length;mi++){
+    abandonedSetStatus(`⏳ Kraunama... (serveris ${mi+1}/${MIRRORS.length})`);
+    try{
+      const r=await fetch(MIRRORS[mi],{method:'POST',body:query,signal:AbortSignal.timeout(65000)});
+      const t=await r.text();
+      if(r.status>=400) throw new Error(`HTTP ${r.status}`);
+      if(t.trim().startsWith('<')){
+        if(t.includes('Too Many Requests')) throw new Error('429 — palaukite ~2 min. 🕐');
+        throw new Error('XML klaida iš serverio');
+      }
+      text=t;
+      break;
+    }catch(e){
+      console.warn(`Abandoned mirror ${mi+1} failed:`,e.message);
+      if(mi<MIRRORS.length-1){
+        abandonedSetStatus(`⚠ Serveris ${mi+1} nepasiekiamas, bandau ${mi+2}...`);
+        await new Promise(r=>setTimeout(r,1500));
+      } else {
+        abandonedSetStatus('❌ Visi serveriai nepasiekiami. Bandykite vėliau.');
+        _abandonedLoading=false;
+        return;
+      }
+    }
+  }
+  if(!text){_abandonedLoading=false;return;}
+
+  try{
+    const elements=JSON.parse(text).elements||[];
+    abandonedSetStatus(`⏳ Apdorojama ${elements.length} elementų...`);
+    const processed=elements
+      .map((e,i)=>processAbandonedElement(e,i))
+      .filter(Boolean)
+      // Dedupe by OSM ID
+      .filter((x,i,arr)=>arr.findIndex(y=>y.osmTag===x.osmTag)===i)
+      // Also dedupe by tight coords (ways+nodes can overlap)
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002)===i)
+      .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
+
+    _abandonedData=processed;
+    try{
+      const cStr=JSON.stringify({ts:Date.now(),data:_abandonedData});
+      if(cStr.length<4000000) localStorage.setItem(ABANDONED_CACHE_KEY,cStr);
+    }catch(e){console.warn('Abandoned cache save failed',e);}
+
+    const newCount=_abandonedData.filter(x=>!x.alreadyIn).length;
+    const alreadyCount=_abandonedData.filter(x=>x.alreadyIn).length;
+    abandonedSetStatus(`✅ ${_abandonedData.length} vietų rasta · ${alreadyCount} jau DB · ${newCount} naujų`);
+    renderAbandonedList();
+  }catch(e){
+    abandonedSetStatus('❌ Klaida apdorojant duomenis: '+e.message);
+    console.error('Abandoned processing error',e);
+  }
+  _abandonedLoading=false;
+}
+
+function renderAbandonedPanel(){
+  const total=_abandonedData.length;
+  const alreadyIn=_abandonedData.filter(x=>x.alreadyIn).length;
+  const newOnes=total-alreadyIn;
+  return`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">
+      Apleistos vietos · OpenStreetMap · abandoned/ruins/disused tags · visas Lietuvos bbox
+    </div>
+    ${total>0?`<div style="background:var(--surf2);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:'DM Mono',monospace;font-size:.68rem;display:flex;gap:12px;flex-wrap:wrap">
+      <span>📦 Viso: <strong style="color:var(--txt)">${total}</strong></span>
+      <span>✅ Jau DB: <strong style="color:var(--green)">${alreadyIn}</strong></span>
+      <span>🆕 Naujų: <strong style="color:var(--gold)">${newOnes}</strong></span>
+    </div>`:''}
+    <div id="abandonedStatus" class="osm-status"></div>
+    <div class="osm-tier-row">
+      <span class="osm-tier-label">Tiers:</span>
+      ${[1,2,3].map(t=>`<button class="osm-tier-btn ${_abandonedTier===t?'on':''}" data-t="${t}" onclick="abandonedSetTier(${t})">${TIER_CONFIG[t].icon} T${t}</button>`).join('')}
+    </div>
+    <div class="osm-controls">
+      <button class="osm-ctrl-btn pri" onclick="fetchAbandonedData(${total===0?'false':'true'})">
+        ${total===0?'⬇ Fetch griuvėsius':'🔄 Atnaujinti'}
+      </button>
+      <button class="osm-ctrl-btn" onclick="abandonedSelectAll()">☑ Visi nauji</button>
+      <button class="osm-ctrl-btn" onclick="abandonedSelectNone()">☐ Jokių</button>
+      <button class="osm-ctrl-btn pri" id="abandonedImportBtn" onclick="abandonedImportSelected()">✅ Importuoti</button>
+    </div>
+    <div id="abandonedList" class="osm-list"></div>
+  </div>`;
+}
+
+function renderAbandonedList(){
+  const list=document.getElementById('abandonedList');
+  if(!list) return;
+  const selCount=_abandonedSelected.size;
+  const importBtn=document.getElementById('abandonedImportBtn');
+  if(importBtn) importBtn.textContent=selCount>0?`✅ Importuoti ${selCount}`:'✅ Importuoti';
+  if(!_abandonedData.length){
+    list.innerHTML=`<div style="text-align:center;padding:24px;color:var(--td);font-size:.82rem">Nėra duomenų. Spausk "Fetch griuvėsius" 👆</div>`;
+    return;
+  }
+  list.innerHTML=_abandonedData.map((item,i)=>`
+    <div class="osm-item ${_abandonedSelected.has(i)?'selected':''} ${item.alreadyIn?'already':''}" onclick="abandonedToggleItem(${i})">
+      <div class="osm-check">${item.alreadyIn?'✓':_abandonedSelected.has(i)?'✓':''}</div>
+      <div class="osm-emoji">🏚</div>
+      <div class="osm-info">
+        <div class="osm-name">${item.name}</div>
+        <div class="osm-meta">${item.typeKey} · ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}${item.alreadyIn?' · <span style="color:var(--green)">jau pridėta</span>':''}</div>
+      </div>
+    </div>`).join('');
+}
+
+function abandonedToggleItem(idx){
+  if(_abandonedData[idx]?.alreadyIn) return;
+  if(_abandonedSelected.has(idx)) _abandonedSelected.delete(idx);
+  else _abandonedSelected.add(idx);
+  renderAbandonedList();
+}
+
+function abandonedSelectAll(){
+  _abandonedData.forEach((item,i)=>{if(!item.alreadyIn) _abandonedSelected.add(i);});
+  renderAbandonedList();
+}
+
+function abandonedSelectNone(){
+  _abandonedSelected.clear();
+  renderAbandonedList();
+}
+
+function abandonedSetTier(t){
+  _abandonedTier=t;
+  document.querySelectorAll('.osm-tier-btn').forEach(el=>el.classList.toggle('on',parseInt(el.dataset.t)===t));
+}
+
+async function abandonedImportSelected(){
+  if(_abandonedSelected.size===0){toast('⚠ Nepasirinkta jokių vietų','info');return;}
+  const btn=document.getElementById('abandonedImportBtn');
+  if(btn){btn.disabled=true;btn.textContent='Importuojama...';}
+  const{db,collection,addDoc,serverTimestamp}=window._fb||{};
+  if(!db){toast('Firebase nepasiekiamas','info');if(btn)btn.disabled=false;return;}
+  let imported=0;
+  for(const idx of _abandonedSelected){
+    const item=_abandonedData[idx];
+    if(!item||item.alreadyIn) continue;
+    try{
+      const spot={
+        name:item.name,
+        cat:'abandoned',
+        tier:_abandonedTier,
+        lat:item.lat,
+        lng:item.lng,
+        country:'LT',
+        radius:CAT_DEFAULT_RADIUS['abandoned']||DEFAULT_RADIUS,
+        time:'',price:'',year:'',
+        tag:item.osmTag,
+        history:'',
+        bring:[],
+        createdAt:serverTimestamp(),
+      };
+      await addDoc(collection(db,'spots'),spot);
+      item.alreadyIn=true;
+      imported++;
+    }catch(e){console.error('Abandoned import error',e);}
+  }
+  _abandonedSelected.clear();
+  if(btn){btn.disabled=false;}
+  toast(`🏚 Importuota ${imported} griuvėsių!`,'success');
+  abandonedSetStatus(`✅ Importuota ${imported}. Iš viso DB: ${_abandonedData.filter(x=>x.alreadyIn).length} / ${_abandonedData.length}`);
+  renderAbandonedList();
 }
 
 async function fetchOsmData(){
@@ -4659,9 +4924,9 @@ let _importTab='osm'; // 'osm' | 'wikidata' | 'kpd'
 function _getImportCountry(){return 'LT';}
 
 function _tabBar(){
-  const tabs=[['osm','🗺 OSM'],['wikidata','📚 Wikidata'],['kpd','🏛 KPD']];
+  const tabs=[['osm','🗺 OSM'],['wikidata','📚 Wikidata'],['kpd','🏛 KPD'],['abandoned','🏚 Griuvėsiai']];
   return`<div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
-    ${tabs.map(([id,label])=>`<button onclick="_importTab='${id}';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab===id?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab===id?'var(--gold)':'var(--tm)'};cursor:pointer">${label}</button>`).join('')}
+    ${tabs.map(([id,label])=>`<button onclick="_importTab='${id}';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab===id?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.68rem;color:${_importTab===id?'var(--gold)':'var(--tm)'};cursor:pointer">${label}</button>`).join('')}
   </div>`;
 }
 
@@ -4680,6 +4945,12 @@ function renderOsmImport(){
   if(_importTab==='kpd'){
     body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderKpdPanel()}</div>`;
     if(_kpdData.length) setTimeout(()=>renderKpdList(),0);
+    return;
+  }
+
+  if(_importTab==='abandoned'){
+    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderAbandonedPanel()}</div>`;
+    if(_abandonedData.length) setTimeout(()=>renderAbandonedList(),0);
     return;
   }
 
