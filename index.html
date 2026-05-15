@@ -4613,10 +4613,8 @@ out center tags;`,
 (
   node["historic"="ruins"](${ABANDONED_BBOX});
   way["historic"="ruins"](${ABANDONED_BBOX});
-  node["building"="ruins"](${ABANDONED_BBOX});
-  way["building"="ruins"](${ABANDONED_BBOX});
-  node["disused"="yes"]["building"](${ABANDONED_BBOX});
-  way["disused"="yes"]["building"](${ABANDONED_BBOX});
+  node["building"="ruins"]["name"](${ABANDONED_BBOX});
+  way["building"="ruins"]["name"](${ABANDONED_BBOX});
 );
 out center tags;`,
   ];
