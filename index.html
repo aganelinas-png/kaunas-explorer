@@ -1062,6 +1062,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <div onclick="rebuildKVCache()" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔄 Atnaujinti KV talpyklą</div>
         <div onclick="exportSpotsCSV()" id="csvExportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">📥 Eksportuoti CSV</div>
         <label id="csvImportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(201,168,76,.12);border:1px solid var(--gold);color:var(--gold);font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:8px">📤 Importuoti CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importSpotsCSV(this)"></label>
+        <div onclick="openAbandonedCleanup()" style="padding:9px 12px;border-radius:8px;background:rgba(180,60,60,.12);border:1px solid #c05050;color:#e07070;font-size:.78rem;cursor:pointer;margin-top:6px;display:flex;align-items:center;gap:8px">🧹 Valyti: apleistos už LT ribų</div>
       </div>
     </div>
     <div class="drawer-bottom" style="flex-shrink:0">
@@ -4602,19 +4603,21 @@ async function fetchAbandonedData(forceRefresh){
   // Q2: historic=ruins + building=ruins + disused+building
   const QUERIES=[
     `data=[out:json][timeout:90];
+area["ISO3166-1"="LT"]->.lt;
 (
-  node["abandoned"="yes"](${ABANDONED_BBOX});
-  way["abandoned"="yes"](${ABANDONED_BBOX});
-  node["ruins"="yes"](${ABANDONED_BBOX});
-  way["ruins"="yes"](${ABANDONED_BBOX});
+  node["abandoned"="yes"](area.lt);
+  way["abandoned"="yes"](area.lt);
+  node["ruins"="yes"](area.lt);
+  way["ruins"="yes"](area.lt);
 );
 out center tags;`,
     `data=[out:json][timeout:90];
+area["ISO3166-1"="LT"]->.lt;
 (
-  node["historic"="ruins"](${ABANDONED_BBOX});
-  way["historic"="ruins"](${ABANDONED_BBOX});
-  node["building"="ruins"]["name"](${ABANDONED_BBOX});
-  way["building"="ruins"]["name"](${ABANDONED_BBOX});
+  node["historic"="ruins"](area.lt);
+  way["historic"="ruins"](area.lt);
+  node["building"="ruins"]["name"](area.lt);
+  way["building"="ruins"]["name"](area.lt);
 );
 out center tags;`,
   ];
@@ -7094,6 +7097,71 @@ async function fbLoadSpotsFromFirestore(){
     setSyncDot('');
     toast('Nepavyko prisijungti prie DB','info');
   }
+}
+
+// ── ADMIN: Abandoned Spots Cleanup (remove spots outside Lithuania) ──
+const LT_BOUNDS={minLat:53.89,maxLat:56.45,minLng:20.94,maxLng:26.84};
+function isInsideLithuania(lat,lng){
+  return lat>=LT_BOUNDS.minLat&&lat<=LT_BOUNDS.maxLat&&lng>=LT_BOUNDS.minLng&&lng<=LT_BOUNDS.maxLng;
+}
+
+async function openAbandonedCleanup(){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
+  const{db,collection,getDocs}=window._fb||{};
+  if(!db) return;
+  toast('🔍 Tikrinama...','info');
+  const snap=await getDocs(collection(db,'spots'));
+  const outside=[];
+  snap.forEach(d=>{
+    const s=d.data();
+    if(s.cat==='abandoned'&&!isInsideLithuania(s.lat,s.lng)){
+      outside.push({_fid:d.id,name:s.name,lat:s.lat,lng:s.lng});
+    }
+  });
+  if(!outside.length){toast('✅ Visi apleisti taškai Lietuvoje — nieko trinti nereikia!','success');return;}
+  const existing=document.getElementById('abandonedCleanupModal');
+  if(existing) existing.remove();
+  const fidsJson=JSON.stringify(outside.map(x=>x._fid));
+  const modal=document.createElement('div');
+  modal.id='abandonedCleanupModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML=`
+    <div style="background:var(--surf);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column">
+      <div style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:700;color:var(--txt);margin-bottom:8px">🧹 Valymas: apleistos už LT ribų</div>
+      <div style="font-size:.78rem;color:var(--tm);margin-bottom:12px">Rasta <strong style="color:#e07070">${outside.length}</strong> taškų už Lietuvos ribų. Ar tikrai ištrinti?</div>
+      <div style="overflow-y:auto;flex:1;margin-bottom:14px;border:1px solid var(--bdr);border-radius:8px;padding:8px">
+        ${outside.slice(0,60).map(s=>`<div style="font-size:.7rem;color:var(--tm);padding:3px 0;border-bottom:1px solid var(--bdr)">${s.name||'?'} · ${Number(s.lat).toFixed(3)}, ${Number(s.lng).toFixed(3)}</div>`).join('')}
+        ${outside.length>60?`<div style="font-size:.68rem;color:var(--td);padding:4px">...ir dar ${outside.length-60} vietų</div>`:''}
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button onclick="document.getElementById('abandonedCleanupModal').remove()" style="flex:1;padding:10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);cursor:pointer;font-size:.8rem">Atšaukti</button>
+        <button id="confirmCleanupBtn" onclick="doAbandonedCleanup(${fidsJson.replace(/"/g,"'")})" style="flex:1;padding:10px;background:rgba(180,60,60,.2);border:1px solid #c05050;border-radius:8px;color:#e07070;cursor:pointer;font-size:.8rem;font-weight:700">🗑 Ištrinti ${outside.length}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function doAbandonedCleanup(fids){
+  const{db,doc,writeBatch}=window._fb||{};
+  if(!db) return;
+  const btn=document.getElementById('confirmCleanupBtn');
+  if(btn){btn.disabled=true;btn.textContent='Trinama...';}
+  const CHUNK=200;
+  let deleted=0;
+  for(let i=0;i<fids.length;i+=CHUNK){
+    const batch=writeBatch(db);
+    fids.slice(i,i+CHUNK).forEach(fid=>batch.delete(doc(db,'spots',fid)));
+    try{await batch.commit();deleted+=Math.min(CHUNK,fids.length-i);}
+    catch(e){console.error('Cleanup batch error',e);}
+    await new Promise(r=>setTimeout(r,300));
+  }
+  const fidSet=new Set(fids);
+  SPOTS=SPOTS.filter(s=>!fidSet.has(s._fid));
+  refreshMarkers();updateAll();
+  document.getElementById('abandonedCleanupModal')?.remove();
+  toast(`🧹 Ištrinta ${deleted} vietų už LT ribų`,'success');
+  localStorage.removeItem(ABANDONED_CACHE_KEY);
+  _abandonedData=[];
 }
 
 // ── ADMIN: CSV Export ──
