@@ -4757,14 +4757,31 @@ function abandonedSetTier(t){
 async function abandonedImportSelected(){
   if(_abandonedSelected.size===0){toast('⚠ Nepasirinkta jokių vietų','info');return;}
   const btn=document.getElementById('abandonedImportBtn');
-  if(btn){btn.disabled=true;btn.textContent='Importuojama...';}
-  const{db,collection,addDoc,serverTimestamp}=window._fb||{};
-  if(!db){toast('Firebase nepasiekiamas','info');if(btn)btn.disabled=false;return;}
+  const{db,collection,doc,writeBatch,serverTimestamp}=window._fb||{};
+  if(!db){toast('Firebase nepasiekiamas','info');return;}
+
+  const toImport=[..._abandonedSelected]
+    .map(idx=>_abandonedData[idx])
+    .filter(item=>item&&!item.alreadyIn);
+
+  if(!toImport.length){toast('⚠ Visos pasirinktos vietos jau importuotos','info');return;}
+
+  if(btn){btn.disabled=true;}
+
+  const CHUNK=200; // writeBatch hard limit is 500; 200 is safe
   let imported=0;
-  for(const idx of _abandonedSelected){
-    const item=_abandonedData[idx];
-    if(!item||item.alreadyIn) continue;
-    try{
+  const localNewSpots=[];
+
+  for(let i=0;i<toImport.length;i+=CHUNK){
+    const chunk=toImport.slice(i,i+CHUNK);
+    abandonedSetStatus(`⏳ Importuojama... ${Math.min(i+CHUNK,toImport.length)} / ${toImport.length}`);
+    if(btn) btn.textContent=`⏳ ${Math.min(i+CHUNK,toImport.length)}/${toImport.length}`;
+
+    const batch=writeBatch(db);
+    const refs=[];
+    for(const item of chunk){
+      const ref=doc(collection(db,'spots'));
+      refs.push({ref,item});
       const spot={
         name:item.name,
         cat:'abandoned',
@@ -4779,15 +4796,43 @@ async function abandonedImportSelected(){
         bring:[],
         createdAt:serverTimestamp(),
       };
-      await addDoc(collection(db,'spots'),spot);
-      item.alreadyIn=true;
-      imported++;
-    }catch(e){console.error('Abandoned import error',e);}
+      batch.set(ref,spot);
+    }
+    try{
+      await batch.commit();
+      // Update local state
+      for(const{ref,item} of refs){
+        item.alreadyIn=true;
+        const localSpot={
+          id:ref.id,_fid:ref.id,
+          name:item.name,cat:'abandoned',tier:_abandonedTier,
+          lat:item.lat,lng:item.lng,
+          country:'LT',
+          radius:CAT_DEFAULT_RADIUS['abandoned']||DEFAULT_RADIUS,
+          time:'',price:'',year:'',tag:item.osmTag,history:'',bring:[],
+        };
+        localNewSpots.push(localSpot);
+        imported++;
+      }
+    }catch(e){
+      console.error('Batch import error (chunk '+i+')',e);
+      abandonedSetStatus(`❌ Klaida importuojant (chunk ${i/CHUNK+1}): ${e.message}`);
+    }
+    // Breathe between chunks so browser doesn't freeze
+    await new Promise(r=>setTimeout(r,300));
   }
+
+  // Push all new spots into local SPOTS array and refresh map + sidebar
+  if(localNewSpots.length){
+    SPOTS.push(...localNewSpots);
+    refreshMarkers();
+    updateAll();
+  }
+
   _abandonedSelected.clear();
-  if(btn){btn.disabled=false;}
+  if(btn){btn.disabled=false;btn.textContent='✅ Importuoti';}
   toast(`🏚 Importuota ${imported} griuvėsių!`,'success');
-  abandonedSetStatus(`✅ Importuota ${imported}. Iš viso DB: ${_abandonedData.filter(x=>x.alreadyIn).length} / ${_abandonedData.length}`);
+  abandonedSetStatus(`✅ Importuota ${imported}. Jau DB: ${_abandonedData.filter(x=>x.alreadyIn).length} / ${_abandonedData.length}`);
   renderAbandonedList();
 }
 
@@ -4905,28 +4950,55 @@ async function osmImportSelected(){
   if(_osmSelected.size===0){toast('⚠ Nepasirinkta jokių vietų','info');return;}
   const btn=document.getElementById('osmImportBtn');
   if(btn){btn.disabled=true;btn.textContent='Importuojama...';}
-  const{db,collection,addDoc,serverTimestamp}=window._fb||{};
+  const{db,collection,doc,writeBatch,serverTimestamp}=window._fb||{};
   if(!db){toast('Firebase nepasiekiamas','info');if(btn)btn.disabled=false;return;}
+
+  const toImport=[..._osmSelected]
+    .map(idx=>_osmImportData[idx])
+    .filter(item=>item&&!item.alreadyIn);
+
+  const CHUNK=200;
   let imported=0;
-  for(const idx of _osmSelected){
-    const item=_osmImportData[idx];
-    if(!item||item.alreadyIn) continue;
-    try{
-      const spot={
+  const localNewSpots=[];
+
+  for(let i=0;i<toImport.length;i+=CHUNK){
+    const chunk=toImport.slice(i,i+CHUNK);
+    if(btn) btn.textContent=`⏳ ${Math.min(i+CHUNK,toImport.length)}/${toImport.length}`;
+    const batch=writeBatch(db);
+    const refs=[];
+    for(const item of chunk){
+      const ref=doc(collection(db,'spots'));
+      refs.push({ref,item});
+      batch.set(ref,{
         name:item.name,cat:item.cat,tier:_osmTier,
         lat:item.lat,lng:item.lng,
         country:_getImportCountry(),
-        radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
-        history:'',bring:[],
-        createdAt:serverTimestamp()
-      };
-      await addDoc(collection(db,'spots'),spot);
-      item.alreadyIn=true;
-      imported++;
-    }catch(e){console.error('Import error',e);}
+        radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
+        time:'',price:'',year:'',tag:item.typeKey,
+        history:'',bring:[],createdAt:serverTimestamp()
+      });
+    }
+    try{
+      await batch.commit();
+      for(const{ref,item} of refs){
+        item.alreadyIn=true;
+        localNewSpots.push({
+          id:ref.id,_fid:ref.id,
+          name:item.name,cat:item.cat,tier:_osmTier,
+          lat:item.lat,lng:item.lng,
+          country:_getImportCountry(),
+          radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
+          time:'',price:'',year:'',tag:item.typeKey,history:'',bring:[],
+        });
+        imported++;
+      }
+    }catch(e){console.error('OSM batch import error',e);}
+    await new Promise(r=>setTimeout(r,300));
   }
+
+  if(localNewSpots.length){SPOTS.push(...localNewSpots);refreshMarkers();updateAll();}
   _osmSelected.clear();
-  if(btn){btn.disabled=false;}
+  if(btn){btn.disabled=false;btn.textContent='✅ Importuoti';}
   toast(`📍 Importuota ${imported} vietų!`,'success');
   osmSetStatus(`✅ Importuota ${imported}. Iš viso DB: ${_osmImportData.filter(x=>x.alreadyIn).length} / ${_osmImportData.length}`);
   renderOsmList();
