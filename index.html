@@ -1421,7 +1421,7 @@ const FILTER_GROUPS=[
   {id:'urbex',label:'Griuvėsiai',emoji:'🏚',cats:['abandoned']},
 ];
 
-// TIER_CONFIG kept for display labels only — unlock logic replaced by player level system
+// TIER_CONFIG kept for display labels only
 const TIER_CONFIG={
   1:{label:'T1 — Žinomos',color:'#c9a84c',icon:'🥉',desc:'Plačiau žinomos vietos'},
   2:{label:'T2 — Retos',color:'#7a9cc9',icon:'🥈',desc:'Retesnės, mažiau žinomos vietos'},
@@ -1646,149 +1646,13 @@ function getLevel(xp){let lv=LEVELS[0];for(let i=LEVELS.length-1;i>=0;i--){if(xp
 function getNextLevel(xp){for(let i=0;i<LEVELS.length;i++){if(xp<LEVELS[i].xp) return LEVELS[i];}return null;}
 function getLevelProgress(xp){const c=getLevel(xp),n=getNextLevel(xp);if(!n)return 100;return Math.round((xp-c.xp)/(n.xp-c.xp)*100);}
 
-// ═══════════ SPOT LEVEL SYSTEM ═══════════
-// Each spot has a .spotLevel (1-50). Player sees spots where spotLevel <= playerLevel.
-// spotLevel is assigned deterministically via seeded shuffle so it's identical for all players.
-// L1 starts with ~3000 spots visible. Further levels unlock batches.
-// Tier weighting per level: early levels = more T3 (discovery), later = even more T3.
+// ═══════════ SPOT VISIBILITY ═══════════
 
 function getPlayerLevel(xp){return getLevel(xp).level;}
 
-// Deterministic shuffle using spot ID as seed contribution
-function seededHash(str){
-  let h=0;
-  for(let i=0;i<str.length;i++){h=Math.imul(31,h)+str.charCodeAt(i)|0;}
-  return Math.abs(h);
-}
-
-// Build the spotLevel assignment table. Called once after SPOTS loaded.
-// Returns a Map<spotId, spotLevel>
-function buildSpotLevelMap(spots){
-  // Filter out hidden/special
-  const eligible=spots.filter(s=>s.cat!=='hidden'&&s.id!==99);
-
-  // Geo regions for spread guarantee
-  function geoRegion(s){
-    if(s.lng<22) return 'west';
-    if(s.lat>56) return 'north';
-    if(s.lng>25) return 'east';
-    if(s.lat<54.5) return 'south';
-    return 'center';
-  }
-
-  // Sort spots deterministically by seeded hash so assignment is stable across all clients
-  const sorted=[...eligible].sort((a,b)=>seededHash(String(a.id)+'v1')-seededHash(String(b.id)+'v1'));
-
-  // LOGARITHMIC scaling: L1=25%, L50=100%.
-  // Log curve: fast unlock early, slower mid, tiny batches at end.
-  // Formula: visible(l) = total * (log(l+1)/log(51))^0.7
-  const totalEligible=eligible.length;
-  function logVisible(lvl){
-    return Math.round(totalEligible*Math.pow(Math.log(lvl+1)/Math.log(51),1.5));
-  }
-  const batchSizes=[];
-  // Enforce minimum 25% at L1
-  const l1Target=Math.max(Math.round(totalEligible*0.25),logVisible(1));
-  let prev=0;
-  for(let l=1;l<=50;l++){
-    let target=l===1?l1Target:(l===50?totalEligible:logVisible(l));
-    batchSizes.push(Math.max(1,target-prev));
-    prev=Math.min(target,totalEligible);
-  }
-
-  // Tier weighting per level: [T1%, T2%, T3%]
-  // Linear batches — tier mix creates quality curve: T3-heavy early, rarities at high levels
-  function tierWeight(lvl){
-    if(lvl===1)  return[0.20,0.40,0.40];
-    if(lvl<=5)   return[0.22,0.40,0.38];
-    if(lvl<=10)  return[0.25,0.38,0.37];
-    if(lvl<=15)  return[0.28,0.37,0.35];
-    if(lvl<=20)  return[0.25,0.36,0.39];
-    if(lvl<=25)  return[0.20,0.33,0.47];
-    if(lvl<=30)  return[0.15,0.28,0.57];
-    if(lvl<=38)  return[0.10,0.22,0.68];
-    if(lvl<=45)  return[0.06,0.15,0.79];
-    return[0.03,0.08,0.89];
-  }
-
-  // Separate pools by tier and geo region
-  const regions=['west','north','east','south','center'];
-  const pools={};
-  regions.forEach(r=>{
-    pools[r]={1:[],2:[],3:[]};
-  });
-  sorted.forEach(s=>{
-    const r=geoRegion(s);
-    const t=s.tier||1;
-    if(pools[r][t]) pools[r][t].push(s);
-  });
-
-  const levelMap=new Map();
-  const assigned=new Set();
-
-  function pickFromPools(count,wt,lvl){
-    const picked=[];
-    // Calculate how many from each tier
-    const t1n=Math.round(count*wt[0]);
-    const t2n=Math.round(count*wt[1]);
-    const t3n=count-t1n-t2n;
-    const tierNeeds={1:t1n,2:t2n,3:t3n};
-
-    // For each tier, spread across regions proportionally
-    [1,2,3].forEach(tier=>{
-      let need=tierNeeds[tier];
-      if(need<=0) return;
-      // Round-robin across regions to ensure spread
-      const regionOrder=['center','east','west','north','south'];
-      let ri=0;
-      while(need>0&&regionOrder.length>0){
-        const r=regionOrder[ri%regionOrder.length];
-        const pool=pools[r][tier];
-        const avail=pool.filter(s=>!assigned.has(s.id));
-        if(avail.length>0){
-          const s=avail[0];
-          picked.push(s);
-          assigned.add(s.id);
-          need--;
-        }
-        ri++;
-        // Safety: if no region has this tier left, break
-        if(regionOrder.every(rr=>pools[rr][tier].filter(s=>!assigned.has(s.id)).length===0)) break;
-      }
-    });
-    return picked;
-  }
-
-  for(let lvl=1;lvl<=50;lvl++){
-    const batchSize=batchSizes[lvl-1];
-    const wt=tierWeight(lvl);
-    const batch=lvl<50
-      ? pickFromPools(Math.min(batchSize,eligible.length-assigned.size),wt,lvl)
-      : eligible.filter(s=>!assigned.has(s.id)); // L50: all remaining
-    batch.forEach(s=>levelMap.set(s.id,lvl));
-  }
-
-  // Any unassigned (shouldn't happen) → L50
-  eligible.forEach(s=>{if(!levelMap.has(s.id)) levelMap.set(s.id,50);});
-
-  return levelMap;
-}
-
-let _spotLevelMap=null;
-function getSpotLevelMap(){
-  if(!_spotLevelMap) _spotLevelMap=buildSpotLevelMap(SPOTS);
-  return _spotLevelMap;
-}
-function getSpotLevel(spot){
-  // Use stored spotLevel if already persisted to Firestore, else compute
-  if(spot.spotLevel) return spot.spotLevel;
-  const m=getSpotLevelMap();
-  return m.get(spot.id)||1;
-}
 function isSpotVisible(spot){
   if(spot.cat==='hidden') return false;
-  if(isAdmin()) return true;
-  return getSpotLevel(spot)<=getPlayerLevel(totalXP);
+  return true;
 }
 
 // ═══════════ STREAK MILESTONES ═══════════
@@ -1858,7 +1722,6 @@ function t1Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.ti
 function t2Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===2)).length;}
 function t3Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.tier===3)).length;}
 
-// isSpotUnlocked → now uses level system
 function isSpotUnlocked(spot){return isSpotVisible(spot);}
 
 function catsForTier(tier){
@@ -2663,7 +2526,7 @@ function updateDrawerHeader(){
 function renderTierProgressHTML(){
   const plvl=getPlayerLevel(totalXP);
   const visibleSpots=SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden');
-  const nextLvlSpots=SPOTS.filter(s=>getSpotLevel(s)===plvl+1).length;
+
   const t1c=t1Collected(),t2c=t2Collected(),t3c=t3Collected();
   function tierRow(tier,color,label,collected){
     const tot=SPOTS.filter(s=>s.tier===tier&&isSpotVisible(s)).length;
@@ -2681,7 +2544,7 @@ function renderTierProgressHTML(){
       <div class="tier-dot" style="background:var(--gold)"></div>
       <div class="tier-info">
         <div class="tier-name">Lv.${plvl} — Matomos vietos</div>
-        <div class="tier-count">${visibleSpots.length} vietų žemėlapyje · Lv.${plvl+1} atvers +${nextLvlSpots}</div>
+        <div class="tier-count">${visibleSpots.length} vietų žemėlapyje</div>
         <div class="tier-bar"><div class="tier-fill" style="background:var(--gold);width:${Math.round(visibleSpots.length/Math.max(1,SPOTS.filter(s=>s.cat!=='hidden').length)*100)}%"></div></div>
       </div>
     </div>
@@ -2810,16 +2673,14 @@ function openSheet(spot){
 
   if(locked){
     // Locked spots are invisible on map — this branch only triggers for admin previews
-    const spotLvl=getSpotLevel(spot);
-    const plvl=getPlayerLevel(totalXP);
     content.innerHTML=`
       <div class="locked-sheet">
         <div class="locked-icon">🔒</div>
         <div class="locked-title">??? — Nežinoma vieta</div>
         <div class="tier-badge t${spot.tier||1}" style="margin:8px auto 14px;justify-content:center">${tc.icon} ${tc.label}</div>
         <div class="locked-hint-box">
-          <div class="lhb-row"><span class="lhb-icon">💡</span><span class="lhb-title">Kaip atrakinti?</span></div>
-          <div class="lhb-text">Ši vieta atsiveria pasiekus <strong style="color:var(--gold)">${spotLvl} lygį</strong>. Dabar esi <strong>${plvl} lygio</strong> — tęsk kelionę!</div>
+          <div class="lhb-row"><span class="lhb-icon">💡</span><span class="lhb-title">Paslėpta vieta</span></div>
+          <div class="lhb-text">Ši vieta šiuo metu paslėpta.</div>
         </div>
       </div>`;
   } else {
@@ -2983,12 +2844,8 @@ function collectCurrent(){
   // Check level-up after XP gain
   const newPlayerLevel=getPlayerLevel(totalXP);
   if(newPlayerLevel>prevPlayerLevel){
-    // Invalidate spot level map cache so new spots appear
-    _spotLevelMap=null;
-    // Count newly visible spots
-    const newVisibleCount=SPOTS.filter(s=>getSpotLevel(s)===newPlayerLevel).length;
     refreshMarkers();
-    setTimeout(()=>showLevelUpOverlay(newPlayerLevel,newVisibleCount),700);
+    setTimeout(()=>showLevelUpOverlay(newPlayerLevel),700);
   } else {
     refreshMarkers();
     setTimeout(checkBadges,400);
@@ -3016,20 +2873,16 @@ function handleLogoClick(){
 
 // ═══════════ LEVEL-UP OVERLAY ═══════════
 
-function showLevelUpOverlay(newLevel,newSpotsCount){
+function showLevelUpOverlay(newLevel){
   const lv=LEVELS.find(l=>l.level===newLevel)||LEVELS[0];
   const el=document.getElementById('unlockOverlay');
   document.getElementById('unlockStars').textContent=lv.icon;
   document.getElementById('unlockIcon').textContent='🗺';
   document.getElementById('unlockTitle').textContent=`Lygis ${newLevel} — ${lv.name}!`;
-  document.getElementById('unlockSub').innerHTML=newSpotsCount>0
-    ?`<span style="color:var(--gold);font-size:1.1rem;font-weight:700">+${newSpotsCount}</span> naujų vietų atsirado žemėlapyje visoje Lietuvoje!`
-    :'Sveikiname su nauju lygiu!';
+  document.getElementById('unlockSub').innerHTML='Sveikiname! Tęsk kelionę ir surink daugiau vietų! 🗺';
   document.getElementById('unlockPicker').style.display='none';
   document.getElementById('unlockCloseBtn').style.display='block';
   el.classList.add('show');
-  // Animate map dots appearing after a short delay
-  setTimeout(()=>{refreshMarkers();},600);
 }
 function closeUnlock(){
   document.getElementById('unlockOverlay').classList.remove('show');
@@ -3043,7 +2896,6 @@ function surpriseMe(){
     !found.has(s.id)&&
     isSpotVisible(s)&&
     s.cat!=='hidden'&&
-    getSpotLevel(s)<=getPlayerLevel(totalXP)&&
     (s.country==='LT'||!s.country)&&
     (activeCity==='all'||spotInCity(s,activeCity))
   );
@@ -3133,7 +2985,7 @@ function renderAboutMe(){
       <div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
         <div style="height:100%;width:${Math.round(found.size/Math.max(1,SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden').length)*100)}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:3px;transition:width .5s"></div>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-top:5px">Kitas lygis atrakina dar ${SPOTS.filter(s=>getSpotLevel(s)===lv.level+1).length} naujų vietų</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-top:5px">Surink daugiau vietų ir kylk lygiais!</div>
     </div>
     <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px">
@@ -5786,7 +5638,6 @@ async function reclassifyKpdSpots(){
   }
 
   // Rebuild spot level map after category changes
-  _spotLevelMap=null;
   refreshMarkers();updateAll();
   const msg=`✅ Perrūšiuota ${done} vietų${failed>0?`, klaida ${failed}`:''}.`;
   osmSetStatus(msg);
@@ -7182,7 +7033,6 @@ window.onFbAuthReady=async function(user){
         if(d.totalXP) totalXP=d.totalXP;
         if(d.streak) streak=d.streak;
         if(d.badges) earnedBadges=new Set(d.badges);
-        _spotLevelMap=null; // rebuild with fresh data
         refreshMarkers();updateAll();
         // Restore active route polyline if one was active
         if(activeRouteId){const ar=getActiveRoute();if(ar&&ar.spots.length>=2) fetchAndDrawRoute(activeRouteId);}
