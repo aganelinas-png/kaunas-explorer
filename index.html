@@ -1811,6 +1811,8 @@ let routes=[]; // [{id,name,spots:[spotId,...],created,distKm,durationMin}]
 let activeRouteId=null;
 let routeFilterActive=false;
 let _routePolyline=null;
+let _routeEditMode=false;
+let _routeEditRouteId=null;
 let selectedSpot=null,userLat=null,userLng=null;
 let isDark=false;
 // Filter: Set of HIDDEN category ids. Empty = show all. Toggle-off model.
@@ -2145,18 +2147,22 @@ function makeIcon(spot){
   const isF=found.has(spot.id);
   const tc=TIER_CONFIG[spot.tier||1];
 
-  // Locked spots are invisible — admin only reaches this branch
   if(locked){
     return L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:var(--tm);opacity:.3"></div>',iconSize:[8,8],iconAnchor:[4,4]});
   }
 
+  // In route edit mode: highlight spots already in the route with gold
+  const editRouteId=_routeEditMode?_routeEditRouteId:activeRouteId;
+  const inRoute=editRouteId&&routes.find(r=>r.id===editRouteId)?.spots.includes(String(spot.id));
+
   const bg=isF?cat.color:(isDark?'#1a1710':'#fff');
-  const bd=isF?cat.color:(isDark?tc.color:'#bbb');
-  const ring=`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${tc.color},0 3px 10px rgba(0,0,0,.4)`;
+  const bd=inRoute?'#c9a84c':(isF?cat.color:(isDark?tc.color:'#bbb'));
+  const outerGlow=inRoute?`0 0 0 2px #0e0c09,0 0 0 4px #c9a84c,0 3px 12px rgba(201,168,76,.5)`:
+    `box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${tc.color},0 3px 10px rgba(0,0,0,.4)`;
 
   return L.divIcon({
     className:'',
-    html:`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;${ring}">${cat.emoji}</div>`,
+    html:`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:${outerGlow}">${inRoute?`<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;background:#c9a84c;border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;color:#0e0c09;font-weight:700">✓</span>`:''}${cat.emoji}</div>`,
     iconSize:[36,36],iconAnchor:[18,18],
   });
 }
@@ -2770,6 +2776,22 @@ function showXPBurst(amount){
 // ═══════════ SHEET ═══════════
 
 function openSheet(spot){
+  // Route edit mode: tap = toggle spot in route
+  if(_routeEditMode&&_routeEditRouteId){
+    const key=String(spot.id);
+    const r=routes.find(rr=>rr.id===_routeEditRouteId);
+    if(!r) return;
+    if(r.spots.includes(key)){
+      removeSpotFromRoute(_routeEditRouteId,key);
+      toast(`✕ Pašalinta iš maršruto`,'info');
+    } else {
+      addSpotToRoute(_routeEditRouteId,key);
+      toast(`＋ Pridėta į maršrutą`,'success');
+    }
+    // Refresh marker icon to reflect new state
+    if(markers[spot.id]) markers[spot.id].setIcon(makeIcon(spot));
+    return;
+  }
   // hidden spots: only open if already found
   if(spot.cat==='hidden'&&!found.has(spot.id)){
     toast('🔮 Paslėpta vieta — prieik arčiau ir surink!','gold');
@@ -6494,7 +6516,6 @@ async function fetchAndDrawRoute(routeId){
     if(data.routes&&data.routes[0]){
       const route=data.routes[0];
       r.distKm=(route.distance/1000).toFixed(1);
-      r.durationMin=Math.round(route.duration/60);
       saveRoutes();updateRouteBar();
       clearRoutePolyline();
       const ll=route.geometry.coordinates.map(c=>[c[1],c[0]]);
@@ -6506,7 +6527,6 @@ async function fetchAndDrawRoute(routeId){
   let total=0;
   for(let i=0;i<objs.length-1;i++) total+=dist(objs[i].lat,objs[i].lng,objs[i+1].lat,objs[i+1].lng);
   r.distKm=(total/1000*1.3).toFixed(1);
-  r.durationMin=Math.round(total/1000/5*60);
   saveRoutes();updateRouteBar();
   clearRoutePolyline();
   _routePolyline=L.polyline(objs.map(s=>[s.lat,s.lng]),{color:'#c9a84c',weight:2,opacity:.5,dashArray:'4,8'}).addTo(map);
@@ -6529,6 +6549,33 @@ function endActiveRoute(){
   const chip=document.getElementById('routeFilterChip');
   if(chip) chip.classList.remove('on');
   refreshMarkers();updateAll();
+}
+
+function startRouteEditMode(routeId){
+  const r=routes.find(rr=>rr.id===routeId);if(!r) return;
+  _routeEditMode=true;_routeEditRouteId=routeId;
+  // Close drawer/panel so map is visible
+  closeDrawer();closeMobPanel();
+  // Show edit banner
+  let banner=document.getElementById('routeEditBanner');
+  if(!banner){
+    banner=document.createElement('div');
+    banner.id='routeEditBanner';
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:500;background:var(--gold);color:#0e0c09;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3);font-family:"DM Sans",sans-serif;font-size:.85rem;font-weight:600';
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML=`<span style="flex:1">🗺 ${r.name} — spausk vietas pridėti/pašalinti</span><button onclick="exitRouteEditMode()" style="background:#0e0c09;color:var(--gold);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer">Baigti ✓</button>`;
+  banner.style.display='flex';
+  // Refresh all markers to show gold highlights
+  refreshMarkers();
+}
+
+function exitRouteEditMode(){
+  _routeEditMode=false;_routeEditRouteId=null;
+  const banner=document.getElementById('routeEditBanner');
+  if(banner) banner.style.display='none';
+  // Refresh markers back to normal
+  refreshMarkers();
 }
 
 function updateRouteBar(){
@@ -6660,7 +6707,6 @@ function renderRoutesInto(body){
           <span class="rc-chip">📍 ${total} taškai</span>
           <span class="rc-chip">✓ ${done}/${total}</span>
           ${r.distKm?`<span class="rc-chip">~${r.distKm}km</span>`:''}
-          ${r.durationMin?`<span class="rc-chip">~${r.durationMin}min</span>`:''}
           ${isActive?`<span class="rc-chip" style="border-color:var(--gold);color:var(--gold)">aktyvus</span>`:''}
         </div>
         <div class="rc-prog" style="margin-top:6px"><div class="rc-pf" style="width:${pct}%"></div></div>
@@ -6734,7 +6780,7 @@ function renderRouteDetailInto(r,body,routeId){
     </div>
     <div style="padding:10px 14px;display:flex;gap:8px;align-items:center;background:var(--surf2);border-bottom:1px solid var(--bdr)">
       <div style="flex:1">
-        <div style="font-size:.75rem;color:var(--td)">✓ ${done}/${r.spots.length} surinkta${r.distKm?` · ~${r.distKm}km`:''}${r.durationMin?` · ~${r.durationMin}min`:''}${!r.distKm&&r.spots.length>=2?' · ⟳ Skaičiuojama...':''}</div>
+        <div style="font-size:.75rem;color:var(--td)">✓ ${done}/${r.spots.length} surinkta${r.distKm?` · ~${r.distKm}km`:''}${!r.distKm&&r.spots.length>=2?' · ⟳ Skaičiuojama...':''}</div>
         <div style="height:3px;background:var(--bdr);border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;width:${pct}%"></div></div>
       </div>
     </div>
@@ -6742,6 +6788,9 @@ function renderRouteDetailInto(r,body,routeId){
       <button onclick="setActiveRoute('${routeId}')" style="flex:1;background:${isActive?'rgba(201,168,76,.15)':'var(--surf2)'};border:1px solid ${isActive?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:${isActive?'var(--gold)':'var(--td)'};cursor:pointer">${isActive?'▶ Aktyvus':'▷ Aktyvuoti'}</button>
       <button onclick="optimizeRoute('${routeId}')" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer">⚡ Optimizuoti</button>
       <button onclick="navigateToNext()" style="flex:1;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer" ${!isActive?'disabled style="flex:1;opacity:.4;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:7px 10px;font-family:DM Sans,sans-serif;font-size:.78rem;font-weight:600;cursor:default"':''}>→ Navigacija</button>
+    </div>
+    <div style="padding:6px 14px 8px;border-bottom:1px solid var(--bdr)">
+      <button onclick="startRouteEditMode('${routeId}')" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">＋ Pridėti taškus žemėlapyje</button>
     </div>
     <div>${spotsHtml}</div>
   </div>`;
