@@ -2312,19 +2312,27 @@ function setCityFilter(city){
 
 // ═══════════ GPS ═══════════
 
+let _gpsWatchId=null;     // current watchPosition id, null when no active watch
+let _gpsCentered=false;   // map has been auto-centered on first fix (module-level so restarts don't recenter)
+let _lastFixTs=0;         // timestamp of last successful GPS fix
+let _gpsWatchdog=null;    // interval handle for stale-fix detection
+let _gpsVisBound=false;   // visibilitychange listener attached once
+
 function startGPS(){
   if(!navigator.geolocation){return;}
+  // Clear any existing watch first — prevents stacked watches on restart
+  if(_gpsWatchId!==null){
+    try{navigator.geolocation.clearWatch(_gpsWatchId);}catch(e){}
+    _gpsWatchId=null;
+  }
   const sub=document.getElementById('topSub');
   if(sub&&sub.textContent.includes('surinkta')) sub.textContent='📍 Laukiama GPS...';
-  let firstFix=true;
-  navigator.geolocation.watchPosition(pos=>{
+  _gpsWatchId=navigator.geolocation.watchPosition(pos=>{
     userLat=pos.coords.latitude;userLng=pos.coords.longitude;
+    _lastFixTs=Date.now();
     document.getElementById('gpsDot').className='gd on';
-    // Auto-detect country from GPS on every fix — switch only if clearly inside (30km border buffer)
-    const detected=detectCountryFromCoords(userLat,userLng,30);
-
-    if(firstFix){
-      firstFix=false;
+    if(!_gpsCentered){
+      _gpsCentered=true;
       map.setView([userLat,userLng],14);
       updateAll();
     }
@@ -2335,9 +2343,34 @@ function startGPS(){
     if(!wxLoaded) fetchWeather(userLat,userLng);
     checkProximity();
   },err=>{
-    // GPS denied or unavailable — show re-prompt banner
-    if(err.code===1) showGpsDeniedBanner();
-  },{enableHighAccuracy:true,maximumAge:0});
+    // code 1 = denied (no point retrying), code 2 = position unavailable, code 3 = timeout
+    if(err.code===1){ showGpsDeniedBanner(); return; }
+    // Transient failure — drop the watch and restart shortly
+    if(_gpsWatchId!==null){
+      try{navigator.geolocation.clearWatch(_gpsWatchId);}catch(e){}
+      _gpsWatchId=null;
+    }
+    setTimeout(()=>{ if(document.visibilityState==='visible') startGPS(); },3000);
+  },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+
+  // Watchdog: if visible and no fix for >25s, silently restart the watch
+  if(!_gpsWatchdog){
+    _gpsWatchdog=setInterval(()=>{
+      if(document.visibilityState!=='visible') return;
+      if(_lastFixTs && Date.now()-_lastFixTs>25000) startGPS();
+    },10000);
+  }
+  // On foreground: Android suspends watches on screen-lock/background and often won't resume.
+  // Restart if we've gone stale (or never got a fix) while away.
+  if(!_gpsVisBound){
+    _gpsVisBound=true;
+    document.addEventListener('visibilitychange',()=>{
+      if(document.visibilityState==='visible' &&
+         (_gpsWatchId===null || !_lastFixTs || Date.now()-_lastFixTs>15000)){
+        startGPS();
+      }
+    });
+  }
 }
 
 let _gpsRefreshTs=0;
