@@ -265,7 +265,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sheet-header-name{font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .sheet-close{background:var(--surf2);border:1px solid var(--bdr);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--td);flex-shrink:0;line-height:1;-webkit-user-select:none;user-select:none}
 .sheet-close:active{background:var(--surf3)}
-.sscroll{overflow-y:auto;flex:1;padding:14px 18px 100px;-webkit-overflow-scrolling:touch}
+.sscroll{overflow-y:auto;flex:1;padding:14px 18px 16px;-webkit-overflow-scrolling:touch}
 
 /* TIER BADGE IN SHEET */
 .tier-badge{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:.68rem;font-weight:500;margin-bottom:10px;border:1px solid}
@@ -315,7 +315,19 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .note-area{width:100%;background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:8px 10px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.82rem;resize:none;min-height:60px;line-height:1.5;outline:none;transition:border-color .2s}
 .note-area:focus{border-color:var(--gd)}
 .note-save{margin-top:6px;background:none;border:1px solid var(--bdr);color:var(--td);border-radius:6px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer}
-.crow{display:flex;gap:9px;align-items:center;margin-bottom:8px}
+.crow{display:flex;gap:9px;align-items:center;margin-bottom:0}
+.sheet-footer{flex-shrink:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--bdr);background:var(--surf)}
+.sheet-footer:empty{display:none}
+.route-show-btn{width:100%;background:var(--surf2);border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;margin-bottom:8px;-webkit-user-select:none;user-select:none}
+.route-show-btn:active{transform:scale(.98)}
+.route-show-btn:disabled{opacity:.6}
+.nav-banner{position:fixed;top:64px;left:12px;right:12px;z-index:520;background:var(--surf);border:1.5px solid var(--gold);border-radius:14px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.4);display:none;align-items:center;gap:12px}
+.nav-banner.show{display:flex}
+.nav-icon{font-size:26px;flex-shrink:0}
+.nav-mid{flex:1;min-width:0}
+.nav-text{font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-dist{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-top:1px}
+.nav-close{background:none;border:none;color:var(--td);font-size:18px;cursor:pointer;flex-shrink:0;line-height:1}
 .dbadge{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 11px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);text-align:center;white-space:nowrap;flex-shrink:0;min-width:72px;line-height:1.4}
 .dbadge.near{border-color:var(--green);color:var(--green)}
 .cbtn{flex:1;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:14px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.93rem;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
@@ -984,6 +996,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <button class="sheet-close" onclick="closeSheet()">✕</button>
   </div>
   <div class="sscroll" id="sheetContent"></div>
+  <div class="sheet-footer" id="sheetFooter"></div>
 </div>
 
 
@@ -1345,6 +1358,13 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     </div>
   </div>
   <button class="prox-btn" id="proxBtn" onclick="collectFromProx()">⭐ Surinkti vietą!</button>
+</div>
+
+<!-- NAV BANNER (route next-turn) -->
+<div class="nav-banner" id="navBanner">
+  <span class="nav-icon" id="navIcon">🧭</span>
+  <div class="nav-mid"><div class="nav-text" id="navText">—</div><div class="nav-dist" id="navDist"></div></div>
+  <button class="nav-close" onclick="clearRoute()" title="Užverti kelią">✕</button>
 </div>
 
 <!-- FAB (add spot) — admin only -->
@@ -1836,6 +1856,7 @@ let activeFilterHidden=new Set();
 // Keep activeFilter as alias for any legacy single-filter reads (maps to 'all' if nothing hidden)
 Object.defineProperty(window,'activeFilter',{get:()=>activeFilterHidden.size===0?'all':'multi',set:()=>{}});
 let map,userMarker,markers={},tileLayer,areaCircles={},clusterGroup=null;
+let _routeLayer=null,_routeSteps=null,_routeSpot=null;
 let pickingForEditor=false,wxOpen=false,wxLoaded=false;
 let proxSpotId=null,proxDismissedIds=new Set();
 let _proxCooldownTs=0; // global 5s cooldown after any popup shows
@@ -2485,6 +2506,8 @@ const GPS_VIEW_RADIUS=50000; // 50km — only show spots within this range when 
 
 function checkProximity(){
   if(userLat===null) return;
+  updateActiveRoute(); // Feature 6: refresh nav banner each GPS tick
+  if(document.getElementById('sheet').classList.contains('open')) return; // B1: sheet open — suppress popup
   // Lock: if a collect prompt is already active, don't switch to another spot
   if(_collectPromptActive) return;
   // Global 5s cooldown after any popup was shown
@@ -2515,7 +2538,7 @@ function checkProximity(){
       const inForce=bestDist<=r*2;
       const distEl=document.getElementById('proxDist');
       const proxBtn=document.getElementById('proxBtn');
-      if(distEl) distEl.textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
+      if(distEl) distEl.textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m`;
       if(proxBtn){
         if(inZone){proxBtn.textContent='⭐ Surinkti vietą!';proxBtn.style.opacity='1';}
         else if(inForce){proxBtn.textContent=`📍 Surinkti (GPS netikslus?)`;proxBtn.style.opacity='1';}
@@ -2530,7 +2553,7 @@ function checkProximity(){
     document.getElementById('proxName').textContent=best.cat==='hidden'?'??? Paslėpta vieta':best.name;
     const inZone=bestDist<=r;
     const inForce=bestDist<=r*2;
-    document.getElementById('proxDist').textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
+    document.getElementById('proxDist').textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m`;
     const proxBtn=document.getElementById('proxBtn');
     if(proxBtn){
       if(inZone){proxBtn.textContent='⭐ Surinkti vietą!';proxBtn.style.opacity='1';}
@@ -2566,17 +2589,6 @@ function collectFromProx(){
     const r=spotRadius(s);
     const forceR=r*2;
     if(d>forceR){toast(`📍 Per toli (${Math.round(d)}m)`,'info');return;}
-    if(d>r){
-      const btn=document.getElementById('proxBtn');
-      if(btn&&!btn.dataset.forceConfirm){
-        btn.dataset.forceConfirm='1';
-        btn.textContent='⚠️ Patvirtinti surinkimą?';
-        setTimeout(()=>{if(btn.dataset.forceConfirm){delete btn.dataset.forceConfirm;checkProximity();}},4000);
-        toast('📍 GPS netikslus? Spausk dar kartą patvirtinti.','info');
-        return;
-      }
-      if(btn) delete btn.dataset.forceConfirm;
-    }
   }
   hideProxPopup();
   selectedSpot=s;
@@ -2603,6 +2615,74 @@ function updateDist(spot){
     el.innerHTML=`${lbl}<br><span style="font-size:.6rem;color:var(--tm)">~${walkMin(d)} min.</span>`;
     el.className='dbadge';
   }
+}
+
+// ═══════════ ROUTE / NAV (OSRM, in-app) ═══════════
+function fmtDist(d){ return d<1000?`${Math.round(d)} m`:`${(d/1000).toFixed(1)} km`; }
+function maneuverLabel(step){
+  const m=step.maneuver||{}; const mod=m.modifier||'';
+  const icons={'left':'⬅️','right':'➡️','slight left':'↖️','slight right':'↗️','sharp left':'⬅️','sharp right':'➡️','straight':'⬆️','uturn':'↩️'};
+  const txt={'left':'Sukti kairėn','right':'Sukti dešinėn','slight left':'Pasukti kairiau','slight right':'Pasukti dešiniau','sharp left':'Staigiai kairėn','sharp right':'Staigiai dešinėn','straight':'Tiesiai','uturn':'Apsisukti'};
+  if(m.type==='depart') return {icon:'🧭',text:'Pradėk kelionę'};
+  if(m.type==='arrive') return {icon:'🏁',text:'Atvykai į vietą'};
+  if(m.type==='roundabout'||m.type==='rotary') return {icon:'🔄',text:'Žiede'};
+  return {icon:icons[mod]||'⬆️', text:txt[mod]||'Tęsk tiesiai'};
+}
+function clearRoute(){
+  if(_routeLayer){ try{map.removeLayer(_routeLayer);}catch(e){} _routeLayer=null; }
+  _routeSteps=null; _routeSpot=null;
+  const b=document.getElementById('navBanner'); if(b) b.classList.remove('show');
+}
+async function showRouteTo(spot){
+  if(!spot) return;
+  if(userLat===null){ toast('📍 Įjunk GPS, kad parodyčiau kelią','info'); return; }
+  clearRoute(); _routeSpot=spot;
+  const btn=document.getElementById('routeShowBtn');
+  if(btn){ btn.textContent='⏳ Skaičiuoju kelią…'; btn.disabled=true; }
+  let drewReal=false;
+  try{
+    const url=`https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${spot.lng},${spot.lat}?overview=full&geometries=geojson&steps=true`;
+    const res=await fetch(url,{signal:AbortSignal.timeout(12000)});
+    if(!res.ok) throw new Error('osrm '+res.status);
+    const data=await res.json();
+    const route=data.routes&&data.routes[0];
+    if(!route) throw new Error('no route');
+    const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+    _routeLayer=L.polyline(coords,{color:'#c9a84c',weight:5,opacity:.85,lineCap:'round',lineJoin:'round'}).addTo(map);
+    _routeSteps=(route.legs&&route.legs[0]&&route.legs[0].steps)||[];
+    drewReal=true;
+    const km=(route.distance/1000).toFixed(1), min=Math.round(route.duration/60);
+    setTimeout(()=>toast(`🧭 ${km} km · ~${min} min. važiuojant`,'success'),300);
+  }catch(e){
+    _routeLayer=L.polyline([[userLat,userLng],[spot.lat,spot.lng]],{color:'#c9a84c',weight:4,opacity:.7,dashArray:'8,8'}).addTo(map);
+    _routeSteps=null;
+    setTimeout(()=>toast('📍 Tiesi linija (maršruto serveris nepasiekiamas)','info'),300);
+  }
+  try{ _routeLayer.bringToFront(); map.fitBounds(_routeLayer.getBounds(),{padding:[60,80],maxZoom:16}); }catch(e){}
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('sback').classList.remove('open');
+  document.getElementById('navBanner').classList.add('show');
+  if(btn){ btn.textContent='🧭 Rodyk kelią'; btn.disabled=false; }
+  updateActiveRoute();
+}
+function updateActiveRoute(){
+  if(!_routeLayer||!_routeSpot||userLat===null) return;
+  const banner=document.getElementById('navBanner'); if(!banner) return;
+  const ic=banner.querySelector('#navIcon'), tx=banner.querySelector('#navText'), ds=banner.querySelector('#navDist');
+  const dDest=dist(userLat,userLng,_routeSpot.lat,_routeSpot.lng);
+  if(dDest<=spotRadius(_routeSpot)){ ic.textContent='🏁'; tx.textContent='Atvykai į vietą!'; ds.textContent=''; return; }
+  if(_routeSteps&&_routeSteps.length){
+    let best=null,bestD=Infinity;
+    for(const st of _routeSteps){
+      const mt=st.maneuver&&st.maneuver.type;
+      if(mt==='depart'||mt==='arrive') continue;
+      const loc=st.maneuver&&st.maneuver.location; if(!loc) continue;
+      const d=dist(userLat,userLng,loc[1],loc[0]);
+      if(d<bestD){ bestD=d; best=st; }
+    }
+    if(best){ const lab=maneuverLabel(best); ic.textContent=lab.icon; tx.textContent=lab.text; ds.textContent=`po ${fmtDist(bestD)}`; return; }
+  }
+  ic.textContent='🧭'; tx.textContent=_routeSpot.name||'Vieta'; ds.textContent=`liko ${fmtDist(dDest)}`;
 }
 
 // ═══════════ WEATHER ═══════════
@@ -2883,16 +2963,15 @@ function openSheet(spot){
       ${histHtml}
       ${isF?`<div class="note-box"><div class="note-t">📝 Mano pastaba</div><textarea class="note-area" id="noteArea" placeholder="Pridėk savo įspūdžius...">${notes[spot.id]||''}</textarea><button class="note-save" onclick="saveNote()">Išsaugoti</button></div>`:''}
       ${spot.kpdUrl?`<a href="${spot.kpdUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);text-decoration:none;margin-bottom:6px;opacity:.85">📖 KPD registras ↗</a>`:''}
-      <div class="area-hint">📡 Surinkimo zona: ${r}m spinduliu nuo vietos</div>
-      <div class="crow">
-        <div class="dbadge" id="distBadge">—</div>
-        <button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button>
-        <button class="editbtn" id="favBtn" onclick="toggleFavorite()" title="Mėgstamiausi" style="font-size:18px;padding:10px 12px">${favorites.has(String(spot.id))||favorites.has(spot.id)?'♥':'♡'}</button>
-        ${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
-      </div>
     `;
   }
 
+  const _footer=document.getElementById('sheetFooter');
+  if(_footer){
+    _footer.innerHTML = locked ? '' : `<button class="route-show-btn" id="routeShowBtn" onclick="showRouteTo(selectedSpot)">🧭 Rodyk kelią</button><div class="crow"><div class="dbadge" id="distBadge">—</div><button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button><button class="editbtn" id="favBtn" onclick="toggleFavorite()" title="Mėgstamiausi" style="font-size:18px;padding:10px 12px">${favorites.has(String(spot.id))||favorites.has(spot.id)?'♥':'♡'}</button>${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}</div>`;
+  }
+  hideProxPopup();   // B1: don't let the proximity popup cover the footer
+  clearRoute();      // clear any prior route line when opening a new spot
   updateDist(spot);
   updateCollectBtn(spot);
   map.panTo([spot.lat,spot.lng]);
@@ -2931,7 +3010,7 @@ function updateCollectBtn(spot){
     btn.textContent=`📍 Surinkti (GPS netikslus? ${lbl})`;btn.className='cbtn gps-force';
   } else {
     const lbl=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
-    btn.textContent=`📍 Prieik arčiau (zona: ${r}m)`;btn.className='cbtn gps-wait';
+    btn.textContent=`📍 Prieik arčiau`;btn.className='cbtn gps-wait';
   }
 }
 
@@ -2968,21 +3047,9 @@ function collectCurrent(){
   const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
     const r=spotRadius(selectedSpot);
     const FORCE_RADIUS=r*2;
-    if(d>r&&d<=FORCE_RADIUS){
-      // Show force-collect confirmation
-      const btn=document.getElementById('collectBtn');
-      if(btn&&!btn.dataset.forceConfirm){
-        btn.dataset.forceConfirm='1';
-        btn.textContent=`⚠️ Patvirtinti (${Math.round(d)}m nuo vietos)`;
-        btn.className='cbtn gps-force';
-        setTimeout(()=>{if(btn.dataset.forceConfirm){delete btn.dataset.forceConfirm;updateCollectBtn(selectedSpot);}},4000);
-        toast('📍 GPS gali būti netikslus. Spausk dar kartą patvirtinti.','info');
-        return;
-      }
-      if(btn) delete btn.dataset.forceConfirm;
-    } else if(d>r){
+    if(d>FORCE_RADIUS){
       const lbl=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
-      toast(`📍 Per toli! Zona: ${r}m (tu: ${lbl})`,'info');
+      toast(`📍 Per toli (${lbl})`,'info');
       return;
     }
   const prevPlayerLevel=getPlayerLevel(totalXP);
@@ -3055,9 +3122,7 @@ function showLevelUpOverlay(newLevel,newSpotsCount){
   document.getElementById('unlockStars').textContent=lv.icon;
   document.getElementById('unlockIcon').textContent='🗺';
   document.getElementById('unlockTitle').textContent=`Lygis ${newLevel} — ${lv.name}!`;
-  document.getElementById('unlockSub').innerHTML=newSpotsCount>0
-    ?`<span style="color:var(--gold);font-size:1.1rem;font-weight:700">+${newSpotsCount}</span> naujų vietų atsirado žemėlapyje visoje Lietuvoje!`
-    :'Sveikiname su nauju lygiu!';
+  document.getElementById('unlockSub').innerHTML='🎉 Sveikiname! Pasiekei naują lygį!';
   document.getElementById('unlockPicker').style.display='none';
   document.getElementById('unlockCloseBtn').style.display='block';
   el.classList.add('show');
@@ -3166,7 +3231,6 @@ function renderAboutMe(){
       <div style="height:6px;background:var(--bdr);border-radius:3px;overflow:hidden">
         <div style="height:100%;width:${Math.round(found.size/Math.max(1,SPOTS.filter(s=>isSpotVisible(s)&&s.cat!=='hidden').length)*100)}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:3px;transition:width .5s"></div>
       </div>
-      <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td);margin-top:5px">Kitas lygis atrakina dar ${SPOTS.filter(s=>getSpotLevel(s)===lv.level+1).length} naujų vietų</div>
     </div>
     <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px">
       <div style="display:flex;justify-content:space-between;margin-bottom:5px">
