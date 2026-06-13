@@ -573,6 +573,18 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sb-tip{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:8px 16px;text-align:center}
 .sb-btn{background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
 
+/* ── INTRO OVERLAY ── */
+.intro-overlay{position:fixed;inset:0;z-index:2000;background:rgba(14,12,9,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;animation:fadeIn .5s}
+.intro-overlay.hidden{display:none}
+.intro-glyph{font-size:64px;animation:pop .6s cubic-bezier(.34,1.56,.64,1)}
+.intro-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--gold);text-align:center;line-height:1.2}
+.intro-sub{font-size:.95rem;color:var(--td);text-align:center;max-width:280px;line-height:1.7}
+.intro-city{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--tm);text-align:center;letter-spacing:.1em;text-transform:uppercase}
+.intro-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:14px;padding:14px 36px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;margin-top:8px;transition:transform .15s}
+.intro-btn:active{transform:scale(.96)}
+.intro-dots{display:flex;gap:6px;margin-top:4px}
+.intro-dot{width:7px;height:7px;border-radius:50%;background:var(--tm)}
+.intro-dot.on{background:var(--gold)}
 
 /* ── MOBILE FILTER BUTTON + SHEET ── */
 .mob-filter-btn{display:none;position:fixed;bottom:90px;left:16px;z-index:190;background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:8px 16px;box-shadow:0 2px 16px var(--sh);cursor:pointer;font-size:.75rem;font-family:'DM Mono',monospace;color:var(--td);gap:6px;align-items:center;-webkit-user-select:none;user-select:none}
@@ -724,7 +736,11 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .osm-ctrl-btn{flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--txt);cursor:pointer;transition:all .2s;min-width:120px;text-align:center}
 .osm-ctrl-btn:active{background:var(--surf3)}
 .osm-ctrl-btn.pri{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
-
+.country-sw-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:6px 12px;font-size:.75rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;-webkit-user-select:none;user-select:none;transition:background .15s,color .15s;flex:1;text-align:center}
+.country-sw-btn.on{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
+.country-sw-btn:active{opacity:.75}
+.drawer-country-row{display:none}
+.drawer-country-label{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--tm);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
 .osm-ctrl-btn:disabled{opacity:.4;cursor:default}
 .osm-filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .osm-fchip{background:var(--surf2);border:1px solid var(--bdr);border-radius:20px;padding:4px 10px;font-size:.68rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
@@ -805,6 +821,18 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .lb-login-prompt .lp-icon{font-size:2rem;margin-bottom:8px}
 .lb-login-prompt .lp-text{font-size:.82rem;color:var(--td);margin-bottom:12px;line-height:1.6}
 /* ── USERNAME PROMPT MODAL ── */
+.uname-overlay{position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:20px}
+.uname-overlay.show{display:flex;animation:fadeIn .25s}
+.uname-sheet{background:var(--surf);border-radius:20px;padding:32px 24px 24px;width:100%;max-width:340px;box-shadow:0 8px 40px var(--sh);text-align:center}
+.uname-glyph{font-size:48px;margin-bottom:12px}
+.uname-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--txt);margin-bottom:6px}
+.uname-sub{font-size:.82rem;color:var(--td);margin-bottom:20px;line-height:1.55}
+.uname-input{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;margin-bottom:12px;transition:border-color .2s;text-align:center}
+.uname-input:focus{border-color:var(--gold)}
+.uname-input::placeholder{color:var(--tm)}
+.uname-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer}
+.uname-btn:active{opacity:.85}
+.uname-skip{margin-top:10px;font-size:.75rem;color:var(--td);cursor:pointer;text-decoration:underline}
 /* ── SUGGESTION MODAL ── */
 .suggest-overlay{position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center}
 .suggest-overlay.show{display:flex;animation:fadeIn .25s}
@@ -835,11 +863,31 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sug-reject{flex:1;background:var(--surf3);border:1px solid var(--bdr);color:var(--td);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer}
 
 /* ── ONBOARDING ── */
+.ob-overlay{position:fixed;inset:0;z-index:3000;background:#0e0c09;display:flex;align-items:center;justify-content:center;padding:24px}
+.ob-card{width:100%;max-width:360px;text-align:center}
+.ob-dots{display:flex;justify-content:center;gap:6px;margin-bottom:28px}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--bdr);transition:background .3s}
+.ob-dot.on{background:var(--gold)}
+.ob-icon{font-size:3.5rem;margin-bottom:16px}
+.ob-title{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--gold);margin-bottom:10px}
+.ob-text{font-size:.88rem;color:var(--td);line-height:1.65;margin-bottom:32px}
+.ob-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:14px;padding:14px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:12px}
+.ob-skip{font-size:.75rem;color:var(--tm);cursor:pointer;padding:4px}
 </style>
 </head>
 <body>
 
 <!-- USERNAME PROMPT MODAL -->
+<div class="uname-overlay" id="unameOverlay">
+  <div class="uname-sheet">
+    <div class="uname-glyph">🧭</div>
+    <div class="uname-title">Kaip tave vadinti?</div>
+    <div class="uname-sub">Tavo vardas bus matomas žemėlapyje ir lyderių lentelėje.</div>
+    <input class="uname-input" id="unameInput" maxlength="24" placeholder="Tavo vardas...">
+    <button class="uname-btn" onclick="submitUsername()">Pradėti tyrinėti →</button>
+    <div class="uname-skip" onclick="skipUsername()">Praleisti</div>
+  </div>
+</div>
 
 <!-- SUGGEST SPOT MODAL -->
 <div class="suggest-overlay" id="suggestOverlay">
@@ -990,9 +1038,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dnav-main-item" onclick="openSubPanel('zenklai')">
         <span class="dnmi-icon">🏅</span><span class="dnmi-label">Ženkleliai</span><span class="dnmi-arrow">›</span>
       </div>
-      <div class="dnav-main-item" onclick="openSubPanel('routes')">
-        <span class="dnmi-icon">🗺</span><span class="dnmi-label">Maršrutai</span>
-        <span class="dnav-badge" id="routesBadge" style="display:none;background:#c9a84c">0</span>
+      <div class="dnav-main-item" onclick="openSubPanel('favs')">
+        <span class="dnmi-icon">♥</span><span class="dnmi-label">Mėgstamiausi</span>
+        <span class="dnav-badge" id="favsBadge" style="display:none;background:#c9a84c">0</span>
         <span class="dnmi-arrow">›</span>
       </div>
       <div class="dnav-main-item" onclick="openSubPanel('social')">
@@ -1018,7 +1066,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <div onclick="rebuildKVCache()" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔄 Atnaujinti KV talpyklą</div>
         <div onclick="exportSpotsCSV()" id="csvExportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">📥 Eksportuoti CSV</div>
         <label id="csvImportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(201,168,76,.12);border:1px solid var(--gold);color:var(--gold);font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:8px">📤 Importuoti CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importSpotsCSV(this)"></label>
-        <div onclick="openAbandonedCleanup()" style="padding:9px 12px;border-radius:8px;background:rgba(180,60,60,.12);border:1px solid #c05050;color:#e07070;font-size:.78rem;cursor:pointer;margin-top:6px;display:flex;align-items:center;gap:8px">🧹 Valyti: apleistos už LT ribų</div>
       </div>
     </div>
     <div class="drawer-bottom" style="flex-shrink:0">
@@ -1028,7 +1075,13 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dbot-btn" id="drawerSuggestionsBtn" onclick="openSubPanel('suggestions')" style="display:none">📬 Siūlymai</div>
       <div id="kvRebuildBtn" style="display:none"></div>
     </div>
-
+    <div class="drawer-country-row">
+      <div class="drawer-country-label">Šalis / Country</div>
+      <div style="display:flex;gap:6px">
+        <div class="country-sw-btn on" data-country="LT" onclick="switchCountry('LT')">🇱🇹 Lietuva</div>
+        <div class="country-sw-btn" data-country="PL" onclick="switchCountry('PL')">🇵🇱 Polska</div>
+      </div>
+    </div>
     <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v24.03</div>
   </div>
 
@@ -1041,7 +1094,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="drawer-sub-body" id="drawerSubBody">
       <div class="panel-section" id="panel-aboutme"></div>
       <div class="panel-section" id="panel-vietos"></div>
-      <div class="panel-section" id="panel-routes"></div>
       <div class="panel-section" id="panel-favs"></div>
       <div class="panel-section" id="panel-zenklai"></div>
       <div class="panel-section" id="panel-social"></div>
@@ -1154,6 +1206,21 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 
 <!-- INTRO OVERLAY -->
+<div class="intro-overlay hidden" id="introOverlay">
+  <div class="intro-glyph">🗺</div>
+  <div class="intro-title">Labas, Seeker'i! 👋<br>Sveiki į SpotSeekers</div>
+  <div class="intro-sub">Tyrinėk Lietuvą, rink vietas ir tapk tikru Seeker'iu.</div>
+  <div class="intro-city" id="introCityLabel">📍 Lietuva</div>
+  <div class="intro-dots">
+    <div class="intro-dot on" id="introD0"></div>
+    <div class="intro-dot" id="introD1"></div>
+    <div class="intro-dot" id="introD2"></div>
+    <div class="intro-dot" id="introD3"></div>
+    <div class="intro-dot" id="introD4"></div>
+    <div class="intro-dot" id="introD5"></div>
+  </div>
+  <button class="intro-btn" id="introBtn" onclick="introNext()">Pradėti tyrinėti →</button>
+</div>
 
 <!-- MOBILE FILTER BUTTON -->
 <div class="mob-filter-btn" id="mobFilterBtn" onclick="openMobFilterSheet()">
@@ -1170,8 +1237,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     </div>
     <div class="mob-filter-chips">
       <div class="mob-filter-chip on" data-cat="all" onclick="mobSetFilter('all')">🗺 Rodyti viską</div>
-      <div class="mob-filter-chip" id="mobHideAllChip" onclick="mobHideAll()">⬜ Slėpti viską</div>
-      <div class="mob-filter-chip" id="routeFilterChip" onclick="toggleRouteFilter()">📍 Maršrutas</div>
     </div>
     <div id="mobFilterGroups"></div>
   </div>
@@ -1349,8 +1414,6 @@ const CATS={
   // — Urban / City —
   mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
-  // — Abandoned —
-  abandoned:{label:'Griuvėsiai',emoji:'🏚',color:'#6a5a4a'},
   // — Hidden —
   hidden:{label:'Paslėpta',emoji:'🔮',color:'#6a3a8a'},
 };
@@ -1359,7 +1422,6 @@ const FILTER_GROUPS=[
   {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['church','monument','mound','fort','museum','history','cemetery']},
   {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint','bridge','trail']},
   {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower']},
-  {id:'urbex',label:'Griuvėsiai',emoji:'🏚',cats:['abandoned']},
 ];
 
 // TIER_CONFIG kept for display labels only — unlock logic replaced by player level system
@@ -1385,7 +1447,6 @@ const CAT_DEFAULT_RADIUS={
   nature:150,
   mound:160,
   cemetery:220,
-  abandoned:120,
 };
 
 const DEFAULT_SPOTS=[]; // removed — KV/Firestore is always populated
@@ -1422,12 +1483,6 @@ const BADGE_GROUPS=[
     {id:'h2',name:'Praeities balsas',desc:'Aplankyk 10 istorinių vietų',icon:'⚔️',need:10,xpReward:20},
     {id:'h3',name:'Laikų Mašina',desc:'Aplankyk 25 istorinių vietų',icon:'⏳',need:25,xpReward:20},
     {id:'h4',name:'Gyvas Istorijos Vadovėlis',desc:'Aplankyk 50 istorinių vietų',icon:'💎',need:50,xpReward:50},
-  ]},
-  {id:'abandoned',title:'Urbex tyrinėtojas',icon:'🏚',cat:'abandoned',sub:true,badges:[
-    {id:'ab1',name:'Pirmas griuvėsis',desc:'Aplankyk 1 apleistą vietą',icon:'🏚',need:1,xpReward:15},
-    {id:'ab2',name:'Urbex pradedantysis',desc:'Aplankyk 5 apleistas vietas',icon:'🔦',need:5,xpReward:30},
-    {id:'ab3',name:'Griuvėsių tyrinėtojas',desc:'Aplankyk 15 apleistų vietų',icon:'🗺',need:15,xpReward:60},
-    {id:'ab4',name:'Urbex meistras',desc:'Aplankyk 30 apleistų vietų',icon:'💎',need:30,xpReward:120},
   ]},
   {id:'watertowers',title:'Vandens bokštų medžiotojas',icon:'🗼',cat:'watertower',sub:true,badges:[
     {id:'wt1',name:'Pirmas bokštas',desc:'Aplankyk 1 vandens bokštą',icon:'🗼',need:1,xpReward:10},
@@ -1728,32 +1783,52 @@ function getSpotLevel(spot){
 }
 function isSpotVisible(spot){
   if(spot.cat==='hidden') return false;
-  if(isAdmin()) return true;
-  return getSpotLevel(spot)<=getPlayerLevel(totalXP);
+  return true; // level-gating disabled — all spots unlocked from Lv.1
 }
 
 // ═══════════ STREAK MILESTONES ═══════════
 const STREAK_MILES=[
   {day:3,reward:25,label:'3d.',desc:'+25 XP',icon:'⚡'},
   {day:5,reward:50,label:'5d.',desc:'+50 XP',icon:'🔥'},
-  {day:7,reward:100,label:'7d.',desc:'+100 XP',icon:'💎'},
+  {day:7,reward:100,label:'7d.',desc:'+100 XP + vieta',icon:'💎',unlocksHidden:true},
   {day:14,reward:200,label:'14d.',desc:'+200 XP',icon:'🏆'},
   {day:30,reward:500,label:'30d.',desc:'+500 XP',icon:'👑'},
 ];
+const STREAK_HIDDEN_SPOT={id:99,name:'Napoleono tiltas',cat:'history',tier:1,year:'1812',time:'20 min.',price:'Nemokama',radius:100,bring:['Smalsumą'],history:'Vieta kur 1812 m. Napoleono didžioji armija kirto Nemuną žygiuodama į Rusiją. Šiandien – tik atmintis ir vaizdas. Ši vieta atsiveria tik ištvermingiems tyrinėtojams.',lat:54.9012,lng:23.9108,tag:'Slaptoji'};
+
+// ═══════════ COUNTRY CONFIG ═══════════
+
+const COUNTRY_CONFIG = {
+  LT: {
+    name: 'Lietuva', flag: '🇱🇹',
+    bounds: { minLat: 53.8, maxLat: 56.5, minLng: 20.9, maxLng: 26.9 },
+    center: [55.17, 23.88], zoom: 7
+  },
+  PL: {
+    name: 'Polska', flag: '🇵🇱',
+    bounds: { minLat: 49.0, maxLat: 54.9, minLng: 14.1, maxLng: 24.2 },
+    center: [52.07, 19.48], zoom: 6
+  }
+};
+
+function detectCountryFromCoords(lat, lng, borderBufferKm=0) {
+  // Convert km buffer to rough degrees (1 deg lat ≈ 111km)
+  const buf = borderBufferKm / 111;
+  for (const [code, cfg] of Object.entries(COUNTRY_CONFIG)) {
+    const b = cfg.bounds;
+    if (lat >= b.minLat+buf && lat <= b.maxLat-buf && lng >= b.minLng+buf && lng <= b.maxLng-buf) return code;
+  }
+  return null; // null = in border zone, don't switch
+}
 
 // ═══════════ STATE ═══════════
 
 let SPOTS=[...DEFAULT_SPOTS];
-let found=new Set();
+let activeCountry=localStorage.getItem('ke7_country')||'LT';
+let foundByCountry={LT:new Set(),PL:new Set()};
+let found=foundByCountry[activeCountry];
 let streak=0,lastDate=null,notes={},earnedBadges=new Set();
-let favorites=new Set(); // kept for legacy compat — not used in UI
-// ── Routes state ──
-let routes=[]; // [{id,name,spots:[spotId,...],created,distKm,durationMin}]
-let activeRouteId=null;
-let routeFilterActive=false;
-let _routePolyline=null;
-let _routeEditMode=false;
-let _routeEditRouteId=null;
+let favorites=new Set(); // spot ids
 let selectedSpot=null,userLat=null,userLng=null;
 let isDark=false;
 // Filter: Set of HIDDEN category ids. Empty = show all. Toggle-off model.
@@ -1787,7 +1862,9 @@ function getGuestId(){
 function getMyUid(){return window._fbUser?window._fbUser.uid:getGuestId();}
 // Level tracking
 let prevLevel=1;
-let claimedStreakMiles=new Set(); // tracks which streak milestone days have been awarded
+let streakRewards=new Set();
+let hiddenSpotUnlocked=false;
+let oldStreak=0;
 // Suggest state
 let nextSuggestId=null;
 let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
@@ -1831,17 +1908,46 @@ function catsForTier(tier){
 }
 
 // Spot collection radius — 0.85× across the board (tighter zones, especially in dense cities)
-// Hidden spots: fixed 80m, no multiplier (GPS unreliable near unusual locations)
 function spotRadius(spot){
-  if(spot.cat==='hidden') return 80;
   return Math.round((spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS) * 0.85);
+}
+
+// ═══════════ COUNTRY SWITCHING ═══════════
+
+async function switchCountry(code, flyTo=true){
+  if(code===activeCountry) return;
+  activeCountry=code;
+  found=foundByCountry[code];
+  localStorage.setItem('ke7_country',code);
+  activeCity='all';
+  _spotLevelMap=null;
+  updateCountrySwitcherUI();
+  SPOTS=[];
+  refreshMarkers();
+  await fbLoadSpots();
+  if(flyTo){
+    const cfg=COUNTRY_CONFIG[code];
+    if(cfg&&map) map.flyTo(cfg.center,cfg.zoom,{duration:1.4});
+  }
+  const cfg=COUNTRY_CONFIG[code];
+  if(cfg) toast(`${cfg.flag} ${cfg.name}`,'info');
+  updateAll();
+}
+
+function updateCountrySwitcherUI(){
+  document.querySelectorAll('.country-sw-btn').forEach(btn=>{
+    btn.classList.toggle('on',btn.dataset.country===activeCountry);
+  });
+  const lbl=document.getElementById('introCityLabel');
+  if(lbl){const c=COUNTRY_CONFIG[activeCountry];lbl.textContent=`${c.flag} ${c.name}`;}
 }
 
 // ═══════════ PERSIST ═══════════
 
 function save(){
   localStorage.setItem('ke7_spots',JSON.stringify(SPOTS));
-  localStorage.setItem('ke7_found',JSON.stringify({LT:[...found]}));
+  localStorage.setItem('ke7_found',JSON.stringify({LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]}));
+  localStorage.setItem('ke7_country',activeCountry);
   localStorage.setItem('ke7_streak',streak);
   localStorage.setItem('ke7_lastDate',lastDate||'');
   localStorage.setItem('ke7_notes',JSON.stringify(notes));
@@ -1851,8 +1957,10 @@ function save(){
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
-  localStorage.setItem('ke7_sm',JSON.stringify([...claimedStreakMiles]));
-  // routes saved separately via saveRoutes()
+  localStorage.setItem('ke7_sr',JSON.stringify([...streakRewards]));
+  localStorage.setItem('ke7_hspot',hiddenSpotUnlocked?'1':'0');
+  localStorage.setItem('ke7_os',oldStreak);
+  localStorage.setItem('ke7_favs',JSON.stringify([...favorites]));
 }
 
 function load(){
@@ -1861,10 +1969,12 @@ function load(){
   if(_fraw){
     try{
       const _fp=JSON.parse(_fraw);
-      if(Array.isArray(_fp)){found=new Set(_fp);}// migrate old flat format
-      else if(_fp.LT){found=new Set(_fp.LT);}// current {LT:[]} format
+      if(Array.isArray(_fp)){foundByCountry.LT=new Set(_fp);}// migrate old format
+      else{if(_fp.LT)foundByCountry.LT=new Set(_fp.LT);if(_fp.PL)foundByCountry.PL=new Set(_fp.PL);}
     }catch(e){}
   }
+  activeCountry=localStorage.getItem('ke7_country')||activeCountry;
+  found=foundByCountry[activeCountry];
   streak=parseInt(localStorage.getItem('ke7_streak')||'0');
   lastDate=localStorage.getItem('ke7_lastDate')||null;
   const n=localStorage.getItem('ke7_notes');notes=n?JSON.parse(n):{};
@@ -1874,12 +1984,16 @@ function load(){
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
   dailyQuestDone=localStorage.getItem('ke7_dqdone')==='1';
-  const sm=localStorage.getItem('ke7_sm');claimedStreakMiles=sm?new Set(JSON.parse(sm)):new Set();
-  loadRoutes();
+  const sr=localStorage.getItem('ke7_sr');streakRewards=sr?new Set(JSON.parse(sr)):new Set();
+  hiddenSpotUnlocked=localStorage.getItem('ke7_hspot')==='1';
+  oldStreak=parseInt(localStorage.getItem('ke7_os')||'0');
+  const fv=localStorage.getItem('ke7_favs');favorites=fv?new Set(JSON.parse(fv)):new Set();
   prevLevel=getLevel(totalXP).level;
   // Reset daily quest if new day
   const today=new Date().toDateString();
   if(dailyQuestDate!==today){dailyQuestDone=false;dailyQuestDate=today;}
+  // Restore hidden spot if earned
+  if(hiddenSpotUnlocked&&!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});}
   // Clear any stale spots from localStorage
   localStorage.removeItem('ke7_spots');
   checkStreakBreakOnLoad();
@@ -2088,22 +2202,18 @@ function makeIcon(spot){
   const isF=found.has(spot.id);
   const tc=TIER_CONFIG[spot.tier||1];
 
+  // Locked spots are invisible — admin only reaches this branch
   if(locked){
     return L.divIcon({className:'',html:'<div style="width:8px;height:8px;border-radius:50%;background:var(--tm);opacity:.3"></div>',iconSize:[8,8],iconAnchor:[4,4]});
   }
 
-  // In route edit mode: highlight spots already in the route with gold
-  const editRouteId=_routeEditMode?_routeEditRouteId:null;
-  const inRoute=editRouteId&&routes.find(r=>r.id===editRouteId)?.spots.includes(String(spot.id));
-
   const bg=isF?cat.color:(isDark?'#1a1710':'#fff');
-  const bd=inRoute?'#c9a84c':(isF?cat.color:(isDark?tc.color:'#bbb'));
-  const outerGlow=inRoute?`0 0 0 2px #0e0c09,0 0 0 4px #c9a84c,0 3px 12px rgba(201,168,76,.5)`:
-    `box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${tc.color},0 3px 10px rgba(0,0,0,.4)`;
+  const bd=isF?cat.color:(isDark?tc.color:'#bbb');
+  const ring=`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${tc.color},0 3px 10px rgba(0,0,0,.4)`;
 
   return L.divIcon({
     className:'',
-    html:`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:${outerGlow}">${inRoute?`<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;background:#c9a84c;border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;color:#0e0c09;font-weight:700">✓</span>`:''}${cat.emoji}</div>`,
+    html:`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;${ring}">${cat.emoji}</div>`,
     iconSize:[36,36],iconAnchor:[18,18],
   });
 }
@@ -2160,7 +2270,6 @@ function renderViewportMarkers(){
     const show=activeFilterHidden.size===0||!activeFilterHidden.has(s.cat);
     if(!show) return;
     if(activeCity!=='all'&&!spotInCity(s,activeCity)) return;
-    if(routeFilterActive&&activeRouteId){const ar=getActiveRoute();if(ar&&!ar.spots.includes(String(s.id))) return;}
     if(!bounds.contains([s.lat,s.lng])) return;
     if(!markers[s.id]){
       const m=L.marker([s.lat,s.lng],{icon:makeIcon(s)});
@@ -2278,7 +2387,7 @@ function showCityFilterSheet(){
     return SPOTS.some(s=>s.cat!=='hidden'&&s.lat>=b.sw[0]&&s.lat<=b.ne[0]&&s.lng>=b.sw[1]&&s.lng<=b.ne[1]);
   }).sort();
   el.innerHTML=`
-    <div class="fcap ${activeCity==='all'?'on':''}" onclick="setCityFilter('all')">🇱🇹 Visos</div>
+    <div class="fcap ${activeCity==='all'?'on':''}" onclick="setCityFilter('all')">${COUNTRY_CONFIG[activeCountry].flag} Visos</div>
     ${citiesWithSpots.map(c=>`<div class="fcap ${activeCity===c?'on':''}" onclick="setCityFilter('${c}')">${c}</div>`).join('')}
   `;
   el.style.display='flex';
@@ -2312,27 +2421,19 @@ function setCityFilter(city){
 
 // ═══════════ GPS ═══════════
 
-let _gpsWatchId=null;     // current watchPosition id, null when no active watch
-let _gpsCentered=false;   // map has been auto-centered on first fix (module-level so restarts don't recenter)
-let _lastFixTs=0;         // timestamp of last successful GPS fix
-let _gpsWatchdog=null;    // interval handle for stale-fix detection
-let _gpsVisBound=false;   // visibilitychange listener attached once
-
 function startGPS(){
   if(!navigator.geolocation){return;}
-  // Clear any existing watch first — prevents stacked watches on restart
-  if(_gpsWatchId!==null){
-    try{navigator.geolocation.clearWatch(_gpsWatchId);}catch(e){}
-    _gpsWatchId=null;
-  }
   const sub=document.getElementById('topSub');
   if(sub&&sub.textContent.includes('surinkta')) sub.textContent='📍 Laukiama GPS...';
-  _gpsWatchId=navigator.geolocation.watchPosition(pos=>{
+  let firstFix=true;
+  navigator.geolocation.watchPosition(pos=>{
     userLat=pos.coords.latitude;userLng=pos.coords.longitude;
-    _lastFixTs=Date.now();
     document.getElementById('gpsDot').className='gd on';
-    if(!_gpsCentered){
-      _gpsCentered=true;
+    // Auto-detect country from GPS on every fix — switch only if clearly inside (30km border buffer)
+    const detected=detectCountryFromCoords(userLat,userLng,30);
+    if(detected&&detected!==activeCountry) switchCountry(detected,false);
+    if(firstFix){
+      firstFix=false;
       map.setView([userLat,userLng],14);
       updateAll();
     }
@@ -2343,34 +2444,9 @@ function startGPS(){
     if(!wxLoaded) fetchWeather(userLat,userLng);
     checkProximity();
   },err=>{
-    // code 1 = denied (no point retrying), code 2 = position unavailable, code 3 = timeout
-    if(err.code===1){ showGpsDeniedBanner(); return; }
-    // Transient failure — drop the watch and restart shortly
-    if(_gpsWatchId!==null){
-      try{navigator.geolocation.clearWatch(_gpsWatchId);}catch(e){}
-      _gpsWatchId=null;
-    }
-    setTimeout(()=>{ if(document.visibilityState==='visible') startGPS(); },3000);
-  },{enableHighAccuracy:true,maximumAge:0,timeout:20000});
-
-  // Watchdog: if visible and no fix for >25s, silently restart the watch
-  if(!_gpsWatchdog){
-    _gpsWatchdog=setInterval(()=>{
-      if(document.visibilityState!=='visible') return;
-      if(_lastFixTs && Date.now()-_lastFixTs>25000) startGPS();
-    },10000);
-  }
-  // On foreground: Android suspends watches on screen-lock/background and often won't resume.
-  // Restart if we've gone stale (or never got a fix) while away.
-  if(!_gpsVisBound){
-    _gpsVisBound=true;
-    document.addEventListener('visibilitychange',()=>{
-      if(document.visibilityState==='visible' &&
-         (_gpsWatchId===null || !_lastFixTs || Date.now()-_lastFixTs>15000)){
-        startGPS();
-      }
-    });
-  }
+    // GPS denied or unavailable — show re-prompt banner
+    if(err.code===1) showGpsDeniedBanner();
+  },{enableHighAccuracy:true,maximumAge:5000});
 }
 
 let _gpsRefreshTs=0;
@@ -2436,7 +2512,7 @@ function checkProximity(){
       // Update distance display live
       const r=spotRadius(best);
       const inZone=bestDist<=r;
-      const inForce=bestDist<=(best.cat==='hidden'?200:r*2);
+      const inForce=bestDist<=r*2;
       const distEl=document.getElementById('proxDist');
       const proxBtn=document.getElementById('proxBtn');
       if(distEl) distEl.textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
@@ -2453,7 +2529,7 @@ function checkProximity(){
     document.getElementById('proxEmoji').textContent=best.cat==='hidden'?'🔮':cat.emoji;
     document.getElementById('proxName').textContent=best.cat==='hidden'?'??? Paslėpta vieta':best.name;
     const inZone=bestDist<=r;
-    const inForce=bestDist<=(best.cat==='hidden'?200:r*2);
+    const inForce=bestDist<=r*2;
     document.getElementById('proxDist').textContent=inZone?`📍 Tu zonoje! Gali surinkti`:`📍 ${Math.round(bestDist)}m (zona: ${r}m)`;
     const proxBtn=document.getElementById('proxBtn');
     if(proxBtn){
@@ -2488,7 +2564,7 @@ function collectFromProx(){
   if(userLat!==null){
     const d=dist(userLat,userLng,s.lat,s.lng);
     const r=spotRadius(s);
-    const forceR=s.cat==='hidden'?200:r*2;
+    const forceR=r*2;
     if(d>forceR){toast(`📍 Per toli (${Math.round(d)}m)`,'info');return;}
     if(d>r){
       const btn=document.getElementById('proxBtn');
@@ -2585,8 +2661,7 @@ function closeDrawer(){
 const PANEL_TITLES={
   aboutme:'🧭 Mano pažanga',
   vietos:'📋 Vietos',
-  routes:'🗺 Maršrutai',
-  favs:'🗺 Maršrutai',
+  favs:'♥ Mėgstamiausi',
   zenklai:'🏅 Ženkleliai',
   social:'👥 Draugai',
   osm:'🗺 OSM Import',
@@ -2596,14 +2671,14 @@ const PANEL_TITLES={
 };
 
 function openSubPanel(name){
-  ['aboutme','vietos','routes','favs','zenklai','social','osm','reviews','suggestions','mysuggestions'].forEach(p=>{
-    document.getElementById('panel-'+p)?.classList.toggle('active',p===name);
+  ['aboutme','vietos','favs','zenklai','social','osm','reviews','suggestions','mysuggestions'].forEach(p=>{
+    document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
   document.getElementById('drawerSubPanel').classList.add('open');
   if(name==='aboutme') renderAboutMe();
   if(name==='vietos') renderList();
-  if(name==='routes'||name==='favs') renderRoutes();
+  if(name==='favs') renderFavorites();
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
   if(name==='osm') renderOsmImport();
@@ -2629,7 +2704,7 @@ function switchDrawerPanel(name){openSubPanel(name);}
 function renderCurrentPanel(name){if(name) openSubPanel(name);}
 
 function updateDrawerHeader(){
-  document.getElementById('drawerSub').textContent=`🇱🇹 ${found.size} / ${SPOTS.length} · ${getLevel(totalXP).icon} Lv.${getLevel(totalXP).level} · ⭐ ${totalXP} XP`;
+  document.getElementById('drawerSub').textContent=`${COUNTRY_CONFIG[activeCountry].flag} ${found.size} / ${SPOTS.length} · ${getLevel(totalXP).icon} Lv.${getLevel(totalXP).level} · ⭐ ${totalXP} XP`;
   const streakEl=document.getElementById('drawerStreak');
   if(streakEl) streakEl.textContent=streak>0?`🔥 ${streak} d. serija`:'Pradėk seriją!';
 }
@@ -2750,22 +2825,6 @@ function showXPBurst(amount){
 // ═══════════ SHEET ═══════════
 
 function openSheet(spot){
-  // Route edit mode: tap = toggle spot in route
-  if(_routeEditMode&&_routeEditRouteId){
-    const key=String(spot.id);
-    const r=routes.find(rr=>rr.id===_routeEditRouteId);
-    if(!r) return;
-    if(r.spots.includes(key)){
-      removeSpotFromRoute(_routeEditRouteId,key);
-      toast(`✕ Pašalinta iš maršruto`,'info');
-    } else {
-      addSpotToRoute(_routeEditRouteId,key);
-      toast(`＋ Pridėta į maršrutą`,'success');
-    }
-    // Refresh marker icon to reflect new state
-    if(markers[spot.id]) markers[spot.id].setIcon(makeIcon(spot));
-    return;
-  }
   // hidden spots: only open if already found
   if(spot.cat==='hidden'&&!found.has(spot.id)){
     toast('🔮 Paslėpta vieta — prieik arčiau ir surink!','gold');
@@ -2828,7 +2887,7 @@ function openSheet(spot){
       <div class="crow">
         <div class="dbadge" id="distBadge">—</div>
         <button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button>
-        <button class="editbtn" id="favBtn" onclick="toggleSpotInActiveRoute()" title="Pridėti į maršrutą" style="font-size:18px;padding:10px 12px">＋</button>
+        <button class="editbtn" id="favBtn" onclick="toggleFavorite()" title="Mėgstamiausi" style="font-size:18px;padding:10px 12px">${favorites.has(String(spot.id))||favorites.has(spot.id)?'♥':'♡'}</button>
         ${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}
       </div>
     `;
@@ -2836,7 +2895,6 @@ function openSheet(spot){
 
   updateDist(spot);
   updateCollectBtn(spot);
-  updateFavBtn();
   map.panTo([spot.lat,spot.lng]);
   document.getElementById('sheet').classList.add('open');
   document.getElementById('sback').classList.add('open');
@@ -2865,7 +2923,7 @@ function updateCollectBtn(spot){
   if(userLat===null){btn.textContent='⌛ GPS nėra';btn.className='cbtn gps-wait';return;}
   const d=dist(userLat,userLng,spot.lat,spot.lng);
   const r=spotRadius(spot);
-  const FORCE_RADIUS=spot.cat==='hidden'?200:r*2;
+  const FORCE_RADIUS=r*2;
   if(d<=r){
     btn.textContent='⭐ Surinkti!';btn.className='cbtn gps-close';
   } else if(d<=FORCE_RADIUS){
@@ -2909,7 +2967,7 @@ function collectCurrent(){
   if(!selectedSpot||found.has(selectedSpot.id)) return;
   const d=dist(userLat,userLng,selectedSpot.lat,selectedSpot.lng);
     const r=spotRadius(selectedSpot);
-    const FORCE_RADIUS=selectedSpot.cat==='hidden'?200:r*2;
+    const FORCE_RADIUS=r*2;
     if(d>r&&d<=FORCE_RADIUS){
       // Show force-collect confirmation
       const btn=document.getElementById('collectBtn');
@@ -2942,7 +3000,7 @@ function collectCurrent(){
   if(window._fbUser&&window._fb){
     const{db,doc,setDoc}=window._fb;
     setDoc(doc(db,'users',window._fbUser.uid),{
-      found:{LT:[...found]},totalXP,streak,badges:[...earnedBadges],name:playerName
+      found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},totalXP,streak,badges:[...earnedBadges],name:playerName
     },{merge:true}).catch(()=>{});
   }
 
@@ -2977,6 +3035,7 @@ function updateStreak(){
   const yest=new Date(Date.now()-86400000).toDateString();
   streak=(lastDate===yest)?streak+1:1;
   lastDate=today;
+  oldStreak=streak;
   setTimeout(()=>checkStreakMilestones(),300);
   addXP(10);
   setTimeout(()=>showXPBurst(10),150);
@@ -3018,7 +3077,7 @@ function surpriseMe(){
     isSpotVisible(s)&&
     s.cat!=='hidden'&&
     getSpotLevel(s)<=getPlayerLevel(totalXP)&&
-    (s.country==='LT'||!s.country)&&
+    (s.country===activeCountry||(activeCountry==='LT'&&!s.country))&&
     (activeCity==='all'||spotInCity(s,activeCity))
   );
   if(!unfound.length){toast('🎉 Viskas surinkta! Tu legenda!','gold');return;}
@@ -3426,9 +3485,57 @@ const CITY_BOUNDS_ALL={
     'Šalčininkai':{sw:[54.30,25.38],ne:[54.33,25.42]},
     'Eišiškės':{sw:[54.18,24.99],ne:[54.20,25.02]},
     'Vievis':{sw:[54.77,24.79],ne:[54.79,24.82]},
+  },
+  PL:{
+    'Warszawa':{sw:[52.09,20.85],ne:[52.37,21.27]},
+    'Kraków':{sw:[49.96,19.79],ne:[50.13,20.22]},
+    'Gdańsk':{sw:[54.28,18.47],ne:[54.43,18.76]},
+    'Wrocław':{sw:[51.04,16.86],ne:[51.18,17.15]},
+    'Poznań':{sw:[52.32,16.79],ne:[52.47,17.07]},
+    'Łódź':{sw:[51.68,19.35],ne:[51.82,19.60]},
+    'Lublin':{sw:[51.19,22.47],ne:[51.29,22.63]},
+    'Katowice':{sw:[50.19,18.95],ne:[50.28,19.07]},
+    'Szczecin':{sw:[53.37,14.48],ne:[53.51,14.68]},
+    'Bydgoszcz':{sw:[53.09,17.95],ne:[53.17,18.09]},
+    'Białystok':{sw:[53.09,23.07],ne:[53.17,23.23]},
+    'Gdynia':{sw:[54.46,18.49],ne:[54.55,18.59]},
+    'Częstochowa':{sw:[50.77,19.06],ne:[50.84,19.17]},
+    'Toruń':{sw:[53.00,18.53],ne:[53.06,18.66]},
+    'Rzeszów':{sw:[49.99,22.00],ne:[50.05,22.10]},
+    'Olsztyn':{sw:[53.75,20.44],ne:[53.80,20.52]},
+    'Kielce':{sw:[50.85,20.60],ne:[50.90,20.68]},
+    'Gliwice':{sw:[50.27,18.63],ne:[50.32,18.72]},
+    'Zabrze':{sw:[50.29,18.74],ne:[50.33,18.80]},
+    'Bielsko-Biała':{sw:[49.81,18.98],ne:[49.86,19.06]},
+    'Bytom':{sw:[50.34,18.88],ne:[50.39,18.96]},
+    'Zielona Góra':{sw:[51.91,15.47],ne:[51.96,15.55]},
+    'Rybnik':{sw:[50.07,18.52],ne:[50.12,18.58]},
+    'Ruda Śląska':{sw:[50.25,18.83],ne:[50.29,18.89]},
+    'Opole':{sw:[50.64,17.90],ne:[50.69,17.98]},
+    'Tychy':{sw:[50.12,18.96],ne:[50.17,19.02]},
+    'Gorzów Wielkopolski':{sw:[52.72,15.21],ne:[52.76,15.28]},
+    'Elbląg':{sw:[54.14,19.38],ne:[54.19,19.46]},
+    'Płock':{sw:[52.53,19.66],ne:[52.57,19.73]},
+    'Wałbrzych':{sw:[50.76,16.26],ne:[50.80,16.33]},
+    'Koszalin':{sw:[54.17,16.18],ne:[54.21,16.24]},
+    'Tarnów':{sw:[49.99,20.97],ne:[50.03,21.04]},
+    'Chorzów':{sw:[50.29,18.93],ne:[50.33,18.99]},
+    'Radom':{sw:[51.39,21.12],ne:[51.43,21.18]},
+    'Sosnowiec':{sw:[50.27,19.10],ne:[50.32,19.17]},
+    'Kalisz':{sw:[51.75,18.07],ne:[51.79,18.12]},
+    'Legnica':{sw:[51.19,16.15],ne:[51.23,16.22]},
+    'Grudziądz':{sw:[53.48,18.74],ne:[53.52,18.81]},
+    'Jaworzno':{sw:[50.20,19.25],ne:[50.24,19.31]},
+    'Zakopane':{sw:[49.28,19.94],ne:[49.31,19.99]},
+    'Malbork':{sw:[54.02,19.02],ne:[54.05,19.05]},
+    'Wieliczka':{sw:[49.98,20.04],ne:[50.00,20.07]},
+    'Zamość':{sw:[50.71,23.24],ne:[50.74,23.28]},
+    'Nowy Sącz':{sw:[49.61,20.69],ne:[49.64,20.73]},
+    'Przemyśl':{sw:[49.77,22.77],ne:[49.80,22.80]},
+    'Suwałki':{sw:[54.10,22.92],ne:[54.13,22.96]},
   }
 };
-function getCityBounds(){return CITY_BOUNDS_ALL['LT'];}
+function getCityBounds(){return CITY_BOUNDS_ALL[activeCountry]||{};}
 
 function getCityStats(){
   return Object.entries(getCityBounds()).map(([city,b])=>{
@@ -3568,31 +3675,62 @@ function renderList(){
       });
     }
   } else {
-    // Static category rows — no expand, just count + progress
+    // Collapsed category headers
     orderedCats.forEach(catId=>{
       const catSpots=unlockedSpots.filter(s=>s.cat===catId).sort((a,b)=>(a.name||'').localeCompare(b.name||'','lt'));
       if(!catSpots.length) return;
       const cat=CATS[catId];
       if(!cat) return;
       const collectedInCat=catSpots.filter(s=>found.has(s.id)).length;
+      const expanded=_catExpanded.has(catId);
       const pct2=catSpots.length?Math.round(collectedInCat/catSpots.length*100):0;
-      h+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bdr)">
+      h+=`<div onclick="toggleCatList('${catId}')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none">
         <span style="font-size:1.1rem">${cat.emoji}</span>
         <div style="flex:1;min-width:0">
           <div style="font-size:.78rem;color:var(--txt);font-weight:600">${cat.label}</div>
           <div style="height:3px;background:var(--surf2);border-radius:2px;margin-top:4px;overflow:hidden"><div style="height:100%;width:${pct2}%;background:${pct2===100?'var(--gold)':'var(--gd)'};border-radius:2px"></div></div>
         </div>
         <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);white-space:nowrap">${collectedInCat}/${catSpots.length}</span>
+        <span style="color:var(--tm);font-size:.8rem;transition:transform .2s;display:inline-block;transform:rotate(${expanded?90:0}deg)">›</span>
       </div>`;
+      if(expanded){
+        catSpots.forEach(s=>{
+          const isF=found.has(s.id);
+          const isFav=favorites.has(String(s.id));
+          let ds='';
+          if(userLat!==null){const d=dist(userLat,userLng,s.lat,s.lng);ds=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;}
+          h+=`<div class="sr ${isF?'col':''}" onclick="closeDrawer();goToSpot('${s.id}')" style="padding-left:16px">
+            <div class="sri">${isF?'✓':cat.emoji}</div>
+            <div style="flex:1;min-width:0"><div class="srn">${s.name||'—'}</div><div class="srm">${cat.label}</div></div>
+            <div style="display:flex;align-items:center;gap:6px">
+              ${isFav?'<span style="color:var(--gold);font-size:13px">♥</span>':''}
+              <div class="srr">${isF?'★':ds}</div>
+            </div>
+          </div>`;
+        });
+      }
     });
 
-    // Locked — static count only, no expand
+    // Locked
     if(lockedSpots.length){
-      h+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bdr);opacity:.6">
+      const lockedExpanded=_catExpanded.has('_locked');
+      h+=`<div onclick="toggleCatList('_locked')" style="display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bdr);cursor:pointer;opacity:.6">
         <span style="font-size:1.1rem">🔒</span>
         <div style="flex:1"><div style="font-size:.78rem;color:var(--tm);font-weight:600">Užrakinta</div></div>
         <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">${lockedSpots.length}</span>
+        <span style="color:var(--tm);font-size:.8rem;transform:rotate(${lockedExpanded?90:0}deg);display:inline-block">›</span>
       </div>`;
+      if(lockedExpanded){
+        lockedSpots.forEach(s=>{
+          // Locked spots are invisible — skip in list for regular users
+          if(!isAdmin()) return;
+          const cat=CATS[s.cat]||CATS.history;
+          h+=`<div class="sr hidden-spot" onclick="closeDrawer();goToSpot('${s.id}')" style="padding-left:16px">
+            <div class="sri" style="opacity:.4">🔒</div>
+            <div style="flex:1;min-width:0"><div class="srn" style="color:var(--tm)">Lv.${getSpotLevel(s)} — ${cat.label}</div><div class="srm">${TIER_CONFIG[s.tier||1].label}</div></div>
+          </div>`;
+        });
+      }
     }
   }
 
@@ -3978,7 +4116,7 @@ function saveSpot(){
     const idx=SPOTS.findIndex(s=>s.id==id);
     if(idx!==-1){SPOTS[idx]={...SPOTS[idx],...data};toast(`✅ ${name} atnaujinta`,'success');}
   } else {
-    data.id=Date.now();data.country='LT';SPOTS.push(data);toast(`📍 ${name} pridėta!`,'success');
+    data.id=Date.now();data.country=activeCountry;SPOTS.push(data);toast(`📍 ${name} pridėta!`,'success');
   }
   save();refreshMarkers();updateAll();closeEditor();
 }
@@ -4003,14 +4141,14 @@ function updateAll(){
   updateLevelPill();
   updateDrawerHeader();
   renderDrawerStats();
-  // Routes badge (drawer)
-  const rb=document.getElementById('routesBadge');
-  if(rb){const rc=routes.length;rb.textContent=rc;rb.style.display=rc>0?'inline-flex':'none';}
+  // Favorites badge (drawer)
+  const fb=document.getElementById('favsBadge');
+  if(fb){const fc=favorites.size;fb.textContent=fc;fb.style.display=fc>0?'inline-flex':'none';}
   // Mobile bottom nav badges
   const mnf=document.getElementById('mobNavFoundBadge');
   if(mnf){mnf.textContent=found.size;mnf.style.display=found.size>0?'block':'none';}
-  const mnfav=document.getElementById('mobNavRouteBadge');
-  if(mnfav){mnfav.textContent=routes.length;mnfav.style.display=routes.length>0?'block':'none';}
+  const mnfav=document.getElementById('mobNavFavBadge');
+  if(mnfav){mnfav.textContent=favorites.size;mnfav.style.display=favorites.size>0?'block':'none';}
   // Mobile filter icon update
   const mfi=document.getElementById('mobNavFilterIcon');
   const mfl=document.getElementById('mobNavFilterLabel');
@@ -4121,10 +4259,15 @@ function renderStreakCard(){
 
 function checkStreakMilestones(){
   STREAK_MILES.forEach(m=>{
-    if(streak>=m.day&&!claimedStreakMiles.has(m.day)){
-      claimedStreakMiles.add(m.day);
+    if(streak>=m.day&&!streakRewards.has(m.day)){
+      streakRewards.add(m.day);
       addXP(m.reward);showXPBurst(m.reward);
       toast(`${m.icon} ${m.day}d. serija! +${m.reward} XP`,'gold');
+      if(m.unlocksHidden&&!hiddenSpotUnlocked){
+        hiddenSpotUnlocked=true;
+        if(!SPOTS.find(sp=>sp.id===99)){SPOTS.push({...STREAK_HIDDEN_SPOT});refreshMarkers();}
+        setTimeout(()=>toast('🗺 Slapta vieta atrakinta žemėlapyje!','gold'),1500);
+      }
       save();
     }
   });
@@ -4136,10 +4279,11 @@ function checkStreakBreakOnLoad(){
   if(lastDate===today) return;
   const yest=new Date(Date.now()-86400000).toDateString();
   if(lastDate===yest) return;
-  if(streak>=2){
-    const lostStreak=streak;
+  if(oldStreak>=2){
+    const lostStreak=oldStreak;
     const lastSeen=lastDate?new Date(lastDate).toLocaleDateString('lt-LT',{month:'short',day:'numeric'}):'nežinoma';
-    streak=0;claimedStreakMiles.clear();save();
+    streakRewards.clear();
+    oldStreak=0;streak=0;save();
     setTimeout(()=>{
       const el=document.getElementById('streakBreakOverlay');
       if(!el) return;
@@ -4293,7 +4437,7 @@ function resolveOsmCat(t){
 const OSM_CAT_EMOJI={
   church:'⛪',museum:'🏛',fort:'🏰',nature:'🌿',history:'⚔',
   monument:'🗿',mound:'⛰',viewpoint:'🔭',watertower:'🗼',
-  trail:'🥾',mural:'🎨',cemetery:'⚱️',abandoned:'🏚',
+  trail:'🥾',mural:'🎨',cemetery:'⚱️',
 };
 
 let _osmImportData=[];
@@ -4302,15 +4446,6 @@ let _osmFilter='all';
 let _osmTier=1;
 let _osmLoading=false;
 let _osmForceRefresh=false;
-
-// ── ABANDONED (Griuvėsiai) state ──
-let _abandonedData=[];
-let _abandonedSelected=new Set();
-let _abandonedLoading=false;
-let _abandonedTier=1;
-const ABANDONED_CACHE_KEY='kex_abandoned_lt_v1';
-const ABANDONED_CACHE_TTL=7*24*60*60*1000; // 7 days
-const ABANDONED_BBOX='54.0,20.9,56.5,26.8'; // full Lithuania
 
 // Generate a display name for infrastructure items that OSM rarely names
 function osmGenerateName(t, cat){
@@ -4420,6 +4555,7 @@ const CITY_BBOXES_GLOBAL=[
   ['Birštonas','54.61,24.02,54.63,24.05'],
   ['Vievis','54.77,24.79,54.79,24.82'],
   ['Lentvaris','54.64,25.05,54.66,25.08'],
+  ['Elektrėnai','54.77,24.64,54.80,24.67'],
 ];
 
 const OSM_CACHE_KEY_MANUAL='kex_osm_manual_regions_v1';
@@ -4539,313 +4675,6 @@ async function osmFetchChecked(){
   toast(`✅ Baigta! ${selected.length} miestų importuota`,'success');
 }
 
-// ═══════════ ABANDONED (Griuvėsiai) IMPORT ═══════════
-
-function abandonedSetStatus(msg){
-  const el=document.getElementById('abandonedStatus');
-  if(el) el.textContent=msg;
-}
-
-function processAbandonedElement(e, idx){
-  const lat=parseFloat(((e.lat||(e.center&&e.center.lat)||0)).toFixed(6));
-  const lng=parseFloat(((e.lon||(e.center&&e.center.lon)||0)).toFixed(6));
-  if(!lat||!lng) return null;
-  // Must be inside Lithuania bounding box (sanity check)
-  if(lat<53.5||lat>56.6||lng<20.5||lng>27.0) return null;
-  const t=e.tags||{};
-  // Build display name — prefer Lithuanian name, then any name, then auto-generate
-  const rawName=t['name:lt']||t.name||'';
-  let name=rawName.trim();
-  if(!name){
-    const kind=(t['abandoned:building']||t['abandoned:amenity']||t['abandoned:man_made']||t.building||t['building:ruins']||t.amenity||t.man_made||'pastatas').replace(/_/g,' ');
-    const city=t['addr:city']||t['addr:suburb']||t['addr:district']||'';
-    const street=[t['addr:street'],t['addr:housenumber']].filter(Boolean).join(' ');
-    const loc=city||(street?street:'');
-    name='Apleistas '+kind.charAt(0).toUpperCase()+kind.slice(1)+(loc?' · '+loc:' #'+idx);
-  }
-  const osmTag='OSM-'+e.type+'-'+e.id;
-  // Determine subtype for display
-  const typeKey=t.historic||t['abandoned:building']||t['abandoned:amenity']||t.building||t.amenity||t.man_made||t.ruins||'abandoned';
-  // Already imported? Check by OSM ID tag first, then tight coord radius
-  const alreadyIn=SPOTS.some(s=>
-    (s.tag&&s.tag===osmTag)
-    ||(Math.abs(s.lat-lat)<0.0003&&Math.abs(s.lng-lng)<0.0003&&s.cat==='abandoned')
-  );
-  return{name,lat,lng,cat:'abandoned',typeKey,osmTag,alreadyIn,tags:t};
-}
-
-async function fetchAbandonedData(forceRefresh){
-  if(_abandonedLoading) return;
-  _abandonedLoading=true;
-
-  // Cache check
-  if(!forceRefresh){
-    try{
-      const c=JSON.parse(localStorage.getItem(ABANDONED_CACHE_KEY)||'null');
-      if(c&&Date.now()-c.ts<ABANDONED_CACHE_TTL&&c.data?.length){
-        _abandonedData=c.data;
-        // Recheck alreadyIn against current SPOTS
-        _abandonedData.forEach(x=>{
-          x.alreadyIn=SPOTS.some(s=>
-            (s.tag&&s.tag===x.osmTag)
-            ||(Math.abs(s.lat-x.lat)<0.0003&&Math.abs(s.lng-x.lng)<0.0003&&s.cat==='abandoned')
-          );
-        });
-        abandonedSetStatus(`✅ ${_abandonedData.length} vietų (talpykla · ${new Date(c.ts).toLocaleDateString('lt-LT')}) · Jau pridėta: ${_abandonedData.filter(x=>x.alreadyIn).length}`);
-        _abandonedLoading=false;
-        renderAbandonedList();
-        return;
-      }
-    }catch(e){}
-  }
-
-  abandonedSetStatus('⏳ Kraunama iš OSM (visas Lietuvos bbox)...');
-  const MIRRORS=[
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://overpass.private.coffee/api/interpreter',
-  ];
-  // Split into two lighter queries to avoid server timeout:
-  // Q1: abandoned + ruins tags
-  // Q2: historic=ruins + building=ruins + disused+building
-  const QUERIES=[
-    `data=[out:json][timeout:90];
-area["ISO3166-1"="LT"]->.lt;
-(
-  node["abandoned"="yes"](area.lt);
-  way["abandoned"="yes"](area.lt);
-  node["ruins"="yes"](area.lt);
-  way["ruins"="yes"](area.lt);
-);
-out center tags;`,
-    `data=[out:json][timeout:90];
-area["ISO3166-1"="LT"]->.lt;
-(
-  node["historic"="ruins"](area.lt);
-  way["historic"="ruins"](area.lt);
-  node["building"="ruins"]["name"](area.lt);
-  way["building"="ruins"]["name"](area.lt);
-);
-out center tags;`,
-  ];
-
-  const allElements=[];
-  for(let qi=0;qi<QUERIES.length;qi++){
-    abandonedSetStatus(`⏳ Kraunama... (užklausa ${qi+1}/${QUERIES.length})`);
-    let text=null;
-    for(let mi=0;mi<MIRRORS.length;mi++){
-      try{
-        const r=await fetch(MIRRORS[mi],{method:'POST',body:QUERIES[qi],signal:AbortSignal.timeout(95000)});
-        const t=await r.text();
-        if(r.status>=400) throw new Error(`HTTP ${r.status}`);
-        if(t.trim().startsWith('<')){
-          if(t.includes('Too Many Requests')) throw new Error('429 — palaukite ~2 min. 🕐');
-          throw new Error('XML klaida iš serverio');
-        }
-        text=t;
-        break;
-      }catch(e){
-        console.warn(`Abandoned Q${qi+1} mirror ${mi+1} failed:`,e.message);
-        if(mi<MIRRORS.length-1){
-          abandonedSetStatus(`⚠ Q${qi+1} serveris ${mi+1} nepasiekiamas, bandau ${mi+2}...`);
-          await new Promise(r=>setTimeout(r,1500));
-        } else {
-          abandonedSetStatus(`❌ Q${qi+1}: visi serveriai nepasiekiami. Bandykite vėliau.`);
-          _abandonedLoading=false;
-          return;
-        }
-      }
-    }
-    if(!text) break;
-    allElements.push(...(JSON.parse(text).elements||[]));
-    if(qi<QUERIES.length-1) await new Promise(r=>setTimeout(r,1000));
-  }
-  if(!allElements.length){_abandonedLoading=false;return;}
-
-  try{
-    const elements=allElements;
-    abandonedSetStatus(`⏳ Apdorojama ${elements.length} elementų...`);
-    const processed=elements
-      .map((e,i)=>processAbandonedElement(e,i))
-      .filter(Boolean)
-      // Dedupe by OSM ID
-      .filter((x,i,arr)=>arr.findIndex(y=>y.osmTag===x.osmTag)===i)
-      // Also dedupe by tight coords (ways+nodes can overlap)
-      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0002&&Math.abs(y.lng-x.lng)<0.0002)===i)
-      .sort((a,b)=>a.name.localeCompare(b.name,'lt'));
-
-    _abandonedData=processed;
-    try{
-      const cStr=JSON.stringify({ts:Date.now(),data:_abandonedData});
-      if(cStr.length<4000000) localStorage.setItem(ABANDONED_CACHE_KEY,cStr);
-    }catch(e){console.warn('Abandoned cache save failed',e);}
-
-    const newCount=_abandonedData.filter(x=>!x.alreadyIn).length;
-    const alreadyCount=_abandonedData.filter(x=>x.alreadyIn).length;
-    abandonedSetStatus(`✅ ${_abandonedData.length} vietų rasta · ${alreadyCount} jau DB · ${newCount} naujų`);
-    renderAbandonedList();
-  }catch(e){
-    abandonedSetStatus('❌ Klaida apdorojant duomenis: '+e.message);
-    console.error('Abandoned processing error',e);
-  }
-  _abandonedLoading=false;
-}
-
-function renderAbandonedPanel(){
-  const total=_abandonedData.length;
-  const alreadyIn=_abandonedData.filter(x=>x.alreadyIn).length;
-  const newOnes=total-alreadyIn;
-  return`<div>
-    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">
-      Apleistos vietos · OpenStreetMap · abandoned/ruins/disused tags · visas Lietuvos bbox
-    </div>
-    ${total>0?`<div style="background:var(--surf2);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:'DM Mono',monospace;font-size:.68rem;display:flex;gap:12px;flex-wrap:wrap">
-      <span>📦 Viso: <strong style="color:var(--txt)">${total}</strong></span>
-      <span>✅ Jau DB: <strong style="color:var(--green)">${alreadyIn}</strong></span>
-      <span>🆕 Naujų: <strong style="color:var(--gold)">${newOnes}</strong></span>
-    </div>`:''}
-    <div id="abandonedStatus" class="osm-status"></div>
-    <div class="osm-tier-row">
-      <span class="osm-tier-label">Tiers:</span>
-      ${[1,2,3].map(t=>`<button class="osm-tier-btn ${_abandonedTier===t?'on':''}" data-t="${t}" onclick="abandonedSetTier(${t})">${TIER_CONFIG[t].icon} T${t}</button>`).join('')}
-    </div>
-    <div class="osm-controls">
-      <button class="osm-ctrl-btn pri" onclick="fetchAbandonedData(${total===0?'false':'true'})">
-        ${total===0?'⬇ Fetch griuvėsius':'🔄 Atnaujinti'}
-      </button>
-      <button class="osm-ctrl-btn" onclick="abandonedSelectAll()">☑ Visi nauji</button>
-      <button class="osm-ctrl-btn" onclick="abandonedSelectNone()">☐ Jokių</button>
-      <button class="osm-ctrl-btn pri" id="abandonedImportBtn" onclick="abandonedImportSelected()">✅ Importuoti</button>
-    </div>
-    <div id="abandonedList" class="osm-list"></div>
-  </div>`;
-}
-
-function renderAbandonedList(){
-  const list=document.getElementById('abandonedList');
-  if(!list) return;
-  const selCount=_abandonedSelected.size;
-  const importBtn=document.getElementById('abandonedImportBtn');
-  if(importBtn) importBtn.textContent=selCount>0?`✅ Importuoti ${selCount}`:'✅ Importuoti';
-  if(!_abandonedData.length){
-    list.innerHTML=`<div style="text-align:center;padding:24px;color:var(--td);font-size:.82rem">Nėra duomenų. Spausk "Fetch griuvėsius" 👆</div>`;
-    return;
-  }
-  list.innerHTML=_abandonedData.map((item,i)=>`
-    <div class="osm-item ${_abandonedSelected.has(i)?'selected':''} ${item.alreadyIn?'already':''}" onclick="abandonedToggleItem(${i})">
-      <div class="osm-check">${item.alreadyIn?'✓':_abandonedSelected.has(i)?'✓':''}</div>
-      <div class="osm-emoji">🏚</div>
-      <div class="osm-info">
-        <div class="osm-name">${item.name}</div>
-        <div class="osm-meta">${item.typeKey} · ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}${item.alreadyIn?' · <span style="color:var(--green)">jau pridėta</span>':''}</div>
-      </div>
-    </div>`).join('');
-}
-
-function abandonedToggleItem(idx){
-  if(_abandonedData[idx]?.alreadyIn) return;
-  if(_abandonedSelected.has(idx)) _abandonedSelected.delete(idx);
-  else _abandonedSelected.add(idx);
-  renderAbandonedList();
-}
-
-function abandonedSelectAll(){
-  _abandonedData.forEach((item,i)=>{if(!item.alreadyIn) _abandonedSelected.add(i);});
-  renderAbandonedList();
-}
-
-function abandonedSelectNone(){
-  _abandonedSelected.clear();
-  renderAbandonedList();
-}
-
-function abandonedSetTier(t){
-  _abandonedTier=t;
-  document.querySelectorAll('.osm-tier-btn').forEach(el=>el.classList.toggle('on',parseInt(el.dataset.t)===t));
-}
-
-async function abandonedImportSelected(){
-  if(_abandonedSelected.size===0){toast('⚠ Nepasirinkta jokių vietų','info');return;}
-  const btn=document.getElementById('abandonedImportBtn');
-  const{db,collection,doc,writeBatch,serverTimestamp}=window._fb||{};
-  if(!db){toast('Firebase nepasiekiamas','info');return;}
-
-  const toImport=[..._abandonedSelected]
-    .map(idx=>_abandonedData[idx])
-    .filter(item=>item&&!item.alreadyIn);
-
-  if(!toImport.length){toast('⚠ Visos pasirinktos vietos jau importuotos','info');return;}
-
-  if(btn){btn.disabled=true;}
-
-  const CHUNK=200; // writeBatch hard limit is 500; 200 is safe
-  let imported=0;
-  const localNewSpots=[];
-
-  for(let i=0;i<toImport.length;i+=CHUNK){
-    const chunk=toImport.slice(i,i+CHUNK);
-    abandonedSetStatus(`⏳ Importuojama... ${Math.min(i+CHUNK,toImport.length)} / ${toImport.length}`);
-    if(btn) btn.textContent=`⏳ ${Math.min(i+CHUNK,toImport.length)}/${toImport.length}`;
-
-    const batch=writeBatch(db);
-    const refs=[];
-    for(const item of chunk){
-      const ref=doc(collection(db,'spots'));
-      refs.push({ref,item});
-      const spot={
-        name:item.name,
-        cat:'abandoned',
-        tier:_abandonedTier,
-        lat:item.lat,
-        lng:item.lng,
-        country:'LT',
-        radius:CAT_DEFAULT_RADIUS['abandoned']||DEFAULT_RADIUS,
-        time:'',price:'',year:'',
-        tag:item.osmTag,
-        history:'',
-        bring:[],
-        createdAt:serverTimestamp(),
-      };
-      batch.set(ref,spot);
-    }
-    try{
-      await batch.commit();
-      // Update local state
-      for(const{ref,item} of refs){
-        item.alreadyIn=true;
-        const localSpot={
-          id:ref.id,_fid:ref.id,
-          name:item.name,cat:'abandoned',tier:_abandonedTier,
-          lat:item.lat,lng:item.lng,
-          country:'LT',
-          radius:CAT_DEFAULT_RADIUS['abandoned']||DEFAULT_RADIUS,
-          time:'',price:'',year:'',tag:item.osmTag,history:'',bring:[],
-        };
-        localNewSpots.push(localSpot);
-        imported++;
-      }
-    }catch(e){
-      console.error('Batch import error (chunk '+i+')',e);
-      abandonedSetStatus(`❌ Klaida importuojant (chunk ${i/CHUNK+1}): ${e.message}`);
-    }
-    // Breathe between chunks so browser doesn't freeze
-    await new Promise(r=>setTimeout(r,300));
-  }
-
-  // Push all new spots into local SPOTS array and refresh map + sidebar
-  if(localNewSpots.length){
-    SPOTS.push(...localNewSpots);
-    refreshMarkers();
-    updateAll();
-  }
-
-  _abandonedSelected.clear();
-  if(btn){btn.disabled=false;btn.textContent='✅ Importuoti';}
-  toast(`🏚 Importuota ${imported} griuvėsių!`,'success');
-  abandonedSetStatus(`✅ Importuota ${imported}. Jau DB: ${_abandonedData.filter(x=>x.alreadyIn).length} / ${_abandonedData.length}`);
-  renderAbandonedList();
-}
-
 async function fetchOsmData(){
   if(_osmLoading) return;
   _osmLoading=true;
@@ -4960,100 +4789,90 @@ async function osmImportSelected(){
   if(_osmSelected.size===0){toast('⚠ Nepasirinkta jokių vietų','info');return;}
   const btn=document.getElementById('osmImportBtn');
   if(btn){btn.disabled=true;btn.textContent='Importuojama...';}
-  const{db,collection,doc,writeBatch,serverTimestamp}=window._fb||{};
+  const{db,collection,addDoc,serverTimestamp}=window._fb||{};
   if(!db){toast('Firebase nepasiekiamas','info');if(btn)btn.disabled=false;return;}
-
-  const toImport=[..._osmSelected]
-    .map(idx=>_osmImportData[idx])
-    .filter(item=>item&&!item.alreadyIn);
-
-  const CHUNK=200;
   let imported=0;
-  const localNewSpots=[];
-
-  for(let i=0;i<toImport.length;i+=CHUNK){
-    const chunk=toImport.slice(i,i+CHUNK);
-    if(btn) btn.textContent=`⏳ ${Math.min(i+CHUNK,toImport.length)}/${toImport.length}`;
-    const batch=writeBatch(db);
-    const refs=[];
-    for(const item of chunk){
-      const ref=doc(collection(db,'spots'));
-      refs.push({ref,item});
-      batch.set(ref,{
+  for(const idx of _osmSelected){
+    const item=_osmImportData[idx];
+    if(!item||item.alreadyIn) continue;
+    try{
+      const spot={
         name:item.name,cat:item.cat,tier:_osmTier,
         lat:item.lat,lng:item.lng,
         country:_getImportCountry(),
-        radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
-        time:'',price:'',year:'',tag:item.typeKey,
-        history:'',bring:[],createdAt:serverTimestamp()
-      });
-    }
-    try{
-      await batch.commit();
-      for(const{ref,item} of refs){
-        item.alreadyIn=true;
-        localNewSpots.push({
-          id:ref.id,_fid:ref.id,
-          name:item.name,cat:item.cat,tier:_osmTier,
-          lat:item.lat,lng:item.lng,
-          country:_getImportCountry(),
-          radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
-          time:'',price:'',year:'',tag:item.typeKey,history:'',bring:[],
-        });
-        imported++;
-      }
-    }catch(e){console.error('OSM batch import error',e);}
-    await new Promise(r=>setTimeout(r,300));
+        radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
+        history:'',bring:[],
+        createdAt:serverTimestamp()
+      };
+      await addDoc(collection(db,'spots'),spot);
+      item.alreadyIn=true;
+      imported++;
+    }catch(e){console.error('Import error',e);}
   }
-
-  if(localNewSpots.length){SPOTS.push(...localNewSpots);refreshMarkers();updateAll();}
   _osmSelected.clear();
-  if(btn){btn.disabled=false;btn.textContent='✅ Importuoti';}
+  if(btn){btn.disabled=false;}
   toast(`📍 Importuota ${imported} vietų!`,'success');
   osmSetStatus(`✅ Importuota ${imported}. Iš viso DB: ${_osmImportData.filter(x=>x.alreadyIn).length} / ${_osmImportData.length}`);
   renderOsmList();
 }
 
-let _importTab='osm'; // 'osm' | 'wikidata' | 'kpd'
+let _importTab='osm'; // 'osm' | 'wikidata' | 'kpd' | 'zabytek'
+let _importCountry=null; // null = follows activeCountry; set by admin selector
 
-function _getImportCountry(){return 'LT';}
+function _getImportCountry(){return _importCountry||activeCountry;}
+
+function _countrySelector(){
+  const ic=_getImportCountry();
+  return`<div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+    <span style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">Import šalis:</span>
+    ${Object.entries(COUNTRY_CONFIG).map(([code,cfg])=>`<div onclick="_importCountry='${code}';renderOsmImport()" style="padding:4px 10px;border-radius:8px;font-size:.72rem;font-family:'DM Mono',monospace;cursor:pointer;border:1px solid ${ic===code?'var(--gold)':'var(--bdr)'};background:${ic===code?'var(--gold)':'var(--surf2)'};color:${ic===code?'#0e0c09':'var(--td)'};-webkit-user-select:none;user-select:none">${cfg.flag} ${code}</div>`).join('')}
+  </div>`;
+}
 
 function _tabBar(){
-  const tabs=[['osm','🗺 OSM'],['wikidata','📚 Wikidata'],['kpd','🏛 KPD'],['abandoned','🏚 Griuvėsiai']];
+  const ic=_getImportCountry();
+  const heritageTab=ic==='PL'?['zabytek','🏛 ZABYTEK']:['kpd','🏛 KPD'];
+  const tabs=[['osm','🗺 OSM'],['wikidata','📚 Wikidata'],heritageTab];
+  // Reset tab if switching country made current tab invalid
+  if(_importTab==='kpd'&&ic==='PL') _importTab='zabytek';
+  if(_importTab==='zabytek'&&ic!=='PL') _importTab='kpd';
   return`<div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--bdr)">
-    ${tabs.map(([id,label])=>`<button onclick="_importTab='${id}';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab===id?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.68rem;color:${_importTab===id?'var(--gold)':'var(--tm)'};cursor:pointer">${label}</button>`).join('')}
+    ${tabs.map(([id,label])=>`<button onclick="_importTab='${id}';renderOsmImport()" style="flex:1;padding:7px;background:none;border:none;border-bottom:2px solid ${_importTab===id?'var(--gold)':'transparent'};font-family:'DM Mono',monospace;font-size:.72rem;color:${_importTab===id?'var(--gold)':'var(--tm)'};cursor:pointer">${label}</button>`).join('')}
   </div>`;
 }
 
 function renderOsmImport(){
   const body=document.getElementById('panel-osm');
   if(!body) return;
+  const ic=_getImportCountry();
   const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery'];
   const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės'};
 
   if(_importTab==='wikidata'){
-    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderWikidataPanel()}</div>`;
+    body.innerHTML=`<div class="osm-wrap">${_countrySelector()}${_tabBar()}${renderWikidataPanel()}</div>`;
     if(_wikiData.length) setTimeout(()=>renderWikidataList(),0);
     return;
   }
 
   if(_importTab==='kpd'){
-    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderKpdPanel()}</div>`;
+    body.innerHTML=`<div class="osm-wrap">${_countrySelector()}${_tabBar()}${renderKpdPanel()}</div>`;
     if(_kpdData.length) setTimeout(()=>renderKpdList(),0);
     return;
   }
 
-  if(_importTab==='abandoned'){
-    body.innerHTML=`<div class="osm-wrap">${_tabBar()}${renderAbandonedPanel()}</div>`;
-    if(_abandonedData.length) setTimeout(()=>renderAbandonedList(),0);
+  if(_importTab==='zabytek'){
+    body.innerHTML=`<div class="osm-wrap">${_countrySelector()}${_tabBar()}${renderZabytekPanel()}</div>`;
+    if(_zabytekData.length) setTimeout(()=>renderZabytekList(),0);
     return;
   }
 
   // OSM tab
+  const countryLabel=COUNTRY_CONFIG[ic]?`${COUNTRY_CONFIG[ic].flag} ${COUNTRY_CONFIG[ic].name}`:'';
   body.innerHTML=`<div class="osm-wrap">
+    ${_countrySelector()}
     ${_tabBar()}
     <div style="margin-bottom:10px">
-      <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">🇱🇹 Lietuva · area filtrais</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-bottom:4px">${countryLabel} · area filtrais</div>
       <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">⚠ Greitesnis užklausimas nei anksčiau. Patikrink dublikatus prieš pridedant.</div>
     </div>
     <div class="osm-controls">
@@ -5557,7 +5376,7 @@ const DEG_50M=0.00045; // ~50 metres in degrees
 
 function findDuplicateSpots(){
   const ic=_getImportCountry();
-  const countrySpots=SPOTS.filter(s=>s.country==='LT'||!s.country);
+  const countrySpots=SPOTS.filter(s=>s.country===ic||(ic==='LT'&&!s.country));
   osmSetStatus(`🔍 Ieškoma dublikatų (${ic})...`);
   const groups=[];
   const used=new Set();
@@ -5795,6 +5614,7 @@ const WIKI_CACHE_TTL=48*60*60*1000;
 // Country-specific SPARQL config
 const WIKIDATA_COUNTRY_CFG={
   LT:{qid:'Q37',minLat:53.8,maxLat:56.5,minLng:20.9,maxLng:26.9,wpLang:'lt'},
+  PL:{qid:'Q36',minLat:49.0,maxLat:54.9,minLng:14.1,maxLng:24.2,wpLang:'pl'},
 };
 
 function renderWikidataPanel(){
@@ -5803,8 +5623,9 @@ function renderWikidataPanel(){
   const wcats=['all','church','museum','fort','mound','history','monument','nature','viewpoint','bridge','cemetery'];
   const wcatLabels={all:'Visos',church:'⛪',museum:'🏛',fort:'🏰',mound:'⛰',history:'⚔',monument:'🗿',nature:'🌿',viewpoint:'🔭',bridge:'🌉',cemetery:'⚱️'};
   const ic=_getImportCountry();
+  const cfg=COUNTRY_CONFIG[ic];
   return`<div>
-    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">🇱🇹 Wikidata · LT. ${cacheInfo}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:8px">${cfg?cfg.flag:''} Wikidata · ${activeCountry}. ${cacheInfo}</div>
     <div class="osm-controls">
       <button class="osm-ctrl-btn" onclick="fetchWikidata(false)">🔄 Įkelti</button>
       <button class="osm-ctrl-btn" onclick="fetchWikidata(true)">♻️ Atnaujinti</button>
@@ -5955,6 +5776,206 @@ async function enrichWithWikipedia(items,setS){
   if(setS) setS(`✅ Wikipedia aprašymai pridėti (${done}/${items.length})`);
 }
 
+// ═══════════ ZABYTEK IMPORTER (Poland heritage register) ═══════════
+// API: api.zabytek.gov.pl/nidrestapi — REST, take/skip pagination, WGS84 coords
+// Equivalent of KPD for Poland
+
+const ZABYTEK_URL='https://api.zabytek.gov.pl/nidrestapi/api/data/geoportal/otwarteDaneZestawienieZrn';
+const ZABYTEK_CACHE_KEY='kex_zabytek_cache_v1';
+const ZABYTEK_CACHE_TTL=Infinity; // permanent like KPD
+const ZABYTEK_BATCH=500;
+
+let _zabytekData=[];
+let _zabytekSelected=new Set();
+let _zabytekLoading=false;
+let _zabytekFilter='all';
+let _zabytekCityFilter='all';
+
+// Map Polish heritage types to SpotSeekers categories
+function zabytekCat(rodzaj){
+  if(!rodzaj) return 'history';
+  const r=rodzaj.toLowerCase();
+  if(/kościół|kaplica|klasztor|katedra|bazylika/.test(r)) return 'church';
+  if(/zamek|fort|twierdza|bunkier/.test(r)) return 'fort';
+  if(/cmentarz/.test(r)) return 'cemetery';
+  if(/pomnik|obelisk|rzeźba|kolumna/.test(r)) return 'monument';
+  if(/muzeum/.test(r)) return 'museum';
+  if(/park|ogród/.test(r)) return 'nature';
+  if(/most/.test(r)) return 'bridge';
+  return 'history';
+}
+
+function renderZabytekPanel(){
+  const cached=JSON.parse(localStorage.getItem(ZABYTEK_CACHE_KEY)||'null');
+  const cacheInfo=cached?`<span style="color:var(--tm);font-size:.6rem">· ${_zabytekData.length} (${new Date(cached.ts).toLocaleDateString('pl-PL')})</span>`:'';
+  const cats=['all','church','fort','cemetery','monument','history','museum','nature','bridge'];
+  const catLabels={all:'Wszystkie',church:'⛪',fort:'🏰',cemetery:'⚱️',monument:'🗿',history:'⚔',museum:'🏛',nature:'🌿',bridge:'🌉'};
+
+  const citiesWithZab=_zabytekData.length>0
+    ?[...new Set(_zabytekData.map(x=>x.miejscowosc).filter(Boolean))].sort()
+    :[];
+
+  const total=_zabytekData.length;
+  const filteredNew=total>0?_zabytekData.filter(x=>{
+    if(x.alreadyIn) return false;
+    if(_zabytekFilter!=='all'&&x.cat!==_zabytekFilter) return false;
+    if(_zabytekCityFilter!=='all'&&x.miejscowosc!==_zabytekCityFilter) return false;
+    return true;
+  }).length:0;
+
+  return`<div>
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:6px">
+      🇵🇱 Rejestr Zabytków NID · ${total?`${total} załadowanych${cacheInfo}`:'Kliknij Załaduj'}
+    </div>
+    <div class="osm-controls">
+      <button class="osm-ctrl-btn" onclick="fetchZabytek(false)">🔄 Załaduj</button>
+      <button class="osm-ctrl-btn" onclick="fetchZabytek(true)">♻️ Odśwież</button>
+      <button class="osm-ctrl-btn" onclick="zabytekSelectAll()">☑ Wszystkie</button>
+      <button class="osm-ctrl-btn" onclick="zabytekSelectNone()">☐ Żadne</button>
+      <button class="osm-ctrl-btn pri" onclick="zabytekImportSelected()">✅ Importuj</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap">
+      <span style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm)">Miasto:</span>
+      <div class="osm-fchip ${_zabytekCityFilter==='all'?'on':''}" onclick="_zabytekCityFilter='all';renderOsmImport()">🇵🇱 Wszystkie</div>
+      ${citiesWithZab.slice(0,20).map(c=>`<div class="osm-fchip ${_zabytekCityFilter===c?'on':''}" onclick="_zabytekCityFilter='${c.replace(/'/g,"\\'")}';renderOsmImport()">${c}</div>`).join('')}
+    </div>
+    <div class="osm-filter-row">
+      ${cats.map(c=>`<div class="osm-fchip ${_zabytekFilter===c?'on':''}" onclick="_zabytekFilter='${c}';renderOsmImport()">${catLabels[c]||c}</div>`).join('')}
+    </div>
+    ${total>0?`<div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin:6px 0">
+      Łącznie: ${total} · Nowych: <strong style="color:var(--gold)">${filteredNew}</strong> · Już dodanych: ${_zabytekData.filter(x=>x.alreadyIn).length}
+    </div>`:''}
+    <div class="osm-status" id="zabytekStatus">${total?'Wybierz i importuj':'Kliknij "Załaduj" aby rozpocząć'}</div>
+    <div class="osm-list" id="zabytekList"></div>
+  </div>`;
+}
+
+async function fetchZabytek(forceRefresh){
+  if(_zabytekLoading) return;
+  _zabytekLoading=true;
+  _zabytekData=[];_zabytekSelected.clear();
+  const setS=m=>{const e=document.getElementById('zabytekStatus');if(e)e.textContent=m;};
+
+  if(!forceRefresh){
+    const cached=JSON.parse(localStorage.getItem(ZABYTEK_CACHE_KEY)||'null');
+    if(cached&&cached.data){
+      _zabytekData=cached.data;
+      _zabytekData.forEach(x=>{x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);});
+      setS(`✅ ${_zabytekData.length} zabytków (cache)`);
+      _zabytekLoading=false;renderZabytekList();return;
+    }
+  }
+
+  setS('⏳ Pobieranie z rejestru NID...');
+  let allData=[];
+  let skip=0;
+  const MAX_RECORDS=10000;
+
+  try{
+    // Count total first
+    const countRes=await fetch(`${ZABYTEK_URL}?format=json&take=1`,{signal:AbortSignal.timeout(15000)});
+    if(!countRes.ok) throw new Error('HTTP '+countRes.status);
+    const countJson=await countRes.json();
+    const total=countJson.totalCount||countJson.total||MAX_RECORDS;
+    setS(`⏳ Pobieranie ${total} zabytków...`);
+
+    while(skip<Math.min(total,MAX_RECORDS)){
+      const url=`${ZABYTEK_URL}?format=json&take=${ZABYTEK_BATCH}&skip=${skip}`;
+      const res=await fetch(url,{signal:AbortSignal.timeout(20000)});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const json=await res.json();
+      const items=json.data||json.items||json||[];
+      if(!Array.isArray(items)||items.length===0) break;
+
+      for(const item of items){
+        // API returns WGS84 directly (unlike KPD which used LKS94)
+        const lat=parseFloat(item.szerokoscGeograficzna||item.lat||item.latitude||0);
+        const lng=parseFloat(item.dlugoscGeograficzna||item.lng||item.longitude||0);
+        if(!lat||!lng||lat<49||lat>55||lng<14||lng>25) continue;
+        allData.push({
+          id:'zab_'+(item.inspireId||item.id||skip+'_'+allData.length),
+          name:item.nazwaObiektu||item.nazwa||item.name||'Zabytek',
+          lat,lng,
+          rodzaj:item.rodzajObiektu||item.rodzaj||'',
+          miejscowosc:item.miejscowosc||item.miasto||'',
+          rejestr:item.nrRejestruZabytkow||item.numerRejestru||'',
+          cat:'history', // assigned below
+          alreadyIn:false
+        });
+      }
+      skip+=ZABYTEK_BATCH;
+      setS(`⏳ Pobrano ${allData.length}...`);
+      await new Promise(r=>setTimeout(r,500));
+    }
+
+    // Assign categories and deduplicate
+    allData=allData
+      .map(x=>({...x,cat:zabytekCat(x.rodzaj)}))
+      .filter((x,i,arr)=>arr.findIndex(y=>Math.abs(y.lat-x.lat)<0.0003&&Math.abs(y.lng-x.lng)<0.0003&&y.cat===x.cat)===i);
+    // Mark already imported
+    allData.forEach(x=>{x.alreadyIn=SPOTS.some(s=>Math.abs(s.lat-x.lat)<0.0005&&Math.abs(s.lng-x.lng)<0.0005);});
+
+    _zabytekData=allData;
+    try{localStorage.setItem(ZABYTEK_CACHE_KEY,JSON.stringify({ts:Date.now(),data:_zabytekData}));}catch(e){}
+    setS(`✅ ${_zabytekData.length} zabytków. Już dodanych: ${_zabytekData.filter(x=>x.alreadyIn).length}`);
+    renderOsmImport(); // re-render to show city list
+  }catch(e){
+    setS('❌ Błąd: '+e.message+'. Spróbuj ponownie.');
+    console.error('fetchZabytek',e);
+  }
+  _zabytekLoading=false;
+}
+
+function renderZabytekList(){
+  const el=document.getElementById('zabytekList');if(!el) return;
+  const filtered=_zabytekData.filter(x=>{
+    if(x.alreadyIn) return false;
+    if(_zabytekFilter!=='all'&&x.cat!==_zabytekFilter) return false;
+    if(_zabytekCityFilter!=='all'&&x.miejscowosc!==_zabytekCityFilter) return false;
+    return true;
+  });
+  if(!filtered.length){el.innerHTML=`<div style="text-align:center;padding:24px;color:var(--td);font-size:.82rem">Brak wyników dla wybranych filtrów</div>`;return;}
+  el.innerHTML=filtered.map((item,i)=>{
+    const realIdx=_zabytekData.indexOf(item);
+    const sel=_zabytekSelected.has(realIdx);
+    const cat=CATS[item.cat]||CATS.history;
+    return`<div class="osm-item ${sel?'selected':''}" onclick="zabytekToggleItem(${realIdx})">
+      <div class="osm-check">${sel?'✓':''}</div>
+      <div class="osm-emoji">${cat.emoji}</div>
+      <div class="osm-info">
+        <div class="osm-name">${item.name}</div>
+        <div class="osm-meta">${cat.label}${item.miejscowosc?' · '+item.miejscowosc:''}${item.rodzaj?' · '+item.rodzaj.slice(0,40):''}</div>
+        ${item.rejestr?`<div class="osm-meta" style="color:var(--tm)">Nr rej: ${item.rejestr}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function zabytekToggleItem(idx){if(_zabytekSelected.has(idx))_zabytekSelected.delete(idx);else _zabytekSelected.add(idx);renderZabytekList();}
+function zabytekSelectAll(){_zabytekData.forEach((x,i)=>{if(!x.alreadyIn&&(_zabytekFilter==='all'||x.cat===_zabytekFilter)&&(_zabytekCityFilter==='all'||x.miejscowosc===_zabytekCityFilter))_zabytekSelected.add(i);});renderZabytekList();}
+function zabytekSelectNone(){_zabytekSelected.clear();renderZabytekList();}
+
+async function zabytekImportSelected(){
+  if(!_zabytekSelected.size){toast('Nic nie wybrano','info');return;}
+  const setS=m=>{const e=document.getElementById('zabytekStatus');if(e)e.textContent=m;};
+  let imported=0;
+  for(const idx of _zabytekSelected){
+    const item=_zabytekData[idx];if(!item||item.alreadyIn) continue;
+    const spot={
+      name:item.name,cat:item.cat,tier:2,lat:item.lat,lng:item.lng,
+      radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,
+      history:'',year:'',tag:'ZAB-'+item.rejestr,bring:[],
+      country:'PL'
+    };
+    try{
+      const fid=await fbSaveSpot(spot);
+      if(fid){spot.id=fid;spot._fid=fid;SPOTS.push(spot);item.alreadyIn=true;imported++;}
+    }catch(e){console.error('zabytekImport',e);}
+  }
+  _zabytekSelected.clear();
+  if(imported>0){refreshMarkers();updateAll();}
+  setS(`✅ Zaimportowano ${imported} obiektów`);
+  renderZabytekList();
+}
 
 function osmToggleManual(){
   _osmManualMode=!_osmManualMode;
@@ -5965,6 +5986,40 @@ function osmToggleManual(){
 const ADMIN_UIDS=['Q0pPckRvI7e6T0kylcpfCsKV61x1','wHLbJaH5zYNLlKRLBTYnlahsWQ73'];
 function isAdmin(){return window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid);}
 
+// ═══════════ USERNAME PROMPT ═══════════
+function maybePromptUsername(){
+  // Only show if user is logged in
+  if(!window._fbUser) return;
+  // If Firebase already has a displayName (set during email registration or from Google), use it
+  const fbName=window._fbUser.displayName;
+  if(fbName&&fbName.trim().length>0){
+    // Sync Firebase name to local playerName if still default
+    if(!playerName||playerName==='Tu') { playerName=fbName; save(); }
+    return; // don't prompt — they already have a name
+  }
+  // If local name is already set and non-default, skip
+  if(playerName&&playerName!=='Tu'&&playerName.trim().length>0) return;
+  // Only show once per session
+  if(sessionStorage.getItem('kex_uname_prompted')) return;
+  sessionStorage.setItem('kex_uname_prompted','1');
+  const inp=document.getElementById('unameInput');
+  if(inp) inp.value='';
+  document.getElementById('unameOverlay').classList.add('show');
+}
+
+function submitUsername(){
+  const inp=document.getElementById('unameInput');
+  const n=(inp?.value||'').trim();
+  if(!n){inp&&(inp.style.borderColor='var(--red)');return;}
+  playerName=n;
+  save();
+  document.getElementById('unameOverlay').classList.remove('show');
+  toast(`👤 Sveiki, ${n}!`,'success');
+}
+
+function skipUsername(){
+  document.getElementById('unameOverlay').classList.remove('show');
+}
 
 // ═══════════ SUGGEST SPOT SYSTEM ═══════════
 let _sugLat=null,_sugLng=null;
@@ -6199,12 +6254,49 @@ function checkContributorBadges(count,isCurrentUser){
 }
 
 
+const INTRO_STEPS=[
+  {glyph:'🗺',title:'Labas, Seeker\'i!',sub:'SpotSeekers — tyrinėk Lietuvą realiu laiku. Surink vietas fiziškai apsilankydamas prie jų.'},
+  {glyph:'📍',title:'Kaip surinkti vietą?',sub:'Prieik prie žymeklio žemėlapyje ir paspausk "Surinkti". GPS aptiks tavo buvimo vietą automatiškai.'},
+  {glyph:'🔓',title:'Lygiai & atrakinimai',sub:'Pradedi su ~910 vietų. Kiekvienas lygis atveria naujas — iki viso 9000+ Lietuvoje.'},
+  {glyph:'🏅',title:'XP, ženkleliai & serijos',sub:'Kiekviena vieta duoda XP. Rinki ženklelius pagal kategorijas — bažnyčios, piliakalnis, fortai ir dar daugiau.'},
+  {glyph:'🏆',title:'Lyderių lentelė',sub:'Lenktyniauk su kitais Seeker\'iais. Prisijunk kad sinchronizuoti pažangą tarp įrenginių.'},
+  {glyph:'🚀',title:'Pradėk tyrinėti!',sub:'GPS veikia fone. Matai vietas 50 km spinduliu. Sėkmės, Seeker\'i!',isLast:true},
+];
+let _introStep=0;
+
+function showIntroIfNeeded(){
+  if(localStorage.getItem('kex_intro_done')) return;
+  _introStep=0;
+  renderIntroStep();
+  document.getElementById('introOverlay').classList.remove('hidden');
+}
+
+function renderIntroStep(){
+  const s=INTRO_STEPS[_introStep];
+  document.querySelector('.intro-glyph').textContent=s.glyph;
+  document.querySelector('.intro-title').textContent=s.title;
+  document.querySelector('.intro-sub').textContent=s.sub;
+  document.querySelectorAll('.intro-dot').forEach((d,i)=>d.classList.toggle('on',i===_introStep));
+  const btn=document.getElementById('introBtn');
+  btn.textContent=_introStep<INTRO_STEPS.length-1?'Toliau →':'🗺 Pradėti!';
+}
+
+function introNext(){
+  _introStep++;
+  if(_introStep>=INTRO_STEPS.length){
+    localStorage.setItem('kex_intro_done','1');
+    document.getElementById('introOverlay').classList.add('hidden');
+    return;
+  }
+  renderIntroStep();
+}
+
 // Mobile nav — on mobile opens a dedicated full-screen overlay (not the drawer)
 // This keeps the map accessible — user taps ✕ to return to map
 const MOB_PANEL_TITLES={
   zenklai:'🏅 Ženkleliai',
-  routes:'🗺 Maršrutai',
-  favs:'🗺 Maršrutai',
+
+  favs:'♥ Mėgstamiausi',
   vietos:'📋 Vietos',
 };
 
@@ -6231,7 +6323,7 @@ function mobNavTo(panel){
   if(origEl){
     // Clone the panel element approach — render then copy innerHTML
     if(panel==='zenklai') renderBadgesInto(body);
-    else if(panel==='routes'||panel==='favs') renderRoutesInto(body);
+    else if(panel==='favs') renderFavoritesInto(body);
     else if(panel==='vietos') renderListInto(body);
   }
 
@@ -6251,6 +6343,13 @@ function renderBadgesInto(target){
   const orig=document.getElementById('panel-zenklai');
   const saved=orig.innerHTML;
   renderBadges();
+  target.innerHTML=orig.innerHTML;
+  orig.innerHTML=saved;
+}
+function renderFavoritesInto(target){
+  const orig=document.getElementById('panel-favs');
+  const saved=orig.innerHTML;
+  renderFavorites();
   target.innerHTML=orig.innerHTML;
   orig.innerHTML=saved;
 }
@@ -6311,445 +6410,113 @@ let _clusterTimer=null;
 function setupClusteringListener(){}
 function applyViewportCulling(){}
 
-// ═══════════ ROUTES ═══════════
+// ═══════════ FAVORITES ═══════════
 
-function loadRoutes(){
-  try{const r=localStorage.getItem('ke7_routes');routes=r?JSON.parse(r):[];}catch(e){routes=[];}
-  activeRouteId=localStorage.getItem('ke7_activeRoute')||null;
-  // Validate activeRouteId still exists
-  if(activeRouteId&&!routes.find(r=>r.id===activeRouteId)) activeRouteId=null;
-}
-
-function saveRoutes(){
-  localStorage.setItem('ke7_routes',JSON.stringify(routes));
-  if(activeRouteId) localStorage.setItem('ke7_activeRoute',activeRouteId);
-  else localStorage.removeItem('ke7_activeRoute');
-}
-
-function getActiveRoute(){return routes.find(r=>r.id===activeRouteId)||null;}
-
-function createRoute(name){
-  const r={id:'r_'+Date.now(),name:name.trim(),spots:[],created:Date.now()};
-  routes.push(r);saveRoutes();return r;
-}
-
-function deleteRoute(id){
-  if(!confirm('Ištrinti šį maršrutą?')) return;
-  routes=routes.filter(r=>r.id!==id);
-  if(activeRouteId===id){activeRouteId=null;routeFilterActive=false;clearRoutePolyline();}
-  saveRoutes();updateAll();updateRouteBar();refreshMarkers();renderRoutes();
-}
-
-function renameRoute(id){
-  const r=routes.find(r=>r.id===id);if(!r) return;
-  const name=prompt('Naujas pavadinimas:',r.name);
-  if(!name?.trim()) return;
-  r.name=name.trim();saveRoutes();renderRoutes();updateRouteBar();
-}
-
-function setActiveRoute(id){
-  activeRouteId=id===activeRouteId?null:id; // toggle
-  saveRoutes();updateRouteBar();
-  clearRoutePolyline();
-  if(activeRouteId) fetchAndDrawRoute(activeRouteId);
-  refreshMarkers();updateAll();
-}
-
-function addSpotToRoute(routeId,spotId){
-  const r=routes.find(r=>r.id===routeId);if(!r) return;
-  const key=String(spotId);
-  if(!r.spots.includes(key)) r.spots.push(key);
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();
-  if(routeId===activeRouteId){clearRoutePolyline();if(r.spots.length>=2) fetchAndDrawRoute(routeId);}
-}
-
-function removeSpotFromRoute(routeId,spotId){
-  const r=routes.find(r=>r.id===routeId);if(!r) return;
-  r.spots=r.spots.filter(s=>s!==String(spotId));
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();
-  if(routeId===activeRouteId){clearRoutePolyline();if(r.spots.length>=2) fetchAndDrawRoute(routeId);}
-}
-
-function moveSpotInRoute(routeId,spotId,dir){
-  const r=routes.find(r=>r.id===routeId);if(!r) return;
-  const idx=r.spots.indexOf(String(spotId));if(idx<0) return;
-  const ni=idx+dir;if(ni<0||ni>=r.spots.length) return;
-  [r.spots[idx],r.spots[ni]]=[r.spots[ni],r.spots[idx]];
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();clearRoutePolyline();
-  if(routeId===activeRouteId&&r.spots.length>=2) fetchAndDrawRoute(routeId);
-  // Re-render detail if open
-  const detEl=document.getElementById('_routeDetailPanel');
-  if(detEl) renderRouteDetailInto(r,detEl.closest('[id^="panel-"],[id="mobPanelBody"]'),routeId);
-}
-
-function optimizeRoute(routeId){
-  const r=routes.find(r=>r.id===routeId);
-  if(!r||r.spots.length<2){toast('Reikia bent 2 taškų','info');return;}
-  const objs=r.spots.map(id=>SPOTS.find(s=>String(s.id)===id)).filter(Boolean);
-  if(objs.length<2) return;
-  const ordered=[objs[0]];const rem=objs.slice(1);
-  while(rem.length>0){
-    const last=ordered[ordered.length-1];
-    let bi=0,bd=Infinity;
-    rem.forEach((s,i)=>{const d=dist(last.lat,last.lng,s.lat,s.lng);if(d<bd){bd=d;bi=i;}});
-    ordered.push(rem.splice(bi,1)[0]);
-  }
-  r.spots=ordered.map(s=>String(s.id));
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();clearRoutePolyline();
-  if(routeId===activeRouteId&&r.spots.length>=2) fetchAndDrawRoute(routeId);
-  toast('✓ Maršrutas optimizuotas','success');
-  const detEl=document.getElementById('_routeDetailPanel');
-  if(detEl) renderRouteDetailInto(r,detEl.closest('[id^="panel-"],[id="mobPanelBody"]'),routeId);
-}
-
-// OSRM: fetch real road distance + draw polyline on map
-async function fetchAndDrawRoute(routeId){
-  const r=routes.find(rr=>rr.id===routeId);
-  if(!r||r.spots.length<2){clearRoutePolyline();return;}
-  const objs=r.spots.map(id=>SPOTS.find(s=>String(s.id)===id)).filter(Boolean);
-  if(objs.length<2) return;
-  const coords=objs.map(s=>`${s.lng},${s.lat}`).join(';');
-  try{
-    const res=await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`,{signal:AbortSignal.timeout(8000)});
-    const data=await res.json();
-    if(data.routes&&data.routes[0]){
-      const route=data.routes[0];
-      r.distKm=(route.distance/1000).toFixed(1);
-      saveRoutes();updateRouteBar();
-      clearRoutePolyline();
-      const ll=route.geometry.coordinates.map(c=>[c[1],c[0]]);
-      _routePolyline=L.polyline(ll,{color:'#c9a84c',weight:3,opacity:.85,dashArray:'8,6'}).addTo(map);
-      return;
-    }
-  }catch(e){}
-  // Fallback: straight-line with 1.3 urban correction
-  let total=0;
-  for(let i=0;i<objs.length-1;i++) total+=dist(objs[i].lat,objs[i].lng,objs[i+1].lat,objs[i+1].lng);
-  r.distKm=(total/1000*1.3).toFixed(1);
-  saveRoutes();updateRouteBar();
-  clearRoutePolyline();
-  _routePolyline=L.polyline(objs.map(s=>[s.lat,s.lng]),{color:'#c9a84c',weight:2,opacity:.5,dashArray:'4,8'}).addTo(map);
-}
-
-function clearRoutePolyline(){
-  if(_routePolyline){map&&map.removeLayer(_routePolyline);_routePolyline=null;}
-}
-
-function navigateToNext(){
-  const r=getActiveRoute();if(!r) return;
-  const next=r.spots.map(id=>SPOTS.find(s=>String(s.id)===id)).filter(s=>s&&!found.has(s.id))[0];
-  if(!next){toast('🎉 Visi maršruto taškai surinkti!','success');return;}
-  window.open(`https://www.google.com/maps/dir/?api=1&destination=${next.lat},${next.lng}`,'_blank');
-}
-
-function endActiveRoute(){
-  activeRouteId=null;routeFilterActive=false;
-  clearRoutePolyline();saveRoutes();updateRouteBar();
-  const chip=document.getElementById('routeFilterChip');
-  if(chip) chip.classList.remove('on');
-  refreshMarkers();updateAll();
-}
-
-function startRouteEditMode(routeId){
-  const r=routes.find(rr=>rr.id===routeId);if(!r) return;
-  _routeEditMode=true;_routeEditRouteId=routeId;
-  // Close drawer/panel so map is visible
-  closeDrawer();closeMobPanel();
-  // Show edit banner
-  let banner=document.getElementById('routeEditBanner');
-  if(!banner){
-    banner=document.createElement('div');
-    banner.id='routeEditBanner';
-    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:500;background:var(--gold);color:#0e0c09;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3);font-family:"DM Sans",sans-serif;font-size:.85rem;font-weight:600';
-    document.body.appendChild(banner);
-  }
-  banner.innerHTML=`<span style="flex:1">🗺 ${r.name} — liečk vietas pridėti/pašalinti</span><button onclick="exitRouteEditMode()" style="background:#0e0c09;color:var(--gold);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer">Baigti ✓</button>`;
-  banner.style.display='flex';
-  // Refresh all markers to show gold highlights
-  refreshMarkers();
-}
-
-function exitRouteEditMode(){
-  _routeEditMode=false;_routeEditRouteId=null;
-  const banner=document.getElementById('routeEditBanner');
-  if(banner) banner.style.display='none';
-  // Refresh markers back to normal
-  refreshMarkers();
-}
-
-function updateRouteBar(){
-  const bar=document.getElementById('routeBar');if(!bar) return;
-  const r=getActiveRoute();
-  if(!r){bar.classList.remove('active');return;}
-  const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-  document.getElementById('rbName').textContent=r.name;
-  document.getElementById('rbStop').textContent=`${done}/${r.spots.length} surinkta${r.distKm?` · ~${r.distKm}km`:''}`;
-  bar.classList.add('active');
-}
-
-// ── Spot button: add/remove from active route ──
-function toggleSpotInActiveRoute(){
+function toggleFavorite(){
   if(!selectedSpot) return;
-  if(!activeRouteId){showRoutePicker(selectedSpot.id);return;}
   const key=String(selectedSpot.id);
-  const r=getActiveRoute();if(!r) return;
-  if(r.spots.includes(key)){
-    removeSpotFromRoute(activeRouteId,key);
-    updateFavBtn();
-    toast(`✓ Pašalinta iš "${r.name}"`,'info');
-  }else{
-    addSpotToRoute(activeRouteId,key);
-    updateFavBtn();
-    toast(`＋ Pridėta į "${r.name}"`,'success');
+  if(favorites.has(key)||favorites.has(selectedSpot.id)){
+    favorites.delete(key);favorites.delete(selectedSpot.id);
+  } else {
+    favorites.add(key);
   }
+  save();
+  const btn=document.getElementById('favBtn');
+  if(btn) btn.textContent=(favorites.has(key)||favorites.has(selectedSpot.id))?'♥':'♡';
+  toast(favorites.has(key)?'♥ Pridėta į mėgstamiausius':'♡ Pašalinta iš mėgstamiausių','info');
 }
 
-function updateFavBtn(){
-  const btn=document.getElementById('favBtn');if(!btn||!selectedSpot) return;
-  if(!activeRouteId){btn.textContent='＋';btn.title='Pridėti į maršrutą';btn.style.color='';return;}
-  const r=getActiveRoute();if(!r){btn.textContent='＋';btn.style.color='';return;}
-  const inRoute=r.spots.includes(String(selectedSpot.id));
-  btn.textContent=inRoute?'✓':'＋';
-  btn.title=inRoute?`Pašalinti iš "${r.name}"`:`Pridėti į "${r.name}"`;
-  btn.style.color=inRoute?'var(--gold)':'';
-}
-
-// ── Route picker sheet ──
-function showRoutePicker(spotId){
-  if(!routes.length){
-    const name=prompt('Naujo maršruto pavadinimas:');
-    if(!name?.trim()) return;
-    const r=createRoute(name);
-    setActiveRoute(r.id);
-    addSpotToRoute(r.id,spotId);
-    updateFavBtn();updateAll();
-    toast(`＋ Pridėta į "${r.name}"`,'success');
-    return;
-  }
-  let el=document.getElementById('routePickerSheet');
-  if(!el){el=document.createElement('div');el.id='routePickerSheet';document.body.appendChild(el);}
-  el.style.cssText='position:fixed;inset:0;z-index:700;display:flex;align-items:flex-end';
-  el.innerHTML=`
-    <div onclick="closeRoutePicker()" style="position:absolute;inset:0;background:rgba(0,0,0,.55)"></div>
-    <div style="position:relative;width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:16px 16px 40px;max-height:70vh;overflow-y:auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt)">Pasirink maršrutą</div>
-        <div onclick="closeRoutePicker()" style="width:28px;height:28px;background:var(--surf2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--td)">✕</div>
-      </div>
-      ${routes.map(r=>{
-        const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-        return`<div onclick="pickRouteForSpot('${r.id}','${spotId}')" style="padding:12px;background:var(--surf2);border:1px solid ${r.id===activeRouteId?'var(--gold)':'var(--bdr)'};border-radius:10px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:.88rem;color:var(--txt);font-weight:600">${r.name}</div>
-            <div style="font-size:.72rem;color:var(--td);margin-top:2px">📍 ${r.spots.length} taškai · ✓ ${done}/${r.spots.length}</div>
-          </div>
-          ${r.id===activeRouteId?'<span style="font-size:.65rem;color:var(--gold);font-family:DM Mono,monospace;background:rgba(201,168,76,.15);padding:2px 7px;border-radius:10px">aktyvus</span>':''}
-        </div>`;
-      }).join('')}
-      <button onclick="promptCreateRouteForSpot('${spotId}')" style="width:100%;background:var(--surf3);border:1px solid var(--bdr);border-radius:10px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--td);cursor:pointer;margin-top:4px">+ Naujas maršrutas</button>
-    </div>`;
-}
-
-function closeRoutePicker(){const el=document.getElementById('routePickerSheet');if(el) el.style.display='none';}
-
-function pickRouteForSpot(routeId,spotId){
-  if(activeRouteId!==routeId) setActiveRoute(routeId);
-  addSpotToRoute(routeId,spotId);
-  closeRoutePicker();updateFavBtn();updateAll();
-  const r=routes.find(r=>r.id===routeId);
-  toast(`＋ Pridėta į "${r?.name||'maršrutą'}"`,'success');
-}
-
-function promptCreateRouteForSpot(spotId){
-  closeRoutePicker();
-  const name=prompt('Naujo maršruto pavadinimas:');
-  if(!name?.trim()) return;
-  const r=createRoute(name);
-  setActiveRoute(r.id);
-  addSpotToRoute(r.id,spotId);
-  updateFavBtn();updateAll();
-  toast(`＋ Pridėta į "${r.name}"`,'success');
-}
-
-// ── Routes panel renderer ──
-let _routeView='list'; // 'list' or routeId string
-
-function renderRoutes(){
-  const body=document.getElementById('panel-routes');
-  if(body) renderRoutesInto(body);
-}
-
-function renderRoutesInto(body){
-  _routeView='list';
-  if(!routes.length){
+function renderFavorites(){
+  const body=document.getElementById('panel-favs');
+  const favSpots=SPOTS.filter(s=>favorites.has(String(s.id))||favorites.has(s.id));
+  if(!favSpots.length){
     body.innerHTML=`<div style="padding:40px 20px;text-align:center">
-      <div style="font-size:40px;margin-bottom:12px">🗺</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);margin-bottom:8px">Nėra maršrutų</div>
-      <div style="font-size:.8rem;color:var(--td);line-height:1.6;margin-bottom:20px">Sukurk maršrutą ir planuok kelionę po istorines vietas.</div>
-      <button onclick="promptCreateRoute()" style="background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:10px 22px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer">+ Naujas maršrutas</button>
-    </div>${_buildAutoGenSection()}`;
+      <div style="font-size:40px;margin-bottom:12px">♡</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);margin-bottom:8px">Dar nėra mėgstamiausių</div>
+      <div style="font-size:.8rem;color:var(--td);line-height:1.6">Atidaryk bet kurią vietą ir spausk ♡ norėdamas ją išsaugoti.</div>
+    </div>`;
     return;
   }
-  let h=`<div style="padding:12px 14px 6px;display:flex;align-items:center;justify-content:space-between">
-    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">${routes.length} maršruta${routes.length===1?'s':routes.length<10?'i':'ų'}</div>
-    <button onclick="promptCreateRoute()" style="background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer">+ Naujas</button>
-  </div>`;
-  routes.forEach(r=>{
-    const total=r.spots.length;
-    const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-    const isActive=r.id===activeRouteId;
-    const pct=total>0?done/total*100:0;
-    h+=`<div class="route-card" style="${isActive?'border-color:var(--gold);':''}" onclick="openRouteDetail('${r.id}')">
-      <div class="rc-head">
-        <div class="rc-name">${isActive?'▶ ':''}${r.name}</div>
-        <div class="rc-meta">
-          <span class="rc-chip">📍 ${total} taškai</span>
-          <span class="rc-chip">✓ ${done}/${total}</span>
-          ${r.distKm?`<span class="rc-chip">~${r.distKm}km</span>`:''}
-          ${isActive?`<span class="rc-chip" style="border-color:var(--gold);color:var(--gold)">aktyvus</span>`:''}
-        </div>
-        <div class="rc-prog" style="margin-top:6px"><div class="rc-pf" style="width:${pct}%"></div></div>
-      </div>
+  let h=`<div class="prog-h"><div class="prog-row"><div class="prog-cnt">♥ ${favSpots.length} mėgstamiausia${favSpots.length===1?'':'s'}</div></div></div>`;
+  favSpots.sort((a,b)=>(a.name||'').localeCompare(b.name||'','lt')).forEach(s=>{
+    const cat=CATS[s.cat]||CATS.history;
+    const isF=found.has(s.id);
+    h+=`<div class="sr ${isF?'col':''}" onclick="closeDrawer();goToSpot('${s.id}')">
+      <div class="sri">${isF?'✓':cat.emoji}</div>
+      <div style="flex:1;min-width:0"><div class="srn">${s.name||'—'}</div><div class="srm">${cat.label}</div></div>
+      <div class="srr" style="color:var(--gold)">♥</div>
     </div>`;
   });
-  h+=_buildAutoGenSection();
   body.innerHTML=h;
 }
-
-function _buildAutoGenSection(){
-  return`<div style="margin:14px 14px 0;padding-top:14px;border-top:1px solid var(--bdr)">
-    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">⚡ Automatinis maršrutas</div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <select id="autoGenCat" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--txt);outline:none">
-        ${Object.entries(CATS).filter(([k])=>k!=='hidden').map(([k,v])=>`<option value="${k}">${v.emoji} ${v.label}</option>`).join('')}
-      </select>
-      <select id="autoGenCity" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--txt);outline:none">
-        <option value="all">🗺 Visos vietos</option>
-        ${Object.keys(getCityBounds()).filter(c=>SPOTS.some(s=>spotInCity(s,c))).sort().map(c=>`<option value="${c}">${c}</option>`).join('')}
-      </select>
-    </div>
-    <button onclick="autoGenerateRoute()" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:9px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--txt);cursor:pointer;transition:background .15s">🎲 Generuoti maršrutą</button>
-  </div>`;
-}
-
-function openRouteDetail(routeId){
-  const r=routes.find(rr=>rr.id===routeId);if(!r) return;
-  // Find the right container
-  const inMob=document.getElementById('mobPanelOverlay')?.classList.contains('open');
-  const body=inMob?document.getElementById('mobPanelBody'):document.getElementById('panel-routes');
-  if(body) renderRouteDetailInto(r,body,routeId);
-}
-
-function renderRouteDetailInto(r,body,routeId){
-  _routeView=routeId;
-  const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-  const isActive=r.id===activeRouteId;
-  const pct=r.spots.length>0?done/r.spots.length*100:0;
-
-  let spotsHtml='';
-  if(!r.spots.length){
-    spotsHtml=`<div style="padding:20px;text-align:center;color:var(--td);font-size:.82rem">Dar nėra taškų. Atidaryk vietą ir spausk ＋.</div>`;
-  } else {
-    r.spots.forEach((sid,i)=>{
-      const s=SPOTS.find(s=>String(s.id)===sid);
-      if(!s){return;}
-      const cat=CATS[s.cat]||CATS.history;
-      const isF=found.has(s.id);
-      spotsHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--bdr)">
-        <div style="width:22px;height:22px;border-radius:50%;background:${isF?'var(--gold)':'var(--bdr)'};display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;color:${isF?'#0e0c09':'var(--td)'}">${isF?'✓':i+1}</div>
-        <div style="flex:1;min-width:0;cursor:pointer" onclick="closeDrawer();closeMobPanel();goToSpot('${s.id}')">
-          <div style="font-size:.83rem;color:${isF?'var(--td)':'var(--txt)'};${isF?'text-decoration:line-through;':''}">${s.name||'—'}</div>
-          <div style="font-size:.68rem;color:var(--tm)">${cat.emoji} ${cat.label}</div>
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
-          <button onclick="moveSpotInRoute('${routeId}','${sid}',-1)" style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:pointer;color:var(--td)" ${i===0?'disabled style="opacity:.3;background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:default;color:var(--td)"':''}>↑</button>
-          <button onclick="moveSpotInRoute('${routeId}','${sid}',1)" style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:pointer;color:var(--td)" ${i===r.spots.length-1?'disabled style="opacity:.3;background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:default;color:var(--td)"':''}>↓</button>
-          <button onclick="removeSpotFromRoute('${routeId}','${sid}');openRouteDetail('${routeId}')" style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:pointer;color:var(--red)">✕</button>
-        </div>
-      </div>`;
-    });
-  }
-
-  body.innerHTML=`<div id="_routeDetailPanel">
-    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bdr)">
-      <button onclick="renderRoutesInto(document.getElementById('_routeDetailPanel').closest('[id^=panel],[id=mobPanelBody]'))" style="background:none;border:none;color:var(--td);font-size:.85rem;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px">← Visi</button>
-      <div style="flex:1;font-family:'Playfair Display',serif;font-size:.95rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
-      <button onclick="renameRoute('${routeId}')" style="background:none;border:none;color:var(--td);font-size:.8rem;cursor:pointer;padding:2px 6px">✏️</button>
-      <button onclick="deleteRoute('${routeId}')" style="background:none;border:none;color:var(--red);font-size:.8rem;cursor:pointer;padding:2px 6px">🗑</button>
-    </div>
-    <div style="padding:10px 14px;display:flex;gap:8px;align-items:center;background:var(--surf2);border-bottom:1px solid var(--bdr)">
-      <div style="flex:1">
-        <div style="font-size:.75rem;color:var(--td)">✓ ${done}/${r.spots.length} surinkta${r.distKm?` · ~${r.distKm}km`:''}${!r.distKm&&r.spots.length>=2?' · ⟳ Skaičiuojama...':''}</div>
-        <div style="height:3px;background:var(--bdr);border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;width:${pct}%"></div></div>
-      </div>
-    </div>
-    <div style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--bdr)">
-      <button onclick="setActiveRoute('${routeId}')" style="flex:1;background:${isActive?'rgba(201,168,76,.15)':'var(--surf2)'};border:1px solid ${isActive?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:${isActive?'var(--gold)':'var(--td)'};cursor:pointer">${isActive?'▶ Aktyvus':'▷ Aktyvuoti'}</button>
-      <button onclick="optimizeRoute('${routeId}')" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer">⚡ Optimizuoti</button>
-      <button onclick="navigateToNext()" style="flex:1;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer" ${!isActive?'disabled style="flex:1;opacity:.4;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:7px 10px;font-family:DM Sans,sans-serif;font-size:.78rem;font-weight:600;cursor:default"':''}>→ Navigacija</button>
-    </div>
-    <div style="padding:6px 14px 8px;border-bottom:1px solid var(--bdr)">
-      <button onclick="startRouteEditMode('${routeId}')" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">＋ Pridėti taškus žemėlapyje</button>
-    </div>
-    <div>${spotsHtml}</div>
-  </div>`;
-}
-
-function promptCreateRoute(){
-  const name=prompt('Maršruto pavadinimas:');
-  if(!name?.trim()) return;
-  const r=createRoute(name);
-  renderRoutes();updateAll();
-  toast(`✓ Sukurtas "${r.name}"`,'success');
-}
-
-function autoGenerateRoute(){
-  const cat=document.getElementById('autoGenCat')?.value;
-  const city=document.getElementById('autoGenCity')?.value;
-  if(!cat) return;
-  let pool=SPOTS.filter(s=>s.cat===cat&&s.cat!=='hidden'&&!found.has(s.id));
-  if(city&&city!=='all') pool=pool.filter(s=>spotInCity(s,city));
-  if(!pool.length){toast('Nerasta tinkamų vietų','info');return;}
-  const catObj=CATS[cat]||{label:cat,emoji:''};
-  const cityLabel=city==='all'?'Lietuva':city;
-  const name=`${catObj.emoji} ${catObj.label} — ${cityLabel}`.trim();
-  const r=createRoute(name);
-  pool.forEach(s=>r.spots.push(String(s.id)));
-  saveRoutes();setActiveRoute(r.id);renderRoutes();updateAll();
-  toast(`✓ Sukurtas maršrutas: ${pool.length} vietų`,'success');
-}
-
-// ── Filter: toggle all off ──
-function mobHideAll(){
-  Object.keys(CATS).filter(k=>k!=='hidden').forEach(k=>activeFilterHidden.add(k));
-  buildMobFilterSheet();_syncFilterUI();refreshMarkers();
-}
-
-// ── Filter: route chip ──
-function toggleRouteFilter(){
-  if(!activeRouteId){
-    // No active route — navigate to routes panel
-    closeMobFilterSheet();
-    setTimeout(()=>mobNavTo('routes'),200);
-    return;
-  }
-  routeFilterActive=!routeFilterActive;
-  const chip=document.getElementById('routeFilterChip');
-  if(chip) chip.classList.toggle('on',routeFilterActive);
-  refreshMarkers();
-}
-
-function renderFavoritesInto(target){renderRoutesInto(target);}
-function renderFavorites(){renderRoutes();}
 
 // ═══════════ REVIEW SYSTEM ═══════════
 
 const REVIEW_MILESTONES=[3,20,50,150]; // show review at these spot counts only
 let _reviewRating=0;
+// ═══════════ USERNAME ONBOARDING ═══════════
+function maybeShowUsernamePrompt(){
+  if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
+  // Only show if logged in or after a short delay for guests
+  setTimeout(()=>{
+    if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
+    showUsernameModal();
+  }, 2000);
+}
+
+function showUsernameModal(){
+  let el=document.getElementById('usernameModal');
+  if(!el){
+    el=document.createElement('div');
+    el.id='usernameModal';
+    el.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
+    el.innerHTML=`<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
+      <div style="font-size:2.5rem;margin-bottom:12px">🗺</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px">Labas, Seeker'i!</div>
+      <div style="font-size:.85rem;color:var(--td);margin-bottom:20px;line-height:1.5">Kaip tave vadinti? Tavo vardas pasirodys lyderių lentelėje.</div>
+      <input id="usernameInput" type="text" maxlength="20" placeholder="Seeker'io vardas..."
+        style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--txt);outline:none;margin-bottom:14px;box-sizing:border-box">
+      <button onclick="confirmUsername()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">Pradėti tyrinėti →</button>
+      <div onclick="skipUsername()" style="margin-top:10px;font-size:.75rem;color:var(--tm);cursor:pointer">Praleisti</div>
+    </div>`;
+    document.body.appendChild(el);
+  }
+  el.style.display='flex';
+  setTimeout(()=>document.getElementById('usernameInput')?.focus(),100);
+}
+
+function skipUsername(){
+  // Assign a stable guest name if skipping
+  if(!playerName||playerName==='Tu'){
+    const gid=getGuestId();
+    const suffix=parseInt(gid.replace('guest_','').slice(0,4),36)%9000+1000;
+    playerName=`Seeker #${suffix}`;
+    save();
+  }
+  const el=document.getElementById('usernameModal');
+  if(el) el.style.display='none';
+  updateDrawerHeader();
+  updateAll();
+}
+
+function confirmUsername(){
+  const input=document.getElementById('usernameInput');
+  const name=(input?.value||'').trim();
+  if(name.length>=2) playerName=name;
+  else skipUsername(); // treat empty confirm same as skip
+  save();
+  // Sync to Firestore if logged in
+  const user=window._fbUser;
+  if(user&&window._fb){
+    const{db,doc,setDoc}=window._fb;
+    setDoc(doc(db,'users',user.uid),{name:playerName},{merge:true}).catch(()=>{});
+  }
+  const el=document.getElementById('usernameModal');
+  if(el) el.style.display='none';
+  updateDrawerHeader();
+  updateAll();
+}
+
 let _reviewShownThisSession=false;
 
 function maybeShowReview(){
@@ -6883,31 +6650,68 @@ async function submitReview(){
 })();
 
 
-// ═══════════ FIRST-RUN AUTH ═══════════
-function maybeShowAuthOnFirstVisit(){
-  if(window._fbUser) return; // already logged in
-  if(localStorage.getItem('ss_onboarded_v1')) return; // returning user
-  localStorage.setItem('ss_onboarded_v1','1');
-  setTimeout(()=>{
-    if(window._fbUser) return; // logged in by the time timer fires
-    // Open in register mode for new users
-    _emailRegisterMode=true;
-    document.getElementById('eauthTitle').textContent='Registruotis';
-    document.getElementById('eauthSubmit').textContent='Sukurti paskyrą';
-    document.getElementById('eauthName').style.display='block';
-    document.getElementById('eauthToggle').innerHTML='Jau turi paskyrą? <span onclick="toggleEmailMode()">Prisijungti</span>';
-    const fw=document.getElementById('eauthForgotWrap');
-    if(fw) fw.style.display='none';
-    document.getElementById('eauthError').textContent='';
-    document.getElementById('eauthEmail').value='';
-    document.getElementById('eauthPass').value='';
-    document.getElementById('eauthName').value='';
-    document.getElementById('eauthOverlay').classList.add('show');
-  },300);
+// ═══════════ ONBOARDING ═══════════
+const OB_KEY='ss_onboarded_v1';
+const OB_SLIDES=[
+  {icon:'🗺',title:'Sveiki SpotSeekers!',text:'Atrask paslėptas Lietuvos vietas — pilis, bažnyčias, gamtos stebukleites ir daug daugiau.'},
+  {icon:'📍',title:'Surask vietą žemėlapyje',text:'Žemėlapyje matysi šimtus vietų. Kiekviena turi savo istoriją ir unikalų lygį.'},
+  {icon:'🚶',title:'Nuvyk ten fiziškai',text:'Norėdamas surinkti vietą — turi nuvykti ten iš tikrųjų. GPS patikrins, ar esi pakankamai arti.'},
+  {icon:'✅',title:'Surink vietą!',text:'Atsidūręs arti — spausk "Surinkti". Gausi XP taškų ir vieta bus pažymėta kaip surinkta.'},
+  {icon:'⭐',title:'Kylk lygiais',text:'Kuo daugiau vietų surinksi — tuo aukštesnį lygį pasieksi. Yra 50 lygių ir daugybė ženklelių!'},
+  {icon:'🏆',title:'Lenktyniauk!',text:'Lyderių lentelėje matysi, kas surinko daugiausia. Ar pavyks patekti į TOP 10?'},
+  {icon:'🎯',title:'Pradėk tyrinėti!',text:'Užsiregistruok arba prisijunk — ir leisk ekspedicijai prasidėti. Laukia šimtai vietų!'},
+];
+let _obSlide=0;
+
+function maybeShowOnboarding(){
+  if(localStorage.getItem(OB_KEY)) return;
+  showOnboarding();
 }
 
-load();initMap();updateAll();startGPS();updateRouteBar();checkRefParam();
-maybeShowAuthOnFirstVisit();
+function showOnboarding(){
+  let el=document.getElementById('obOverlay');
+  if(!el){
+    el=document.createElement('div');
+    el.id='obOverlay';
+    el.className='ob-overlay';
+    document.body.appendChild(el);
+  }
+  _obSlide=0;
+  renderObSlide(el);
+  el.style.display='flex';
+}
+
+function renderObSlide(el){
+  const s=OB_SLIDES[_obSlide];
+  const isLast=_obSlide===OB_SLIDES.length-1;
+  const dots=OB_SLIDES.map((_,i)=>`<div class="ob-dot${i===_obSlide?' on':''}"></div>`).join('');
+  el.innerHTML=`<div class="ob-card">
+    <div class="ob-dots">${dots}</div>
+    <div class="ob-icon">${s.icon}</div>
+    <div class="ob-title">${s.title}</div>
+    <div class="ob-text">${s.text}</div>
+    <button class="ob-btn" onclick="${isLast?'finishOnboarding()':'nextObSlide()'}">${isLast?'Pradėti →':'Toliau →'}</button>
+    ${!isLast?`<div class="ob-skip" onclick="finishOnboarding()">Praleisti</div>`:''}
+  </div>`;
+}
+
+function nextObSlide(){
+  const el=document.getElementById('obOverlay');
+  if(!el) return;
+  _obSlide=Math.min(_obSlide+1,OB_SLIDES.length-1);
+  renderObSlide(el);
+}
+
+function finishOnboarding(){
+  localStorage.setItem(OB_KEY,'1');
+  const el=document.getElementById('obOverlay');
+  if(el) el.style.display='none';
+  // Open auth after short delay
+  setTimeout(()=>openEmailModal(),400);
+}
+
+load();initMap();updateAll();startGPS();checkRefParam();
+maybeShowOnboarding();
 
 // ═══════════ PWA SETUP ═══════════
 (function(){
@@ -6934,7 +6738,7 @@ maybeShowAuthOnFirstVisit();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v26';
+const CACHE='spotseekers-v27';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -6969,6 +6773,7 @@ self.addEventListener('fetch',e=>{
 
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=async function(user){
+  if(!user) setTimeout(maybeShowUsernamePrompt,3000);
   if(user){
     // Load user progress from Firestore (cross-device sync)
     try{
@@ -6977,8 +6782,9 @@ window.onFbAuthReady=async function(user){
       if(snap.exists()){
         const d=snap.data();
         if(d.found){
-          if(Array.isArray(d.found)){found=new Set(d.found);}// migrate old flat format
-          else if(d.found.LT){found=new Set(d.found.LT);}// current {LT:[]} format
+          if(Array.isArray(d.found)){foundByCountry.LT=new Set(d.found);}// migrate old format
+          else{if(d.found.LT)foundByCountry.LT=new Set(d.found.LT);if(d.found.PL)foundByCountry.PL=new Set(d.found.PL);}
+          found=foundByCountry[activeCountry];
         }
         if(d.name) playerName=d.name;
         if(d.totalXP) totalXP=d.totalXP;
@@ -6986,8 +6792,6 @@ window.onFbAuthReady=async function(user){
         if(d.badges) earnedBadges=new Set(d.badges);
         _spotLevelMap=null; // rebuild with fresh data
         refreshMarkers();updateAll();
-        // Restore active route polyline if one was active
-        if(activeRouteId){const ar=getActiveRoute();if(ar&&ar.spots.length>=2) fetchAndDrawRoute(activeRouteId);}
       }
     }catch(e){console.log('Firestore load:',e.message);}
   }
@@ -7014,10 +6818,8 @@ window.onFbAuthReady=async function(user){
     // Re-render social panel so leaderboard shows immediately after login
     const socialPanel=document.getElementById('panel-social');
     if(socialPanel&&socialPanel.innerHTML) renderSocial();
-    // Sync Firebase displayName to playerName if still default
-    if(user.displayName&&user.displayName.trim().length>0&&(!playerName||playerName==='Tu')){
-      playerName=user.displayName; save();
-    }
+    // Prompt for username if still default
+    setTimeout(()=>maybePromptUsername(),1200);
   } else {
     updateAuthUI(null);
     fbLoadSpots();
@@ -7177,7 +6979,7 @@ async function fbLoginEmail(){
     if(_emailRegisterMode){
       const cred=await createUserWithEmailAndPassword(auth,email,pass);
       await updateProfile(cred.user,{displayName:name});
-      playerName=name; save();
+      playerName=name; save(); // set immediately so maybePromptUsername() skips
       toast(`👋 Sveiki, ${name}!`,'success');
     } else {
       const cred=await signInWithEmailAndPassword(auth,email,pass);
@@ -7239,7 +7041,7 @@ function setSyncDot(state){
   d.className='sync-dot'+(state==='synced'?' synced':state==='syncing'?' syncing':'');
 }
 
-function spotsCacheKey(){return`kex_spots_kv_LT_v1`;}
+function spotsCacheKey(){return`kex_spots_kv_${activeCountry}_v1`;}
 const SPOTS_CACHE_TTL=7*24*60*60*1000; // 7 days
 
 async function fbLoadSpots(){
@@ -7261,7 +7063,7 @@ async function fbLoadSpots(){
 
   // 2. Fetch from KV via Worker endpoint
   try{
-    const res=await fetch(`/api/spots?country=LT`);
+    const res=await fetch(`/api/spots?country=${activeCountry}`);
     if(res.ok){
       const spots=await res.json();
       if(Array.isArray(spots)&&spots.length>0){
@@ -7324,71 +7126,6 @@ async function fbLoadSpotsFromFirestore(){
     setSyncDot('');
     toast('Nepavyko prisijungti prie DB','info');
   }
-}
-
-// ── ADMIN: Abandoned Spots Cleanup (remove spots outside Lithuania) ──
-const LT_BOUNDS={minLat:53.89,maxLat:56.45,minLng:20.94,maxLng:26.84};
-function isInsideLithuania(lat,lng){
-  return lat>=LT_BOUNDS.minLat&&lat<=LT_BOUNDS.maxLat&&lng>=LT_BOUNDS.minLng&&lng<=LT_BOUNDS.maxLng;
-}
-
-async function openAbandonedCleanup(){
-  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
-  const{db,collection,getDocs}=window._fb||{};
-  if(!db) return;
-  toast('🔍 Tikrinama...','info');
-  const snap=await getDocs(collection(db,'spots'));
-  const outside=[];
-  snap.forEach(d=>{
-    const s=d.data();
-    if(s.cat==='abandoned'&&!isInsideLithuania(s.lat,s.lng)){
-      outside.push({_fid:d.id,name:s.name,lat:s.lat,lng:s.lng});
-    }
-  });
-  if(!outside.length){toast('✅ Visi apleisti taškai Lietuvoje — nieko trinti nereikia!','success');return;}
-  const existing=document.getElementById('abandonedCleanupModal');
-  if(existing) existing.remove();
-  const fidsJson=JSON.stringify(outside.map(x=>x._fid));
-  const modal=document.createElement('div');
-  modal.id='abandonedCleanupModal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  modal.innerHTML=`
-    <div style="background:var(--surf);border-radius:14px;padding:20px;max-width:420px;width:100%;max-height:80vh;display:flex;flex-direction:column">
-      <div style="font-family:'DM Mono',monospace;font-size:.9rem;font-weight:700;color:var(--txt);margin-bottom:8px">🧹 Valymas: apleistos už LT ribų</div>
-      <div style="font-size:.78rem;color:var(--tm);margin-bottom:12px">Rasta <strong style="color:#e07070">${outside.length}</strong> taškų už Lietuvos ribų. Ar tikrai ištrinti?</div>
-      <div style="overflow-y:auto;flex:1;margin-bottom:14px;border:1px solid var(--bdr);border-radius:8px;padding:8px">
-        ${outside.slice(0,60).map(s=>`<div style="font-size:.7rem;color:var(--tm);padding:3px 0;border-bottom:1px solid var(--bdr)">${s.name||'?'} · ${Number(s.lat).toFixed(3)}, ${Number(s.lng).toFixed(3)}</div>`).join('')}
-        ${outside.length>60?`<div style="font-size:.68rem;color:var(--td);padding:4px">...ir dar ${outside.length-60} vietų</div>`:''}
-      </div>
-      <div style="display:flex;gap:8px;flex-shrink:0">
-        <button onclick="document.getElementById('abandonedCleanupModal').remove()" style="flex:1;padding:10px;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;color:var(--txt);cursor:pointer;font-size:.8rem">Atšaukti</button>
-        <button id="confirmCleanupBtn" onclick="doAbandonedCleanup(${fidsJson.replace(/"/g,"'")})" style="flex:1;padding:10px;background:rgba(180,60,60,.2);border:1px solid #c05050;border-radius:8px;color:#e07070;cursor:pointer;font-size:.8rem;font-weight:700">🗑 Ištrinti ${outside.length}</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-}
-
-async function doAbandonedCleanup(fids){
-  const{db,doc,writeBatch}=window._fb||{};
-  if(!db) return;
-  const btn=document.getElementById('confirmCleanupBtn');
-  if(btn){btn.disabled=true;btn.textContent='Trinama...';}
-  const CHUNK=200;
-  let deleted=0;
-  for(let i=0;i<fids.length;i+=CHUNK){
-    const batch=writeBatch(db);
-    fids.slice(i,i+CHUNK).forEach(fid=>batch.delete(doc(db,'spots',fid)));
-    try{await batch.commit();deleted+=Math.min(CHUNK,fids.length-i);}
-    catch(e){console.error('Cleanup batch error',e);}
-    await new Promise(r=>setTimeout(r,300));
-  }
-  const fidSet=new Set(fids);
-  SPOTS=SPOTS.filter(s=>!fidSet.has(s._fid));
-  refreshMarkers();updateAll();
-  document.getElementById('abandonedCleanupModal')?.remove();
-  toast(`🧹 Ištrinta ${deleted} vietų už LT ribų`,'success');
-  localStorage.removeItem(ABANDONED_CACHE_KEY);
-  _abandonedData=[];
 }
 
 // ── ADMIN: CSV Export ──
@@ -7475,7 +7212,7 @@ async function importSpotsCSV(input){
   SPOTS=updatedSpots;
   // Push to KV
   try{
-    const res=await fetch(`/api/admin/rebuild?country=LT`,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Secret':window._adminSecret||'lithuania2026'},body:JSON.stringify(SPOTS)});
+    const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Secret':window._adminSecret||'lithuania2026'},body:JSON.stringify(SPOTS)});
     if(res.ok){
       const data=await res.json();
       try{localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots:SPOTS}));}catch(e){}
@@ -7499,7 +7236,7 @@ async function rebuildKVCache(){
     if(btn){btn.textContent='⏳ Siunčiama į KV...';}
     // Strip Firestore-only fields that aren't needed client-side
     const spotsToCache=SPOTS.map(s=>({...s}));
-    const res=await fetch(`/api/admin/rebuild?country=LT`,{
+    const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
@@ -7596,8 +7333,9 @@ async function fbLoadUserProgress(uid){
     if(snap.exists()){
       const d=snap.data();
       if(d.found){
-        if(Array.isArray(d.found)){found=new Set(d.found);}// migrate old flat format
-        else if(d.found.LT){found=new Set(d.found.LT);}// current {LT:[]} format
+        if(Array.isArray(d.found)){foundByCountry.LT=new Set(d.found);}// migrate old flat format
+        else{if(d.found.LT)foundByCountry.LT=new Set(d.found.LT);if(d.found.PL)foundByCountry.PL=new Set(d.found.PL);}
+        found=foundByCountry[activeCountry];
       }
       if(d.streak!==undefined) streak=d.streak;
       if(d.lastDate) lastDate=d.lastDate;
@@ -7621,8 +7359,8 @@ async function fbSaveUserProgress(){
   if(!db||!user) return;
   try{
     await setDoc(doc(db,'users',user.uid),{
-      found:{LT:[...found]},
-      foundCount:found.size,
+      found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},
+      foundCount:foundByCountry.LT.size+foundByCountry.PL.size, // total across all countries
       streak,lastDate,totalXP,notes,
       earnedBadges:[...earnedBadges],
       playerName,
@@ -7639,7 +7377,7 @@ async function fbSaveUserProgress(){
 const _localSave=save;
 save=function(){
   // Save everything EXCEPT spots (Firestore owns spots now)
-  localStorage.setItem('ke7_found',JSON.stringify({LT:[...found]}));
+  localStorage.setItem('ke7_found',JSON.stringify({LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]}));
   localStorage.setItem('ke7_streak',streak);
   localStorage.setItem('ke7_lastDate',lastDate||'');
   localStorage.setItem('ke7_notes',JSON.stringify(notes));
@@ -7649,7 +7387,6 @@ save=function(){
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
-  localStorage.setItem('ke7_sm',JSON.stringify([...claimedStreakMiles]));
   fbSaveUserProgress(); // sync progress to Firestore if logged in
 };
 
@@ -7715,7 +7452,7 @@ deleteSpot=async function(){
   let _backTimer=null;
 
   function anyLayerOpen(){
-    const ids=['eauthOverlay','suggestOverlay','reviewOverlay',
+    const ids=['unameOverlay','eauthOverlay','suggestOverlay','reviewOverlay',
                'mobPanelOverlay','mobFilterSheet','settingsSheet','editorModal',
                'sheet','drawerSubPanel','drawer','delModalBg'];
     return ids.some(id=>{
@@ -7727,6 +7464,7 @@ deleteSpot=async function(){
 
   function closeAllLayers(){
     // Close every possible panel — order doesn't matter, all close at once
+    try{document.getElementById('unameOverlay')?.classList.remove('show');}catch(e){}
     try{closeEmailModal();}catch(e){}
     try{closeSuggestModal();}catch(e){}
     try{closeReview(false);}catch(e){}
@@ -7762,17 +7500,6 @@ deleteSpot=async function(){
 
 </script>
 
-<!-- ROUTE BAR — shows when a route is active -->
-<div class="route-bar" id="routeBar">
-  <div class="rb-info">
-    <div class="rb-label">🗺 Aktyvus maršrutas</div>
-    <div class="rb-name" id="rbName">—</div>
-    <div class="rb-stop" id="rbStop">0/0 surinkta</div>
-  </div>
-  <button class="rb-btn" onclick="navigateToNext()">→ Eiti</button>
-  <button class="rb-end" onclick="endActiveRoute()">✕</button>
-</div>
-
 <!-- MOBILE BOTTOM NAV BAR -->
 <div class="mob-nav-bar" id="mobNavBar">
   <div class="mob-nav-item" onclick="openDrawer()">
@@ -7788,10 +7515,10 @@ deleteSpot=async function(){
     <div class="mob-nav-icon">🏅</div>
     <div class="mob-nav-label">Ženkleliai</div>
   </div>
-  <div class="mob-nav-item" onclick="mobNavTo('routes')">
-    <div class="mob-nav-icon">🗺</div>
-    <div class="mob-nav-label">Maršrutai</div>
-    <div class="mob-nav-badge" id="mobNavRouteBadge" style="display:none">0</div>
+  <div class="mob-nav-item" onclick="mobNavTo('favs')">
+    <div class="mob-nav-icon">♥</div>
+    <div class="mob-nav-label">Mėgstami</div>
+    <div class="mob-nav-badge" id="mobNavFavBadge" style="display:none">0</div>
   </div>
 </div>
 </body>
