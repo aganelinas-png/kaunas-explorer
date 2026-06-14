@@ -724,6 +724,44 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .mob-panel-close{background:none;border:none;color:var(--gold);font-size:1.4rem;cursor:pointer;padding:4px 8px 4px 0;line-height:1;-webkit-user-select:none;user-select:none}
 .mob-panel-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt);flex:1}
 .mob-panel-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+/* ── ACHIEVEMENTS WINDOW ── */
+.ach-window{position:fixed;inset:0;z-index:1150;display:none;flex-direction:column;background:var(--bg)}
+.ach-window.open{display:flex;animation:fadeIn .22s ease}
+.ach-header{display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;background:var(--surf2);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.ach-close,.ach-back{background:none;border:none;color:var(--gold);font-size:1.3rem;cursor:pointer;padding:4px 6px;line-height:1;-webkit-user-select:none;user-select:none}
+.ach-back{font-size:.95rem;font-family:'DM Mono',monospace}
+.ach-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ach-summary{padding:12px 16px 10px;background:var(--surf2);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.ach-bar{height:7px;background:var(--bdr);border-radius:4px;overflow:hidden}
+.ach-bar.sm{height:5px;margin-top:6px}
+.ach-bar-fill{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:4px;transition:width .5s}
+.ach-sum-row{display:flex;justify-content:space-between;margin-top:6px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);font-weight:600}
+.ach-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px calc(28px + env(safe-area-inset-bottom));min-height:0;overscroll-behavior:contain}
+.ach-toolbar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.ach-toggle{background:var(--surf2);border:1px solid var(--bdr);color:var(--td);font-family:'DM Mono',monospace;font-size:.68rem;padding:6px 12px;border-radius:16px;cursor:pointer;transition:.18s}
+.ach-toggle.on{background:rgba(201,168,76,.16);border-color:var(--gold);color:var(--gold)}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.ach-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px;cursor:pointer;transition:.18s;display:flex;flex-direction:column;gap:4px}
+.ach-card:hover{border-color:var(--gold);transform:translateY(-1px)}
+.ach-card.done{border-color:rgba(201,168,76,.55);box-shadow:inset 0 0 18px rgba(201,168,76,.07)}
+.ach-card-icon{font-size:1.7rem;line-height:1}
+.ach-card-title{font-size:.82rem;font-weight:700;color:var(--txt);line-height:1.2}
+.ach-card-count{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--gold);font-weight:600}
+.ach-card-spots{font-family:'DM Mono',monospace;font-size:.64rem;color:var(--td)}
+.ach-list{display:flex;flex-direction:column;gap:8px}
+.ach-row{display:flex;gap:11px;align-items:flex-start;background:var(--surf2);border:1px solid var(--bdr);border-radius:11px;padding:11px 12px;opacity:.72}
+.ach-row.earned{opacity:1;border-color:rgba(201,168,76,.5);box-shadow:inset 0 0 16px rgba(201,168,76,.06)}
+.ach-row-icon{font-size:1.5rem;line-height:1;flex-shrink:0;filter:grayscale(.85)}
+.ach-row.earned .ach-row-icon{filter:none}
+.ach-row-main{flex:1;min-width:0}
+.ach-row-name{font-size:.86rem;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:6px}
+.ach-check{color:var(--gold);font-size:.8rem}
+.ach-row-desc{font-size:.74rem;color:var(--td);margin-top:2px;line-height:1.3}
+.ach-row-prog{display:flex;align-items:center;gap:8px;margin-top:6px}
+.ach-row-prog .ach-bar{flex:1;margin-top:0}
+.ach-row-pct{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);white-space:nowrap}
+.ach-empty{text-align:center;color:var(--td);font-size:.8rem;padding:40px 20px}
+@media(max-width:600px){.ach-grid{grid-template-columns:repeat(2,1fr);gap:9px}.ach-title{font-size:1rem}}
 .review-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;padding:0}
 .review-overlay.show{display:flex;animation:fadeIn .3s}
 .review-sheet{background:var(--surf);border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px var(--sh);animation:slideUp .35s cubic-bezier(.4,0,.2,1)}
@@ -1048,7 +1086,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dnav-main-item" onclick="openSubPanel('vietos')">
         <span class="dnmi-icon">📋</span><span class="dnmi-label">Vietos</span><span class="dnmi-arrow">›</span>
       </div>
-      <div class="dnav-main-item" onclick="openSubPanel('zenklai')">
+      <div class="dnav-main-item" onclick="openAchievements()">
         <span class="dnmi-icon">🏅</span><span class="dnmi-label">Ženkleliai</span><span class="dnmi-arrow">›</span>
       </div>
       <div class="dnav-main-item" onclick="openSubPanel('favs')">
@@ -1323,6 +1361,17 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <div class="mob-panel-body" id="mobPanelBody"></div>
 </div>
 
+<!-- ACHIEVEMENTS WINDOW -->
+<div class="ach-window" id="achWindow">
+  <div class="ach-header">
+    <button class="ach-back" id="achBackBtn" style="display:none" onclick="achBack()">← Atgal</button>
+    <div class="ach-title" id="achTitle">🏆 Pasiekimai</div>
+    <button class="ach-close" onclick="closeAchievements()">✕</button>
+  </div>
+  <div class="ach-summary" id="achSummary"></div>
+  <div class="ach-body" id="achBody"></div>
+</div>
+
 <!-- REVIEW MODAL -->
 <div class="review-overlay" id="reviewOverlay">
   <div class="review-sheet">
@@ -1480,7 +1529,7 @@ const BADGE_GROUPS=[
     {id:'f4',name:'Geležinis Gynėjas',desc:'Aplankyk 10 fortų',icon:'👑',need:10,xpReward:20},
     {id:'f5',name:'Tvirtovių Imperatorius',desc:'Aplankyk 20 fortų',icon:'💎',need:20,xpReward:50},
     {id:'f6',name:'Fortų Legenda',desc:'Aplankyk 50 fortų',icon:'🌟',need:50,xpReward:150},
-    {id:'f7',name:'Neįveikiamas',desc:'Aplankyk visus fortus',icon:'🏆',need:119,xpReward:500},
+    {id:'f7',name:'Neįveikiamas',desc:'Aplankyk visus fortus',icon:'🏆',complete:true,xpReward:500},
   ]},
   {id:'churches',title:'Bažnyčių piligimas',icon:'⛪',cat:'church',sub:true,badges:[
     {id:'c1',name:'Piligimas',desc:'Aplankyk 1 bažnyčią',icon:'⛪',need:1,xpReward:10},
@@ -1515,7 +1564,7 @@ const BADGE_GROUPS=[
     {id:'br3',name:'Tiltų žinovas',desc:'Aplankyk 15 tiltų',icon:'⚙️',need:15,xpReward:30},
     {id:'br4',name:'Inžinerijos entuziastas',desc:'Aplankyk 40 tiltų',icon:'🏗',need:40,xpReward:75},
     {id:'br5',name:'Tiltų meistras',desc:'Aplankyk 80 tiltų',icon:'🌟',need:80,xpReward:150},
-    {id:'br6',name:'Lietuvos tiltų legenda',desc:'Aplankyk visus 142 tiltus',icon:'💎',need:142,xpReward:400},
+    {id:'br6',name:'Lietuvos tiltų legenda',desc:'Aplankyk visus tiltus',icon:'💎',complete:true,xpReward:400},
   ]},
   // ── Nature ──
   {id:'nature',title:'Gamtos tyrinėtojas',icon:'🌿',cat:'nature',sub:true,badges:[
@@ -1602,6 +1651,43 @@ const BADGE_GROUPS=[
     {id:'con2',name:'Bendruomenės tyrinėtojas',desc:'3 siūlytos vietos patvirtintos',icon:'🗺️',contribNeed:3,xpReward:100},
     {id:'con3',name:'Vietos žinovas',desc:'10 siūlytų vietų patvirtinta',icon:'🏅',contribNeed:10,xpReward:200},
     {id:'con4',name:'Lietuvos kartografas',desc:'25 siūlytos vietos patvirtintos',icon:'💎',contribNeed:25,xpReward:500},
+  ]},
+  // ── Activity (powered by the per-day log) ──
+  {id:'activity',title:'Aktyvumas',icon:'📅',cat:null,badges:[
+    {id:'ac_m10',name:'Maratonas',desc:'Surink 10 vietų per vieną dieną',icon:'🏃',dayMax:10,xpReward:40},
+    {id:'ac_m25',name:'Galios diena',desc:'Surink 25 vietas per vieną dieną',icon:'⚡',dayMax:25,xpReward:90},
+    {id:'ac_m50',name:'Nesustabdomas',desc:'Surink 50 vietų per vieną dieną',icon:'🔥',dayMax:50,xpReward:200},
+    {id:'ac_da7',name:'Dienos aktyvistas',desc:'5+ vietų kasdien 7 dienas iš eilės',icon:'📅',dayStreak:7,dayMin:5,xpReward:150},
+    {id:'ac_ad30',name:'Atsidavęs',desc:'Būk aktyvus 30 skirtingų dienų',icon:'🗓',activeDays:30,xpReward:120},
+    {id:'ac_ad100',name:'Šimto dienų klajoklis',desc:'Būk aktyvus 100 skirtingų dienų',icon:'🏅',activeDays:100,xpReward:400},
+  ]},
+  // ── Level milestones ──
+  {id:'levels',title:'Lygiai',icon:'🎚',cat:null,badges:[
+    {id:'lv5',name:'Keliauninkas',desc:'Pasiek 5 lygį',icon:'🗺',levelNeed:5,xpReward:30},
+    {id:'lv10',name:'Lietuvos Tyrinėtojas',desc:'Pasiek 10 lygį',icon:'🇱🇹',levelNeed:10,xpReward:75},
+    {id:'lv20',name:'Žemės Pažintojas',desc:'Pasiek 20 lygį',icon:'🌍',levelNeed:20,xpReward:150},
+    {id:'lv35',name:'Pusiasalio Valdovas',desc:'Pasiek 35 lygį',icon:'🏝',levelNeed:35,xpReward:300},
+    {id:'lv50',name:'Lietuvos Legenda',desc:'Pasiek aukščiausią (50) lygį',icon:'💎',levelNeed:50,xpReward:1000},
+  ]},
+  // ── Completionist meta (auto-scales with spot data) ──
+  {id:'completion',title:'Kolekcionierius',icon:'🧩',cat:null,badges:[
+    {id:'cmp1',name:'Pirma kolekcija',desc:'Užbaik 1 kategoriją 100%',icon:'🧩',catComplete:1,xpReward:100},
+    {id:'cmp3',name:'Kolekcininkas',desc:'Užbaik 3 kategorijas 100%',icon:'📦',catComplete:3,xpReward:250},
+    {id:'cmp5',name:'Rinkėjas',desc:'Užbaik 5 kategorijas 100%',icon:'🏆',catComplete:5,xpReward:500},
+    {id:'cmpAll',name:'Completionist',desc:'Užbaik VISAS kategorijas 100%',icon:'👑',catCompleteAll:true,xpReward:2000},
+    {id:'gen1',name:'Visapusis',desc:'Surink bent po 1 vietą iš kiekvienos kategorijos',icon:'🌈',generalist:true,xpReward:150},
+  ]},
+  // ── Badge collector meta ──
+  {id:'collector',title:'Ženklelių rinkėjas',icon:'🎖',cat:null,badges:[
+    {id:'bc25',name:'Rinkėjas',desc:'Uždirbk 25 ženklelius',icon:'🎖',badgeNeed:25,xpReward:60},
+    {id:'bc50',name:'Kolekcininkas',desc:'Uždirbk 50 ženklelių',icon:'🏅',badgeNeed:50,xpReward:150},
+    {id:'bc100',name:'Ženklelių meistras',desc:'Uždirbk 100 ženklelių',icon:'👑',badgeNeed:100,xpReward:400},
+  ]},
+  // ── Geographic spread (uses spot coordinates) ──
+  {id:'spread',title:'Platybės',icon:'🧭',cat:null,badges:[
+    {id:'sp50',name:'Krašto klajoklis',desc:'Surink vietas, nutolusias 50+ km',icon:'🧭',spanKm:50,xpReward:50},
+    {id:'sp150',name:'Tolimų kelių žinovas',desc:'Surink vietas, nutolusias 150+ km',icon:'🛤',spanKm:150,xpReward:120},
+    {id:'sp300',name:'Nuo jūros iki sienos',desc:'Surink vietas, nutolusias 300+ km',icon:'🌍',spanKm:300,xpReward:300},
   ]},
 ];
 
@@ -1848,6 +1934,11 @@ let activeCountry=localStorage.getItem('ke7_country')||'LT';
 let foundByCountry={LT:new Set(),PL:new Set()};
 let found=foundByCountry[activeCountry];
 let streak=0,lastDate=null,notes={},earnedBadges=new Set();
+// ── Per-day activity log (powers activity badges) ──
+// dailyLog: { 'YYYY-MM-DD': collectedThatDay } — pruned to a short rolling window.
+// activeDaysTotal / bestDay are cumulative so long-range badges need no full history.
+let dailyLog={},activeDaysTotal=0,bestDay=0;
+const DAILY_LOG_KEEP=21; // days of detail to retain (covers consecutive-day badges)
 let favorites=new Set(); // spot ids
 let selectedSpot=null,userLat=null,userLng=null;
 let isDark=false;
@@ -1982,6 +2073,7 @@ function save(){
   localStorage.setItem('ke7_hspot',hiddenSpotUnlocked?'1':'0');
   localStorage.setItem('ke7_os',oldStreak);
   localStorage.setItem('ke7_favs',JSON.stringify([...favorites]));
+  localStorage.setItem('ke7_dailylog',JSON.stringify({log:dailyLog,active:activeDaysTotal,best:bestDay}));
 }
 
 function load(){
@@ -2009,6 +2101,7 @@ function load(){
   hiddenSpotUnlocked=localStorage.getItem('ke7_hspot')==='1';
   oldStreak=parseInt(localStorage.getItem('ke7_os')||'0');
   const fv=localStorage.getItem('ke7_favs');favorites=fv?new Set(JSON.parse(fv)):new Set();
+  try{const dl=JSON.parse(localStorage.getItem('ke7_dailylog')||'null');if(dl){dailyLog=dl.log||{};activeDaysTotal=dl.active||0;bestDay=dl.best||0;pruneDailyLog();}}catch(e){}
   prevLevel=getLevel(totalXP).level;
   // Reset daily quest if new day
   const today=new Date().toDateString();
@@ -2751,6 +2844,7 @@ const PANEL_TITLES={
 };
 
 function openSubPanel(name){
+  if(name==='zenklai'){openAchievements();return;}
   ['aboutme','vietos','favs','zenklai','social','osm','reviews','suggestions','mysuggestions'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
@@ -2836,6 +2930,23 @@ function getDailyQuestProgress(){
   return parseInt(localStorage.getItem('ke7_collected_today')||'0');
 }
 
+// Local date key 'YYYY-MM-DD' (NOT toISOString — that would shift across the day in non-UTC zones)
+function ymd(d){d=d||new Date();const m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${d.getFullYear()}-${m}-${day}`;}
+// Keep dailyLog to the most recent DAILY_LOG_KEEP days so it can never grow unbounded.
+function pruneDailyLog(){
+  const keys=Object.keys(dailyLog).sort();
+  while(keys.length>DAILY_LOG_KEEP){const k=keys.shift();delete dailyLog[k];}
+}
+// Longest run of consecutive days (ending today) each with >= minPerDay collects.
+function consecutiveDaysWith(minPerDay){
+  let n=0;const base=new Date();
+  for(let i=0;i<DAILY_LOG_KEEP;i++){
+    const d=new Date(base.getTime()-i*86400000);
+    if((dailyLog[ymd(d)]||0)>=minPerDay) n++; else break;
+  }
+  return n;
+}
+
 function incrementDailyCollect(){
   const today=new Date().toDateString();
   const key='ke7_collect_date';
@@ -2846,6 +2957,14 @@ function incrementDailyCollect(){
   }
   const cur=parseInt(localStorage.getItem(countKey)||'0');
   localStorage.setItem(countKey,cur+1);
+
+  // ── Rolling per-day activity log ──
+  const dk=ymd();
+  const wasActiveToday=(dailyLog[dk]||0)>0;
+  dailyLog[dk]=(dailyLog[dk]||0)+1;
+  if(!wasActiveToday) activeDaysTotal++;      // first collect of a new day
+  if(dailyLog[dk]>bestDay) bestDay=dailyLog[dk];
+  pruneDailyLog();
 
   // Check if quest completed
   if(!dailyQuestDone&&cur+1>=getDailyQuestTarget()){
@@ -3067,7 +3186,8 @@ function collectCurrent(){
   if(window._fbUser&&window._fb){
     const{db,doc,setDoc}=window._fb;
     setDoc(doc(db,'users',window._fbUser.uid),{
-      found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},totalXP,streak,badges:[...earnedBadges],name:playerName
+      found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},totalXP,streak,badges:[...earnedBadges],name:playerName,
+      dailyLog,activeDaysTotal,bestDay
     },{merge:true}).catch(()=>{});
   }
 
@@ -3158,23 +3278,57 @@ function gprog(g){if(!g.cat) return found.size;return SPOTS.filter(s=>s.cat===g.
 function gtot(g){if(!g.cat) return SPOTS.length;return SPOTS.filter(s=>s.cat===g.cat).length;}
 function tierAllDone(tier){return SPOTS.filter(s=>s.tier===tier).every(s=>found.has(s.id));}
 
+// One pass over SPOTS builds every aggregate the badge evaluator needs,
+// so evalBadge() stays O(1) even when called ~100x during a render.
+function badgeCtx(){
+  const cc={};let minLa=Infinity,maxLa=-Infinity,minLo=Infinity,maxLo=-Infinity,have=false;
+  for(const s of SPOTS){
+    const f=found.has(s.id);
+    if(s.cat){const o=cc[s.cat]||(cc[s.cat]={c:0,t:0});o.t++;if(f)o.c++;}
+    if(f){have=true;if(s.lat<minLa)minLa=s.lat;if(s.lat>maxLa)maxLa=s.lat;if(s.lng<minLo)minLo=s.lng;if(s.lng>maxLo)maxLo=s.lng;}
+  }
+  let completeCats=0,totalCats=0,catsWithOne=0;
+  BADGE_GROUPS.forEach(g=>{if(g.cat&&g.cat!=='hidden'){const o=cc[g.cat];const t=o?o.t:0;if(t>0){totalCats++;if(o.c>=t)completeCats++;if(o.c>0)catsWithOne++;}}});
+  const spanKm=have?dist(minLa,minLo,maxLa,maxLo)/1000:0;
+  return {cc,completeCats,totalCats,catsWithOne,spanKm};
+}
+
+// Single source of truth for "is this badge done + how far along". Used by
+// BOTH checkBadges (awarding) and the achievements window (display) so they
+// can never drift apart.
+function evalBadge(b,g,ctx){
+  let cur=0,need=0;
+  if(b.complete){const o=ctx.cc[g.cat];need=o?o.t:0;cur=o?o.c:0;}
+  else if(b.tierComplete){const arr=SPOTS.filter(s=>s.tier===b.tierComplete);need=arr.length;cur=arr.filter(s=>found.has(s.id)).length;}
+  else if(b.catCompleteAll){need=ctx.totalCats;cur=ctx.completeCats;}
+  else if(b.catComplete){need=b.catComplete;cur=ctx.completeCats;}
+  else if(b.generalist){need=ctx.totalCats;cur=ctx.catsWithOne;}
+  else if(b.badgeNeed){need=b.badgeNeed;cur=earnedBadges.size;}
+  else if(b.levelNeed){need=b.levelNeed;cur=getLevel(totalXP).level;}
+  else if(b.dayMax){need=b.dayMax;cur=bestDay;}
+  else if(b.dayStreak){need=b.dayStreak;cur=consecutiveDaysWith(b.dayMin||1);}
+  else if(b.activeDays){need=b.activeDays;cur=activeDaysTotal;}
+  else if(b.spanKm){need=b.spanKm;cur=Math.round(ctx.spanKm);}
+  else if(b.streak){need=b.streak;cur=streak;}
+  else if(b.xpNeed){need=b.xpNeed;cur=totalXP;}
+  else if(b.all){need=b.need;cur=found.size;}
+  else if(b.contribNeed){need=b.contribNeed;cur=approvedSuggestions;}
+  else {need=b.need||0;cur=g.cat?(ctx.cc[g.cat]?ctx.cc[g.cat].c:0):found.size;}
+  const met=need>0?cur>=need:false;
+  const pct=need>0?Math.min(100,Math.round(cur/need*100)):0;
+  return {cur,need,pct,met};
+}
+
 function checkBadges(){
+  const ctx=badgeCtx();
   let newOnes=[];
   BADGE_GROUPS.forEach(g=>{
-    const prog=gprog(g);
     g.badges.forEach(b=>{
       if(earnedBadges.has(b.id)) return;
-      let e=false;
-      if(b.tierComplete) e=tierAllDone(b.tierComplete);
-      else if(b.streak) e=streak>=b.streak;
-      else if(b.xpNeed) e=totalXP>=b.xpNeed;
-      else if(b.all) e=found.size>=b.need;
-      else if(b.contribNeed) e=approvedSuggestions>=b.contribNeed;
-      else e=prog>=b.need;
-      if(e){earnedBadges.add(b.id);newOnes.push(b);const bxp=b.xpReward||10;addXP(bxp);setTimeout(()=>showXPBurst(bxp),600);}
+      if(evalBadge(b,g,ctx).met){earnedBadges.add(b.id);newOnes.push(b);const bxp=b.xpReward||10;addXP(bxp);setTimeout(()=>showXPBurst(bxp),600);}
     });
   });
-  if(newOnes.length){save();setTimeout(()=>toast(`🎖 Naujas ženklelis: ${newOnes[0].icon} ${newOnes[0].name}`,'gold'),500);}
+  if(newOnes.length){save();setTimeout(()=>toast(`🎖 Naujas ženklelis: ${newOnes[0].icon} ${newOnes[0].name}${newOnes.length>1?` (+${newOnes.length-1})`:''}`,'gold'),500);refreshAchIfOpen();}
 }
 
 // ═══════════ ABOUT ME PANEL ═══════════
@@ -3263,30 +3417,114 @@ function renderAboutMe(){
   </div>`;
 }
 
-function renderBadges(){
-  const body=document.getElementById('panel-zenklai');
-  body.innerHTML='';
-  BADGE_GROUPS.forEach(g=>{
-    const prog=gprog(g);const tot=gtot(g);
-    const div=document.createElement('div');div.className='bgr';
-    div.innerHTML=`<div class="bgt">${g.icon} ${g.title}</div>
-    ${g.sub?`<div class="bgs">${prog} / ${g.cat==='hidden'?'???':tot}</div>`:''}
-    <div class="bgcards">${g.badges.map(b=>{
-      let e=earnedBadges.has(b.id);
-      if(!e){
-        if(b.tierComplete)e=tierAllDone(b.tierComplete);
-        else if(b.streak)e=streak>=b.streak;
-        else if(b.xpNeed)e=totalXP>=b.xpNeed;
-        else if(b.all)e=found.size>=b.need;
-        else if(b.contribNeed)e=approvedSuggestions>=b.contribNeed;
-        else e=prog>=b.need;
-      }
-      const pct=b.tierComplete?0:b.streak?Math.min(100,streak/b.streak*100):b.xpNeed?Math.min(100,totalXP/b.xpNeed*100):b.all?Math.min(100,found.size/b.need*100):b.contribNeed?Math.min(100,approvedSuggestions/b.contribNeed*100):Math.min(100,prog/(b.need||1)*100);
-      return`<div class="bc ${e?'e':''}"><div class="bi">${b.icon}</div><div class="bn">${b.name}</div><div class="bd">${!e&&g.cat==='hidden'?'???':b.desc}</div>${!e?`<div class="bprog"><div class="bpf" style="width:${!e&&g.cat==='hidden'?0:pct}%"></div></div>`:''}</div>`;
-    }).join('')}</div>`;
-    body.appendChild(div);
-  });
+// ═══════════ ACHIEVEMENTS WINDOW (drill-down) ═══════════
+const achState={open:false,view:'overview',group:null,earnedOnly:false};
+
+function badgeEarned(b,g,ctx){return earnedBadges.has(b.id)||evalBadge(b,g,ctx).met;}
+
+// Per-group rollup: how many badges earned, plus spot-collection progress for real categories.
+function groupRollup(g,ctx){
+  let earned=0;const total=g.badges.length;
+  g.badges.forEach(b=>{if(badgeEarned(b,g,ctx))earned++;});
+  let cur=null,tot=null;
+  if(g.cat&&ctx.cc[g.cat]){cur=ctx.cc[g.cat].c;tot=ctx.cc[g.cat].t;}
+  return {earned,total,cur,tot};
 }
+
+function openAchievements(){
+  if(typeof closeDrawer==='function'){try{closeDrawer();}catch(e){}}
+  if(typeof closeMobPanel==='function'){try{closeMobPanel();}catch(e){}}
+  achState.open=true;achState.view='overview';achState.group=null;
+  document.getElementById('achWindow').classList.add('open');
+  checkBadges();      // reconcile/award any retroactively-qualified badges, then…
+  renderAch();        // …draw
+}
+function closeAchievements(){
+  achState.open=false;
+  document.getElementById('achWindow').classList.remove('open');
+  setTimeout(()=>map&&map.invalidateSize(),60);
+}
+function achBack(){achState.view='overview';achState.group=null;renderAch();}
+function toggleAchEarnedOnly(){achState.earnedOnly=!achState.earnedOnly;renderAch();}
+function achOpenGroup(id){achState.view='detail';achState.group=id;renderAch();}
+function refreshAchIfOpen(){if(achState.open)renderAch();}
+
+function renderAch(){
+  if(!achState.open) return;
+  const ctx=badgeCtx();
+  const titleEl=document.getElementById('achTitle');
+  const sumEl=document.getElementById('achSummary');
+  const body=document.getElementById('achBody');
+  const backBtn=document.getElementById('achBackBtn');
+
+  // Global totals (across every group)
+  let gEarned=0,gTotal=0;
+  BADGE_GROUPS.forEach(g=>{gTotal+=g.badges.length;g.badges.forEach(b=>{if(badgeEarned(b,g,ctx))gEarned++;});});
+  const gpct=gTotal?Math.round(gEarned/gTotal*100):0;
+
+  const toggleHtml=`<button class="ach-toggle ${achState.earnedOnly?'on':''}" onclick="toggleAchEarnedOnly()">${achState.earnedOnly?'✓ Tik uždirbti':'Visi'}</button>`;
+
+  if(achState.view==='overview'){
+    backBtn.style.display='none';
+    titleEl.textContent='🏆 Pasiekimai';
+    sumEl.innerHTML=`<div class="ach-bar"><div class="ach-bar-fill" style="width:${gpct}%"></div></div>
+      <div class="ach-sum-row"><span>${gEarned} / ${gTotal} ženklelių</span><span>${gpct}%</span></div>`;
+
+    const cards=BADGE_GROUPS.map(g=>{
+      const r=groupRollup(g,ctx);
+      if(achState.earnedOnly&&r.earned===0) return '';
+      const pct=r.total?Math.round(r.earned/r.total*100):0;
+      const done=r.earned>=r.total;
+      const spotLine=(r.cur!==null)?`<div class="ach-card-spots">🗺 ${g.cat==='hidden'?'???':r.cur+' / '+r.tot}</div>`:'';
+      return `<div class="ach-card ${done?'done':''}" onclick="achOpenGroup('${g.id}')">
+        <div class="ach-card-icon">${g.icon}</div>
+        <div class="ach-card-title">${g.title}</div>
+        <div class="ach-card-count">${r.earned}/${r.total}${done?' ✓':''}</div>
+        ${spotLine}
+        <div class="ach-bar sm"><div class="ach-bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+    body.innerHTML=`<div class="ach-toolbar">${toggleHtml}</div>
+      <div class="ach-grid">${cards||'<div class="ach-empty">Dar nėra uždirbtų ženklelių šioje kategorijoje.</div>'}</div>`;
+    body.scrollTop=0;
+    return;
+  }
+
+  // ── Detail view ──
+  const g=BADGE_GROUPS.find(x=>x.id===achState.group);
+  if(!g){achBack();return;}
+  const r=groupRollup(g,ctx);
+  backBtn.style.display='';
+  titleEl.textContent=`${g.icon} ${g.title}`;
+  const dpct=r.total?Math.round(r.earned/r.total*100):0;
+  const spotLine=(r.cur!==null)?` · 🗺 ${g.cat==='hidden'?'???':r.cur+' / '+r.tot}`:'';
+  sumEl.innerHTML=`<div class="ach-bar"><div class="ach-bar-fill" style="width:${dpct}%"></div></div>
+    <div class="ach-sum-row"><span>${r.earned} / ${r.total} ženklelių${spotLine}</span><span>${dpct}%</span></div>`;
+
+  const rows=g.badges.map(b=>{
+    const st=evalBadge(b,g,ctx);
+    const earned=earnedBadges.has(b.id)||st.met;
+    if(achState.earnedOnly&&!earned) return '';
+    const hiddenMask=(!earned&&g.cat==='hidden');
+    const name=hiddenMask?'???':b.name;
+    const desc=hiddenMask?'???':b.desc;
+    const showProg=!earned&&!hiddenMask&&st.need>0;
+    return `<div class="ach-row ${earned?'earned':''}">
+      <div class="ach-row-icon">${hiddenMask?'❔':b.icon}</div>
+      <div class="ach-row-main">
+        <div class="ach-row-name">${name}${earned?' <span class="ach-check">✓</span>':''}</div>
+        <div class="ach-row-desc">${desc}</div>
+        ${showProg?`<div class="ach-row-prog"><div class="ach-bar sm"><div class="ach-bar-fill" style="width:${st.pct}%"></div></div><span class="ach-row-pct">${st.cur}/${st.need}</span></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  body.innerHTML=`<div class="ach-toolbar">${toggleHtml}</div>
+    <div class="ach-list">${rows||'<div class="ach-empty">Šioje kategorijoje dar nėra uždirbtų ženklelių.</div>'}</div>`;
+  body.scrollTop=0;
+}
+
+// Back-compat shims: any legacy caller now opens the new window instead.
+function renderBadges(){if(!achState.open)openAchievements();else renderAch();}
 
 // ═══════════ LIST ═══════════
 
@@ -6365,6 +6603,7 @@ const MOB_PANEL_TITLES={
 };
 
 function mobNavTo(panel){
+  if(panel==='zenklai'){openAchievements();return;}
   const isMobile=window.innerWidth<=600;
   if(!isMobile){
     // Desktop: use the normal drawer
@@ -6402,14 +6641,7 @@ function closeMobPanel(){
 }
 
 // Render helpers that output into a target element instead of a panel-xxx div
-function renderBadgesInto(target){
-  // Temporarily swap the target
-  const orig=document.getElementById('panel-zenklai');
-  const saved=orig.innerHTML;
-  renderBadges();
-  target.innerHTML=orig.innerHTML;
-  orig.innerHTML=saved;
-}
+function renderBadgesInto(target){openAchievements();}
 function renderFavoritesInto(target){
   const orig=document.getElementById('panel-favs');
   const saved=orig.innerHTML;
@@ -6854,6 +7086,10 @@ window.onFbAuthReady=async function(user){
         if(d.totalXP) totalXP=d.totalXP;
         if(d.streak) streak=d.streak;
         if(d.badges) earnedBadges=new Set(d.badges);
+        if(d.dailyLog) dailyLog=d.dailyLog;
+        if(d.activeDaysTotal!==undefined) activeDaysTotal=d.activeDaysTotal;
+        if(d.bestDay!==undefined) bestDay=d.bestDay;
+        pruneDailyLog();
         _spotLevelMap=null; // rebuild with fresh data
         refreshMarkers();updateAll();
       }
@@ -7406,6 +7642,10 @@ async function fbLoadUserProgress(uid){
       if(d.totalXP!==undefined) totalXP=d.totalXP;
       if(d.notes) notes=d.notes;
       if(d.earnedBadges) earnedBadges=new Set(d.earnedBadges);
+      if(d.dailyLog) dailyLog=d.dailyLog;
+      if(d.activeDaysTotal!==undefined) activeDaysTotal=d.activeDaysTotal;
+      if(d.bestDay!==undefined) bestDay=d.bestDay;
+      pruneDailyLog();
       if(d.playerName) playerName=d.playerName;
       if(d.approvedSuggestions!==undefined) approvedSuggestions=d.approvedSuggestions;
       prevLevel=getLevel(totalXP).level;
@@ -7428,6 +7668,7 @@ async function fbSaveUserProgress(){
       streak,lastDate,totalXP,notes,
       earnedBadges:[...earnedBadges],
       playerName,
+      dailyLog,activeDaysTotal,bestDay,
       photoURL:user.photoURL||null,
       updatedAt:serverTimestamp()
     });
@@ -7451,6 +7692,7 @@ save=function(){
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
+  localStorage.setItem('ke7_dailylog',JSON.stringify({log:dailyLog,active:activeDaysTotal,best:bestDay}));
   fbSaveUserProgress(); // sync progress to Firestore if logged in
 };
 
@@ -7517,7 +7759,7 @@ deleteSpot=async function(){
 
   function anyLayerOpen(){
     const ids=['unameOverlay','eauthOverlay','suggestOverlay','reviewOverlay',
-               'mobPanelOverlay','mobFilterSheet','settingsSheet','editorModal',
+               'mobPanelOverlay','achWindow','mobFilterSheet','settingsSheet','editorModal',
                'sheet','drawerSubPanel','drawer','delModalBg'];
     return ids.some(id=>{
       const el=document.getElementById(id);
@@ -7533,6 +7775,7 @@ deleteSpot=async function(){
     try{closeSuggestModal();}catch(e){}
     try{closeReview(false);}catch(e){}
     try{closeMobPanel();}catch(e){}
+    try{closeAchievements();}catch(e){}
     try{closeMobFilterSheet();}catch(e){}
     try{closeSettings();}catch(e){}
     try{closeEditor();}catch(e){}
@@ -7543,6 +7786,12 @@ deleteSpot=async function(){
   }
 
   window.addEventListener('popstate',function(e){
+    // Inside the achievements detail view, a back press steps up to the overview first.
+    if(achState.open&&achState.view==='detail'){
+      achBack();
+      history.pushState({ss:'app'},'');
+      return;
+    }
     if(anyLayerOpen()){
       closeAllLayers();
       // Re-push so next back press still intercepts
@@ -7575,7 +7824,7 @@ deleteSpot=async function(){
     <div class="mob-nav-icon" id="mobNavFilterIcon">🎛</div>
     <div class="mob-nav-label" id="mobNavFilterLabel">Filtras</div>
   </div>
-  <div class="mob-nav-item" onclick="mobNavTo('zenklai')">
+  <div class="mob-nav-item" onclick="openAchievements()">
     <div class="mob-nav-icon">🏅</div>
     <div class="mob-nav-label">Ženkleliai</div>
   </div>
