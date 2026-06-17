@@ -758,6 +758,42 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .ach-row-prog .ach-bar{flex:1;margin-top:0}
 .ach-row-pct{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);white-space:nowrap}
 @media(max-width:600px){.ach-grid{grid-template-columns:repeat(2,1fr);gap:9px}.ach-title{font-size:1rem}}
+/* ── HELP / GUIDE WINDOW ── */
+.help-window{position:fixed;inset:0;z-index:1150;display:none;flex-direction:column;background:var(--bg)}
+.help-window.open{display:flex;animation:fadeIn .22s ease}
+.help-header{display:flex;align-items:center;gap:10px;padding:calc(14px + env(safe-area-inset-top)) 16px 12px;background:var(--surf2);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.help-close,.help-back{background:none;border:none;color:var(--gold);font-size:1.3rem;cursor:pointer;padding:4px 6px;line-height:1;-webkit-user-select:none;user-select:none}
+.help-back{font-size:.95rem;font-family:'DM Mono',monospace}
+.help-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.help-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 16px calc(28px + env(safe-area-inset-bottom));min-height:0;overscroll-behavior:contain}
+.help-hero{font-size:.9rem;color:var(--td);line-height:1.5;margin-bottom:18px}
+.help-kicker{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin:6px 2px 10px}
+.help-steps{display:flex;flex-direction:column;gap:9px;margin-bottom:22px}
+.help-step{display:flex;gap:12px;align-items:flex-start;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 13px}
+.help-step-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--gold));color:#0e0c09;font-family:'DM Mono',monospace;font-weight:700;font-size:.78rem;display:flex;align-items:center;justify-content:center}
+.help-step-main{flex:1;min-width:0}
+.help-step-title{font-size:.88rem;font-weight:700;color:var(--txt);display:flex;align-items:center;gap:6px}
+.help-step-desc{font-size:.76rem;color:var(--td);margin-top:2px;line-height:1.35}
+.help-toc{display:flex;flex-direction:column;gap:8px}
+.help-toc-item{display:flex;gap:11px;align-items:center;background:var(--surf2);border:1px solid var(--bdr);border-radius:11px;padding:12px;cursor:pointer;transition:.18s}
+.help-toc-item:hover{border-color:var(--gold);transform:translateY(-1px)}
+.help-toc-icon{font-size:1.4rem;line-height:1;flex-shrink:0}
+.help-toc-main{flex:1;min-width:0}
+.help-toc-name{font-size:.86rem;font-weight:700;color:var(--txt)}
+.help-toc-teaser{font-size:.72rem;color:var(--td);margin-top:2px;line-height:1.3}
+.help-toc-arr{color:var(--td);font-size:1rem;flex-shrink:0}
+.help-sec h4{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--gold);margin:18px 0 8px;font-weight:600}
+.help-sec h4:first-child{margin-top:2px}
+.help-sec p{font-size:.84rem;color:var(--txt);line-height:1.55;margin:0 0 11px}
+.help-sec strong{color:var(--txt);font-weight:700}
+.help-sec ul{margin:0 0 12px;padding-left:4px;list-style:none}
+.help-sec li{font-size:.83rem;color:var(--td);line-height:1.5;margin-bottom:7px;padding-left:18px;position:relative}
+.help-sec li::before{content:'\203A';position:absolute;left:4px;color:var(--gold)}
+.help-tip{background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:10px 12px;font-size:.8rem;color:var(--txt);line-height:1.45;margin:0 0 14px;display:flex;gap:8px}
+.help-tip-ico{flex-shrink:0}
+.help-faq-q{font-size:.85rem;font-weight:700;color:var(--txt);margin:14px 0 4px}
+.help-faq-a{font-size:.82rem;color:var(--td);line-height:1.5;margin:0 0 6px}
+@media(max-width:600px){.help-title{font-size:1rem}}
 .review-overlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;padding:0}
 .review-overlay.show{display:flex;animation:fadeIn .3s}
 .review-sheet{background:var(--surf);border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;box-shadow:0 -8px 40px var(--sh);animation:slideUp .35s cubic-bezier(.4,0,.2,1)}
@@ -1130,6 +1166,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="dnav-main-item" id="mySuggestionsNavItem" style="display:none" onclick="openSubPanel('mysuggestions')">
         <span class="dnmi-icon">🗂</span><span class="dnmi-label">Mano siūlymai</span><span class="dnmi-arrow">›</span>
       </div>
+      <!-- Help / guide -->
+      <div class="dnav-main-item" onclick="openHelp()">
+        <span class="dnmi-icon">❓</span><span class="dnmi-label">Pagalba</span><span class="dnmi-arrow">›</span>
+      </div>
       <!-- Settings -->
       <div class="dnav-main-item" onclick="closeDrawer();openSettings()">
         <span class="dnmi-icon">⚙️</span><span class="dnmi-label">Nustatymai</span><span class="dnmi-arrow">›</span>
@@ -1393,6 +1433,16 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   </div>
   <div class="ach-summary" id="achSummary"></div>
   <div class="ach-body" id="achBody"></div>
+</div>
+
+<!-- HELP / GUIDE WINDOW -->
+<div class="help-window" id="helpWindow">
+  <div class="help-header">
+    <button class="help-back" id="helpBackBtn" style="display:none" onclick="helpBack()">← Atgal</button>
+    <div class="help-title" id="helpTitle">❓ Pagalba</div>
+    <button class="help-close" onclick="closeHelp()">✕</button>
+  </div>
+  <div class="help-body" id="helpBody"></div>
 </div>
 
 <!-- REVIEW MODAL -->
@@ -3478,6 +3528,162 @@ function groupRollup(g,ctx){
   let cur=null,tot=null;
   if(g.cat&&ctx.cc[g.cat]){cur=ctx.cc[g.cat].c;tot=ctx.cc[g.cat].t;}
   return {earned,total,cur,tot};
+}
+
+// ═══════════ HELP / GUIDE ═══════════
+const HELP_QUICKSTART=[
+  {ico:'🗺',title:'Atrask vietą žemėlapyje',desc:'Žemėlapyje matai šimtus vietų — pilis, bažnyčias, piliakalnius, gamtą ir kt. Kiekviena turi savo istoriją.'},
+  {ico:'🚶',title:'Nueik prie jos fiziškai',desc:'Vietą surinkti gali tik nuvykęs ten iš tikrųjų. GPS patikrina, ar esi pakankamai arti.'},
+  {ico:'⭐',title:'Surink vietą',desc:'Atsidūręs zonoje spausk „Surinkti vietą!". Gausi XP, o vieta bus pažymėta kaip surinkta. (Reikia būti prisijungus ir įjungus GPS.)'},
+  {ico:'📈',title:'Kilk lygiais',desc:'XP kelia tavo lygį. Kuo aukštesnis lygis — tuo daugiau naujų vietų atsiranda žemėlapyje. Iš viso 50 lygių!'},
+];
+const HELP_SECTIONS=[
+  {id:'what',icon:'🧭',title:'Kas yra SpotSeekers',teaser:'Kelionių žaidimas po tikrą Lietuvą',html:`
+    <p><strong>SpotSeekers</strong> paverčia Lietuvos tyrinėjimą žaidimu. Žemėlapyje sužymėta tūkstančiai vietų: kultūros paveldas, gamtos stebuklai, miesto įdomybės.</p>
+    <p>Tikslas paprastas — <strong>fiziškai aplankyk vietas</strong>, surink jas, rink XP, kilk lygiais, atrakink ženklelius ir lipk lyderių lentelėje. Tai akstinas pamatyti, kiek įdomybių slypi šalia tavęs.</p>
+    <div class="help-tip"><span class="help-tip-ico">💡</span><span>Vietos yra tikros ir jas reikia aplankyti realiame gyvenime — nuotoliniu būdu „surinkti" nepavyks.</span></div>`},
+  {id:'collect',icon:'⭐',title:'Kaip veikia vietų rinkimas',teaser:'GPS, zonos ir mygtukas „Surinkti"',html:`
+    <h4>Trys sąlygos surinkti vietą</h4>
+    <ul>
+      <li><strong>Prisijungimas</strong> — turi būti prisijungęs prie paskyros.</li>
+      <li><strong>GPS</strong> — įjunk vietos nustatymą ir leisk programėlei jį naudoti.</li>
+      <li><strong>Atstumas</strong> — turi būti pakankamai arti vietos.</li>
+    </ul>
+    <h4>Kaip tai atrodo praktiškai</h4>
+    <p>Priartėjus prie vietos (~300 m spinduliu) ekrane iššoka langelis su pavadinimu ir atstumu. Įėjus į vietos zoną, mygtukas pasikeičia į <strong>„⭐ Surinkti vietą!"</strong> — spausk jį. Tą patį gali padaryti ir paspaudęs vietą žemėlapyje — apačioje atsivers kortelė su mygtuku „Surinkti".</p>
+    <h4>Kokio dydžio yra zona?</h4>
+    <p>Priklauso nuo vietos tipo: mažoms vietoms (apžvalgos taškai, monumentai) — apie 50 m, didelėms (kapinės, piliakalniai) — iki ~220 m. Vidutiniškai ~80 m.</p>
+    <div class="help-tip"><span class="help-tip-ico">📡</span><span>Jei GPS „šokinėja", veikia ir <strong>dvigubai didesnė atsarginė zona</strong> (pamatysi „GPS netikslus?"). Tai padeda surinkti vietą net esant prastam signalui.</span></div>
+    <p>Jei matai <strong>„Per toli"</strong> — tiesiog prieik arčiau. Atstumas rodomas metrais realiu laiku.</p>`},
+  {id:'levels',icon:'📈',title:'Lygiai, XP ir tieriai',teaser:'Kaip augi ir kaip atrakinami nauji taškai',html:`
+    <h4>XP ir lygiai</h4>
+    <p>Už kiekvieną surinktą vietą gauni <strong>patirties taškų (XP)</strong>. XP taip pat duoda ženkleliai, dienos užduotys ir savaitės iššūkiai. Sukaupęs pakankamai — pakyli lygiu. Iš viso yra <strong>50 lygių</strong>: nuo „Naujoko" iki „Lietuvos Legendos".</p>
+    <h4>Svarbiausia: lygis atrakina naujas vietas</h4>
+    <p>Kiekviena vieta turi savo paslėptą lygį. Žemėlapyje matai tik tas vietas, kurių lygis <strong>nedidesnis už tavo</strong>. Kai pakyli lygiu — atsiranda naujų vietų.</p>
+    <div class="help-tip"><span class="help-tip-ico">💡</span><span>Jei atrodo, kad vietų „mažoka" — renk tas, kurias matai, kilk lygiais, ir žemėlapis po truputį prisipildys.</span></div>
+    <h4>Tieriai — vietų retumas</h4>
+    <ul>
+      <li><strong>🥉 T1 — Žinomos:</strong> plačiau žinomos vietos. +20 XP.</li>
+      <li><strong>🥈 T2 — Retos:</strong> retesnės, mažiau žinomos. +25 XP.</li>
+      <li><strong>🥇 T3 — Legendos:</strong> rariausios ir paslaptingiausios. +35 XP.</li>
+    </ul>
+    <p>Tieris rodo vietos retumą ir kiek XP ji duoda. Su lygiu nepainiok: lygis lemia, <strong>ką matai</strong>, o tieris — <strong>kiek gauni</strong>.</p>`},
+  {id:'daily',icon:'🔥',title:'Serijos, dienos užduotis, iššūkiai',teaser:'Kasdieniai ir savaitiniai tikslai',html:`
+    <h4>🔥 Serijos (streak)</h4>
+    <p>Surink bent <strong>vieną vietą per dieną</strong>, kad išlaikytum seriją. Praleidi dieną — serija nutrūksta ir prasideda iš naujo. Už serijas duodami ženkleliai: 3, 7, 14, 30, 60, 100 ir net 200 dienų iš eilės.</p>
+    <h4>🎯 Dienos užduotis</h4>
+    <p>Kiekvieną dieną gauni paprastą užduotį — aplankyk 1 vietą. Įvykdęs gauni <strong>+10 XP</strong>. Atsinaujina kas dieną.</p>
+    <h4>🏆 Savaitės iššūkis</h4>
+    <p>Kas savaitę laukia naujas iššūkis, pvz. „Aplankyk 3 bažnyčias" arba „Surink 5 bet kokias vietas". Įvykdžius — solidus XP atlygis. Iššūkis keičiasi kiekvieną savaitę, tad verta sugrįžti.</p>`},
+  {id:'badges',icon:'🏅',title:'Ženkleliai',teaser:'Trofėjai už pasiekimus',html:`
+    <p>Ženkleliai (pasiekimai) — tavo tyrinėjimo trofėjai. Atidaryk juos iš meniu (☰) → <strong>🏅 Ženkleliai</strong>.</p>
+    <h4>Kokie būna ženkleliai</h4>
+    <ul>
+      <li><strong>Pagal kategoriją</strong> — atskiros „lentelės" fortams, bažnyčioms, piliakalniams ir t. t.</li>
+      <li><strong>Bendra pažanga</strong> — už 10, 50, 100, 500… surinktų vietų.</li>
+      <li><strong>Serijos</strong> — už dienas iš eilės.</li>
+      <li><strong>Lygiai</strong> — už pasiektus lygius.</li>
+      <li><strong>Kolekcionierius</strong> — už 100 % užbaigtas kategorijas.</li>
+      <li><strong>Platybės</strong> — už vietas, nutolusias 50, 150, 300+ km.</li>
+      <li><strong>Bendruomenės kūrėjas</strong> — už patvirtintus tavo siūlytus taškus.</li>
+    </ul>
+    <p>Visi ženkleliai matomi iš karto — neatrakinti būna pilki. Pasiekęs tikslą jį „nušvieti" ir gauni XP.</p>
+    <div class="help-tip"><span class="help-tip-ico">🔮</span><span>Yra ir <strong>paslėptų vietų</strong> su slaptais ženkleliais. Jų iš anksto nepamatysi — tik atsidūręs šalia.</span></div>`},
+  {id:'map',icon:'🗺',title:'Žemėlapis ir įrankiai',teaser:'Filtrai, Staigmena, oras, tema',html:`
+    <h4>Filtrai</h4>
+    <p>Viršuje filtruok vietas: <strong>Visos</strong>, 🏛 Paveldas, 🌿 Gamta, 🏙 Miestas — kiekviena grupė turi pogrupius (bažnyčios, piliakalniai, gamta ir kt.). Taip pat gali filtruoti pagal miestą.</p>
+    <h4>Įrankiai</h4>
+    <ul>
+      <li><strong>🎲 Staigmena</strong> — peršoka prie atsitiktinės dar nesurinktos vietos. Puiku, kai nežinai, kur eiti.</li>
+      <li><strong>🌤 Oras</strong> — dabartinis oras tavo vietovėje.</li>
+      <li><strong>☀️ / 🌙 Tema</strong> — dienos arba nakties režimas.</li>
+      <li><strong>📍 Centras</strong> — sucentruoja žemėlapį ties tavimi.</li>
+      <li><strong>↻ GPS</strong> — atnaujina tavo vietą, jei „pasimetė".</li>
+    </ul>
+    <h4>Šalies perjungimas</h4>
+    <p>Meniu apačioje gali perjungti šalį (🇱🇹 Lietuva / 🇵🇱 Polska). Kiekvienos šalies pažanga skaičiuojama atskirai.</p>`},
+  {id:'routes',icon:'🧭',title:'Maršrutai ir auto. planuoklis',teaser:'Susiplanuok kelionę arba leisk tai padaryti programai',html:`
+    <h4>🗺 Maršrutai</h4>
+    <p>Iš vietos kortelės gali pridėti tašką į maršrutą. Maršrute taškus pertvarkyk, optimizuok (apskaičiuojamas trumpiausias kelias tikrais keliais) ir keliauk su navigacija — viršuje matysi, kur sukti toliau.</p>
+    <h4>⚡ Automatinis maršrutas</h4>
+    <p>Nenori planuoti pats? Atidaryk <strong>Maršrutai</strong> ir naudok automatinį planuoklį:</p>
+    <ul>
+      <li>Pasirink <strong>kategorijas</strong>, kurias nori aplankyti.</li>
+      <li>Būdą: 🚗 Automobiliu arba 🚶 Pėsčiomis.</li>
+      <li>Formą: 🔁 Žiedinis (grįžti į pradžią) arba 🎯 A → B.</li>
+      <li>Pradžią (GPS arba taškas žemėlapyje) ir <strong>laiko biudžetą</strong> (30 min – 6 val.).</li>
+    </ul>
+    <p>Programa sugeneruoja optimizuotą maršrutą, telpantį į tavo laiką. Patinka — išsaugok ir keliauk.</p>`},
+  {id:'account',icon:'👥',title:'Paskyra, draugai ir siūlymai',teaser:'Sinchronizacija, lyderiai, naujų vietų siūlymas',html:`
+    <h4>Paskyra ir sinchronizacija</h4>
+    <p>Prisijungti gali el. paštu (telefone ir naršyklėje) arba su Google (naršyklėje). Prisijungus pažanga — surinktos vietos, XP, serija, ženkleliai — <strong>sinchronizuojama</strong> ir pasiekiama iš bet kurio įrenginio.</p>
+    <h4>👥 Draugai ir lyderiai</h4>
+    <p>Lyderių lentelėje matai, kas surinko daugiausia. Per <strong>draugų kvietimą</strong> pasidalink nuoroda ir pasikviesk draugų lenktyniauti.</p>
+    <h4>📍 Siūlyti vietą</h4>
+    <p>Žinai vietą, kurios žemėlapyje nėra? Meniu pasirink <strong>Siūlyti vietą</strong>, nurodyk pavadinimą, kategoriją, koordinates (GPS arba pažymėk žemėlapyje) ir aprašymą. Pasiūlymą peržiūri administratorius — patvirtinus gauni „Bendruomenės kūrėjo" ženklelių.</p>
+    <h4>💬 Atsiliepimai ir nustatymai</h4>
+    <p>Surinkęs kelias vietas būsi pakviestas palikti įvertinimą. Nustatymuose gali paslėpti surinktas vietas, perjungti temą ar ištrinti paskyrą.</p>`},
+  {id:'faq',icon:'❓',title:'DUK — dažni klausimai',teaser:'Greiti atsakymai, kai kažkas neveikia',html:`
+    <div class="help-faq-q">❓ Kodėl nematau kažkurios vietos?</div>
+    <div class="help-faq-a">Trys dažnos priežastys: (1) vieta dar per aukšto lygio — pakilk lygiu; (2) ją paslėpė filtras — pasirink „Visos"; (3) esi ne toje šalyje — patikrink LT/PL perjungiklį.</div>
+    <div class="help-faq-q">❓ Kodėl negaliu surinkti vietos?</div>
+    <div class="help-faq-a">Patikrink: ar prisijungęs, ar įjungtas GPS, ir ar esi pakankamai arti. Jei rodo „Per toli" — prieik arčiau.</div>
+    <div class="help-faq-q">❓ Kur dingo mano serija?</div>
+    <div class="help-faq-a">Serija nutrūksta, jei praleidi dieną nesurinkęs nė vienos vietos. Pradėk iš naujo — surink bent vieną vietą šiandien.</div>
+    <div class="help-faq-q">❓ Ar veikia be interneto?</div>
+    <div class="help-faq-a">Žemėlapis ir programa iš dalies veikia neprisijungus (įdiegus kaip programėlę), bet vietoms rinkti reikia GPS ir prisijungimo, o sinchronizacijai — interneto.</div>
+    <div class="help-faq-q">❓ Kaip gaunu daugiau XP?</div>
+    <div class="help-faq-a">Rink retesnes vietas (T2, T3 duoda daugiau), vykdyk dienos užduotis bei savaitės iššūkius ir nepamiršk ženklelių — jie taip pat duoda XP.</div>`},
+];
+let helpState={open:false,view:'overview',section:null};
+function openHelp(){
+  if(typeof closeDrawer==='function'){try{closeDrawer();}catch(e){}}
+  if(typeof closeMobPanel==='function'){try{closeMobPanel();}catch(e){}}
+  helpState.open=true;helpState.view='overview';helpState.section=null;
+  document.getElementById('helpWindow').classList.add('open');
+  renderHelp();
+}
+function closeHelp(){
+  helpState.open=false;
+  document.getElementById('helpWindow').classList.remove('open');
+  setTimeout(()=>{try{map&&map.invalidateSize();}catch(e){}},60);
+}
+function helpBack(){helpState.view='overview';helpState.section=null;renderHelp();}
+function helpOpenSection(id){
+  helpState.view='detail';helpState.section=id;renderHelp();
+  const b=document.getElementById('helpBody');if(b)b.scrollTop=0;
+}
+function renderHelp(){
+  const body=document.getElementById('helpBody');
+  const backBtn=document.getElementById('helpBackBtn');
+  const title=document.getElementById('helpTitle');
+  if(!body) return;
+  if(helpState.view==='detail'){
+    const sec=HELP_SECTIONS.find(s=>s.id===helpState.section);
+    if(!sec){helpBack();return;}
+    if(backBtn) backBtn.style.display='';
+    if(title) title.textContent=sec.icon+' '+sec.title;
+    body.innerHTML=`<div class="help-sec">${sec.html}</div>`;
+    return;
+  }
+  if(backBtn) backBtn.style.display='none';
+  if(title) title.textContent='❓ Pagalba';
+  const steps=HELP_QUICKSTART.map((s,i)=>`<div class="help-step">
+    <div class="help-step-num">${i+1}</div>
+    <div class="help-step-main">
+      <div class="help-step-title">${s.ico} ${s.title}</div>
+      <div class="help-step-desc">${s.desc}</div>
+    </div></div>`).join('');
+  const toc=HELP_SECTIONS.map(s=>`<div class="help-toc-item" onclick="helpOpenSection('${s.id}')">
+    <span class="help-toc-icon">${s.icon}</span>
+    <div class="help-toc-main"><div class="help-toc-name">${s.title}</div><div class="help-toc-teaser">${s.teaser}</div></div>
+    <span class="help-toc-arr">›</span></div>`).join('');
+  body.innerHTML=`
+    <div class="help-hero">Labas, Seeker'i! 👋 Štai kaip viskas veikia. Pradėk nuo greito starto, o detalesnės temos — žemiau.</div>
+    <div class="help-kicker">⚡ Greitas startas</div>
+    <div class="help-steps">${steps}</div>
+    <div class="help-kicker">📖 Visas vadovas</div>
+    <div class="help-toc">${toc}</div>`;
 }
 
 function openAchievements(){
@@ -7838,7 +8044,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v27';
+const CACHE='spotseekers-v28';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
