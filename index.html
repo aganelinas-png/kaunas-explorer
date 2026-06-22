@@ -1180,6 +1180,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <div onclick="rebuildKVCache()" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔄 Atnaujinti KV talpyklą</div>
         <div onclick="exportSpotsCSV()" id="csvExportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">📥 Eksportuoti CSV</div>
         <label id="csvImportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(201,168,76,.12);border:1px solid var(--gold);color:var(--gold);font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:8px">📤 Importuoti CSV<input type="file" accept=".csv" id="csvImportInput" style="display:none" onchange="importSpotsCSV(this)"></label>
+        <div onclick="importVMU()" id="vmuImportBtn" style="padding:9px 12px;border-radius:8px;background:rgba(58,125,68,.14);border:1px solid #3a7d44;color:#3a7d44;font-size:.78rem;cursor:pointer;margin-top:6px;display:flex;align-items:center;gap:8px">🌲 Importuoti VMU rekreacijos vietas</div>
       </div>
     </div>
     <div class="drawer-bottom" style="flex-shrink:0">
@@ -1553,6 +1554,10 @@ const CATS={
   nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
   viewpoint:{label:'Apžvalgos',emoji:'🔭',color:'#1a6b8a'},
   bridge:{label:'Tiltai',emoji:'🌉',color:'#4a6a8a'},
+  // — Recreation / Outdoor (VMU) —
+  camping:{label:'Stovyklavietės',emoji:'🏕',color:'#3a7d44'},
+  trail:{label:'Takai',emoji:'🥾',color:'#6a8a3a'},
+  recreation:{label:'Poilsiavietės',emoji:'🌲',color:'#2f6b4f'},
   // — Urban / City —
   mural:{label:'Gatvės menas',emoji:'🎨',color:'#8a3a7a'},
   watertower:{label:'Vandens bokštai',emoji:'🗼',color:'#4a5a8a'},
@@ -1562,7 +1567,8 @@ const CATS={
 
 const FILTER_GROUPS=[
   {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['church','monument','mound','fort','museum','history','cemetery']},
-  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint','bridge','trail']},
+  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint','bridge']},
+  {id:'poilsis',label:'Poilsis',emoji:'🏕',cats:['camping','trail','recreation']},
   {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower']},
 ];
 
@@ -1579,6 +1585,9 @@ const DEFAULT_RADIUS=80;
 // Per-category sensible defaults — used when no explicit radius is set
 const CAT_DEFAULT_RADIUS={
   viewpoint:50,
+  camping:150,
+  trail:120,
+  recreation:200,
   monument:55,
   mural:55,
   church:65,
@@ -1671,6 +1680,32 @@ const BADGE_GROUPS=[
     {id:'vp4',name:'Vienas Aukštai — Visi Žemai',desc:'Aplankyk 25 apžvalgos taškų',icon:'🌅',need:25,xpReward:50},
     {id:'vp5',name:'Horizontų valdovas',desc:'Aplankyk 50 apžvalgos taškų',icon:'⭐',need:50,xpReward:110},
     {id:'vp6',name:'Visos Lietuvos panoramos',desc:'Aplankyk visus apžvalgos taškus',icon:'💎',complete:true,xpReward:300},
+  ]},
+  // ── Recreation / Outdoor (VMU) ──
+  {id:'camping',title:'Stovyklautojas',icon:'🏕',cat:'camping',sub:true,badges:[
+    {id:'cmp1',name:'Pirma stovykla',desc:'Aplankyk 1 stovyklavietę',icon:'🏕',need:1,xpReward:10},
+    {id:'cmp2',name:'Laužo bičiulis',desc:'Aplankyk 3 stovyklavietes',icon:'🔥',need:3,xpReward:10},
+    {id:'cmp3',name:'Palapinių žinovas',desc:'Aplankyk 10 stovyklaviečių',icon:'⛺',need:10,xpReward:20},
+    {id:'cmp4',name:'Girių poilsiautojas',desc:'Aplankyk 25 stovyklavietes',icon:'🌲',need:25,xpReward:40},
+    {id:'cmp5',name:'Stovyklų meistras',desc:'Aplankyk 50 stovyklaviečių',icon:'⭐',need:50,xpReward:100},
+    {id:'cmp6',name:'Laukinės gamtos valdovas',desc:'Aplankyk 100 stovyklaviečių',icon:'👑',need:100,xpReward:200},
+    {id:'cmp7',name:'Visos Lietuvos stovyklavietės',desc:'Aplankyk visas stovyklavietes',icon:'🏆',complete:true,xpReward:400},
+  ]},
+  {id:'trails',title:'Takų žygeivis',icon:'🥾',cat:'trail',sub:true,badges:[
+    {id:'trl1',name:'Pirmas takas',desc:'Pereik 1 pažintinį taką',icon:'🥾',need:1,xpReward:10},
+    {id:'trl2',name:'Miško klajūnas',desc:'Pereik 3 takus',icon:'🌳',need:3,xpReward:10},
+    {id:'trl3',name:'Žygeivis',desc:'Pereik 10 takų',icon:'🧭',need:10,xpReward:20},
+    {id:'trl4',name:'Takų rinkėjas',desc:'Pereik 25 takus',icon:'🛤',need:25,xpReward:50},
+    {id:'trl5',name:'Takų meistras',desc:'Pereik 50 takų',icon:'⭐',need:50,xpReward:110},
+    {id:'trl6',name:'Visi Lietuvos takai',desc:'Pereik visus takus',icon:'💎',complete:true,xpReward:300},
+  ]},
+  {id:'recreation',title:'Poilsiautojas',icon:'🌲',cat:'recreation',sub:true,badges:[
+    {id:'rec1',name:'Pirmas poilsis',desc:'Aplankyk 1 poilsio vietą',icon:'🌲',need:1,xpReward:10},
+    {id:'rec2',name:'Atokvėpio ieškotojas',desc:'Aplankyk 5 poilsio vietas',icon:'🍃',need:5,xpReward:10},
+    {id:'rec3',name:'Parkų lankytojas',desc:'Aplankyk 15 poilsio vietų',icon:'🏞',need:15,xpReward:20},
+    {id:'rec4',name:'Gamtos pažinimo bičiulis',desc:'Aplankyk 40 poilsio vietų',icon:'🌿',need:40,xpReward:60},
+    {id:'rec5',name:'Poilsio vietų meistras',desc:'Aplankyk 80 poilsio vietų',icon:'⭐',need:80,xpReward:130},
+    {id:'rec6',name:'Visos Lietuvos poilsiavietės',desc:'Aplankyk visas poilsio vietas',icon:'💎',complete:true,xpReward:350},
   ]},
   // ── Progress ──
   {id:'tiers',title:'Tiero pažanga',icon:'⭐',cat:null,badges:[
@@ -8044,7 +8079,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v28';
+const CACHE='spotseekers-v29';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -8532,6 +8567,162 @@ async function importSpotsCSV(input){
   }catch(e){toast(`❌ KV klaida: ${e.message}`,'info');}
   btn.textContent='📤 Importuoti CSV';
   input.value='';
+}
+
+// ── ADMIN: VMU recreation import (ArcGIS FeatureServer) ──
+// Maps VMU `Paskirtis` (object type) → SpotSeekers category.
+const VMU_TYPE_MAP={
+  'stovyklavietė':'camping','stovyklavietės':'camping',
+  'poilsiavietė':'camping','poilsiavietės':'camping',
+  'takas':'trail','pažintinis takas':'trail',
+  'parkas':'recreation','miško parkas':'recreation',
+  'atokvėpio vieta':'recreation','atokvėpio vietos':'recreation',
+  'pažintinis kompleksas':'recreation','pažintiniai kompleksai':'recreation',
+  'pažintinis objektas':'recreation','pažintiniai objektai':'recreation',
+  'apžvalgos vieta':'viewpoint','apžvalgos vietos':'viewpoint',
+  'apžvalgos aikštelė':'viewpoint','regykla':'viewpoint',
+  'bokštas':'viewpoint','apžvalgos bokštas':'viewpoint',
+};
+function vmuMapCat(paskirtis){
+  const raw=(paskirtis==null?'':String(paskirtis)).trim();
+  const k=raw.toLowerCase();
+  if(!k) return 'recreation';
+  if(k.includes('grup')) return null;                 // skip "Rekreacijos objektų grupė" meta-layer
+  if(VMU_TYPE_MAP[k]) return VMU_TYPE_MAP[k];
+  // keyword fallback for unseen variants
+  if(k.includes('stovykl')||k.includes('poilsiav')) return 'camping';
+  if(k.includes('tak')) return 'trail';
+  if(k.includes('apžvalg')||k.includes('apzvalg')||k.includes('bokšt')||k.includes('boksht')||k.includes('regykl')) return 'viewpoint';
+  return 'recreation';
+}
+// Normalise a name for similarity comparison (lowercase, strip LT diacritics & punctuation).
+function _vmuNorm(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+// Token Jaccard name similarity 0..1.
+function _vmuNameSim(a,b){
+  a=_vmuNorm(a);b=_vmuNorm(b);
+  if(!a||!b) return 0;
+  if(a===b) return 1;
+  const ta=new Set(a.split(' ')),tb=new Set(b.split(' '));
+  let inter=0;ta.forEach(t=>{if(tb.has(t))inter++;});
+  const uni=new Set([...ta,...tb]).size;
+  return uni?inter/uni:0;
+}
+
+async function importVMU(){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
+  if(activeCountry!=='LT'){toast('⚠ VMU vietos yra tik Lietuvai — perjunk šalį į LT','info');return;}
+  const btn=document.getElementById('vmuImportBtn');
+  const setBtn=t=>{if(btn)btn.textContent=t;};
+
+  const saved=localStorage.getItem('vmuLayerUrl')||'';
+  const url=prompt(
+    'VMU ArcGIS sluoksnio URL (FeatureServer/sluoksnio numeris, BE „/query“).\n\n'+
+    'Kaip gauti: atidaryk VMU žemėlapį → naršyklės DevTools → Network → filtruok „query“ → '+
+    'nukopijuok užklausos adresą iki „/query“.\n\nPvz.: https://services2.arcgis.com/XXXX/ArcGIS/rest/services/Rekreacija/FeatureServer/0',
+    saved
+  );
+  if(!url){setBtn('🌲 Importuoti VMU rekreacijos vietas');return;}
+  const base=url.trim().replace(/\/query.*$/i,'').replace(/\/+$/,'');
+  localStorage.setItem('vmuLayerUrl',base);
+
+  setBtn('⏳ Kraunama iš VMU...');
+  let raw=[];
+  try{
+    let offset=0;const page=1000;
+    for(let guard=0;guard<10;guard++){
+      const q=`${base}/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=${page}&resultOffset=${offset}`;
+      const res=await fetch(q);
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const gj=await res.json();
+      if(gj.error) throw new Error(gj.error.message||'ArcGIS klaida');
+      const feats=gj.features||[];
+      raw.push(...feats);
+      if(feats.length<page) break;
+      offset+=page;
+    }
+  }catch(e){
+    toast(`❌ Nepavyko gauti VMU duomenų: ${e.message}. Patikrink URL / CORS.`,'info');
+    setBtn('🌲 Importuoti VMU rekreacijos vietas');return;
+  }
+  if(!raw.length){toast('❌ VMU sluoksnis grąžino 0 objektų — patikrink URL','info');setBtn('🌲 Importuoti VMU rekreacijos vietas');return;}
+
+  // Build candidate spots
+  let skippedType=0;
+  const candidates=[];
+  raw.forEach(f=>{
+    const p=f.properties||f.attributes||{};
+    const g=f.geometry||{};
+    const coords=g.coordinates||(g.x!=null?[g.x,g.y]:null);
+    if(!coords||coords.length<2) return;
+    const lng=+coords[0], lat=+coords[1];
+    if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180) return;
+    const cat=vmuMapCat(p.Paskirtis);
+    if(!cat){skippedType++;return;}
+    const oid=p.OBJECTID??p.objectid??p.FID??`${lat.toFixed(5)}_${lng.toFixed(5)}`;
+    const name=(p.Pavadinimas||p.pavadinimas||CATS[cat]?.label||'VMU vieta').toString().trim();
+    candidates.push({
+      id:`vmu-${oid}`,
+      name, cat, tier:2,
+      lat:+lat.toFixed(6), lng:+lng.toFixed(6),
+      radius:CAT_DEFAULT_RADIUS[cat]||DEFAULT_RADIUS,
+      address:'', source:'VMU',
+      history:(p.Aprasymas||p.aprasymas||'').toString().trim(),
+    });
+  });
+
+  // Dedup: skip if same VMU id already present, OR (≤100 m to an existing spot AND name similarity ≥0.5)
+  const existingIds=new Set(SPOTS.map(s=>String(s.id)));
+  let dupId=0,dupGeo=0;
+  const byCat={camping:0,trail:0,recreation:0,viewpoint:0};
+  const fresh=[];
+  candidates.forEach(c=>{
+    if(existingIds.has(c.id)){dupId++;return;}
+    let dup=false;
+    for(const s of SPOTS){
+      if(s.lat==null||s.lng==null) continue;
+      if(dist(c.lat,c.lng,s.lat,s.lng)<=100 && _vmuNameSim(c.name,s.name)>=0.5){dup=true;break;}
+    }
+    if(dup){dupGeo++;return;}
+    fresh.push(c);
+    if(byCat[c.cat]!=null) byCat[c.cat]++;
+  });
+
+  setBtn('🌲 Importuoti VMU rekreacijos vietas');
+  if(!fresh.length){toast(`ℹ️ Naujų vietų nerasta (${dupId+dupGeo} dublikatų praleista)`,'info');return;}
+
+  const summary=
+    `VMU importas:\n\n`+
+    `Gauta objektų: ${raw.length}\n`+
+    `🏕 Stovyklavietės: ${byCat.camping}\n`+
+    `🥾 Takai: ${byCat.trail}\n`+
+    `🌲 Poilsiavietės: ${byCat.recreation}\n`+
+    `🔭 Apžvalgos: ${byCat.viewpoint}\n`+
+    `Praleista (tipas „grupė“): ${skippedType}\n`+
+    `Praleista (dublikatai): ${dupId+dupGeo}\n\n`+
+    `Pridėti ${fresh.length} naujų vietų (T2) ir įrašyti į KV?`;
+  if(!confirm(summary)) return;
+
+  const merged=[...SPOTS,...fresh];
+  setBtn('⏳ Įrašoma į KV...');
+  try{
+    const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Admin-Secret':window._adminSecret||'lithuania2026'},
+      body:JSON.stringify(merged)
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    SPOTS=merged;
+    try{localStorage.setItem(spotsCacheKey(),JSON.stringify({ts:Date.now(),spots:SPOTS}));}catch(e){}
+    refreshMarkers();updateAll();
+    toast(`✅ Pridėta ${fresh.length} VMU vietų — KV: ${data.count}`,'success');
+  }catch(e){
+    toast(`❌ KV klaida: ${e.message}`,'info');
+  }
+  setBtn('🌲 Importuoti VMU rekreacijos vietas');
 }
 
 // ── ADMIN: Rebuild KV cache from current SPOTS ──
