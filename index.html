@@ -22,15 +22,14 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <!-- Firebase -->
 <script>window._adminSecret='ADMIN_SECRET_PLACEHOLDER';</script>
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import{getAuth,signInWithPopup,signInWithRedirect,getRedirectResult,signInWithCredential,signOut,GoogleAuthProvider,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getAuth,signOut,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
   apiKey:"AIzaSyDTL21A2rzaZrIefNnR5CZikuRakgtM1uE",
@@ -44,16 +43,15 @@ const firebaseConfig={
 const fbApp=initializeApp(firebaseConfig);
 const db=getFirestore(fbApp);
 const auth=getAuth(fbApp);
-const gProvider=new GoogleAuthProvider();
 
 // Ensure login persists across page refreshes
 setPersistence(auth,browserLocalPersistence).catch(()=>{});
 
 // Expose to global scope so non-module code can use them
-window._fb={db,auth,gProvider,
+window._fb={db,auth,
   doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
   query,orderBy,limit,where,writeBatch,
-  signInWithPopup,signInWithRedirect,getRedirectResult,signInWithCredential,GoogleAuthProvider,signOut,onAuthStateChanged,
+  signOut,onAuthStateChanged,
   createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
 };
 
@@ -63,17 +61,6 @@ onAuthStateChanged(auth,user=>{
   if(typeof window.onFbAuthReady==='function') window.onFbAuthReady(user);
 });
 
-// Handle returning redirect from Google sign-in (TWA / mobile)
-getRedirectResult(auth).then(result=>{
-  if(result?.user){
-    window._fbUser=result.user;
-    if(typeof window.updateAuthUI==='function') window.updateAuthUI(result.user);
-    if(typeof window.toast==='function') window.toast(`👋 Sveiki, ${result.user.displayName||''}!`,'success');
-    if(typeof window.onFbAuthReady==='function') window.onFbAuthReady(result.user);
-  }
-}).catch(e=>{
-  console.error('Redirect result error:',e);
-});
 </script>
 <style>
 :root{
@@ -660,7 +647,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   .tb-right{gap:5px}
   .tb-right .ib{width:36px;height:36px;font-size:15px}
   .gps-pill{display:none}
-  .wx-ib{display:none!important}
   .topbar{padding:8px 10px;gap:6px}
   .logo-pill{padding:5px 10px}
   .logo-text{font-size:.85rem}
@@ -854,8 +840,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .eauth-input::placeholder{color:var(--tm)}
 .eauth-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;margin-top:4px;margin-bottom:12px}
 .eauth-btn:active{opacity:.85}
-.eauth-google{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--txt);cursor:pointer;margin-bottom:10px}
-.eauth-google:active{opacity:.75}
 .eauth-toggle{text-align:center;font-size:.8rem;color:var(--td)}
 .eauth-toggle span{color:var(--gold);cursor:pointer;font-weight:600}
 .eauth-sep{display:flex;align-items:center;gap:10px;margin:10px 0}
@@ -1016,7 +1000,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <option value="fort">🏰 Fortas</option>
         <option value="monument">🗿 Monumentas</option>
         <option value="mound">⛰️ Piliakalnis</option>
-        <option value="nature">🌿 Gamta</option>
+        <option value="nature">🌿 Parkas</option>
         <option value="viewpoint">🔭 Apžvalgos taškas</option>
         <option value="mural">🎨 Gatvės menas</option>
         <option value="cemetery">⚱️ Kapinės</option>
@@ -1128,7 +1112,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           <!-- Login/logout button always visible -->
           <button id="drawerAuthBtn" onclick="drawerAuthAction()" style="margin-top:10px;width:100%;background:var(--surf3);border:1px solid var(--bdr);border-radius:8px;padding:7px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px">
             <span id="drawerAuthAvatar">👤</span>
-            <span id="drawerAuthLabel">Prisijungti su Google</span>
+            <span id="drawerAuthLabel">Prisijungti</span>
           </button>
           <!-- City switcher -->
 
@@ -1245,8 +1229,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           <option value="mound">⛰ Piliakalnis</option>
           <option value="cemetery">⚱️ Kapinės</option>
           </optgroup>
-          <optgroup label="— Gamta —">
-          <option value="nature">🌿 Gamta</option>
+          <optgroup label="— Parkai —">
+          <option value="nature">🌿 Parkas</option>
           <option value="viewpoint">🔭 Apžvalgos</option>
           </optgroup>
           <optgroup label="— Miestas —">
@@ -1499,8 +1483,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="auth-name" id="authName">Neprisijungęs</div>
     <div class="auth-sub" id="authSub">Prisijunk norėdamas sinchronizuoti</div>
   </div>
-  <button class="auth-btn" id="authBtn" onclick="openEmailModal()">Google</button>
-  <button class="auth-btn" id="authEmailBtn" onclick="openEmailModal()" style="background:var(--surf2);border:1px solid var(--bdr);color:var(--txt)">El. paštas</button>
+  <button class="auth-btn" id="authBtn" onclick="openEmailModal()">Prisijungti</button>
 </div>
 
 <!-- EMAIL AUTH MODAL -->
@@ -1516,18 +1499,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <span id="eauthForgotLink" onclick="fbForgotPassword()" style="font-size:.75rem;color:var(--td);cursor:pointer;text-decoration:underline;text-underline-offset:2px">Pamiršau slaptažodį</span>
     </div>
     <button class="eauth-btn" id="eauthSubmit" onclick="fbLoginEmail()">Prisijungti</button>
-    <div class="eauth-sep"><span class="eauth-sep-txt">arba</span></div>
-    <!-- GIS Google Sign-In button rendered here -->
-    <div id="gisGoogleBtn" style="display:flex;justify-content:center;margin-bottom:8px"></div>
     <div class="eauth-toggle" id="eauthToggle">Neturi paskyros? <span onclick="toggleEmailMode()">Registruotis</span></div>
   </div>
-</div>
-
-<!-- Google One Tap container -->
-<div id="g_id_onload"
-  data-client_id="241890115444-i97i3pcibutqg9mriqjdd67cqg1suudi.apps.googleusercontent.com"
-  data-callback="handleGisCredential"
-  data-auto_prompt="false">
 </div>
 
 <!-- TOASTS -->
@@ -1546,7 +1519,7 @@ const CATS={
   mound:{label:'Piliakalnis',emoji:'⛰',color:'#5a7a3a'},
   cemetery:{label:'Kapinės',emoji:'⚱️',color:'#5a5a6a'},
   // — Nature —
-  nature:{label:'Gamta',emoji:'🌿',color:'#2e7d32'},
+  nature:{label:'Parkas',emoji:'🌿',color:'#2e7d32'},
   viewpoint:{label:'Apžvalgos',emoji:'🔭',color:'#1a6b8a'},
   bridge:{label:'Tiltai',emoji:'🌉',color:'#4a6a8a'},
   // — Recreation / Outdoor (VMU) —
@@ -1562,7 +1535,7 @@ const CATS={
 
 const FILTER_GROUPS=[
   {id:'heritage',label:'Paveldas',emoji:'🏛',cats:['church','monument','mound','fort','museum','history','cemetery']},
-  {id:'nature',label:'Gamta',emoji:'🌿',cats:['nature','viewpoint','bridge']},
+  {id:'nature',label:'Parkai',emoji:'🌿',cats:['nature','viewpoint','bridge']},
   {id:'poilsis',label:'Poilsis',emoji:'🏕',cats:['camping','trail','recreation']},
   {id:'urban',label:'Miestas',emoji:'🏙',cats:['mural','watertower']},
 ];
@@ -3629,7 +3602,7 @@ const HELP_SECTIONS=[
     <div class="help-tip"><span class="help-tip-ico">🔮</span><span>Yra ir <strong>paslėptų vietų</strong> su slaptais ženkleliais. Jų iš anksto nepamatysi — tik atsidūręs šalia.</span></div>`},
   {id:'map',icon:'🗺',title:'Žemėlapis ir įrankiai',teaser:'Filtrai, Staigmena, oras, tema',html:`
     <h4>Filtrai</h4>
-    <p>Viršuje filtruok vietas: <strong>Visos</strong>, 🏛 Paveldas, 🌿 Gamta, 🏙 Miestas — kiekviena grupė turi pogrupius (bažnyčios, piliakalniai, gamta ir kt.). Taip pat gali filtruoti pagal miestą.</p>
+    <p>Viršuje filtruok vietas: <strong>Visos</strong>, 🏛 Paveldas, 🌿 Parkai, 🏙 Miestas — kiekviena grupė turi pogrupius (bažnyčios, piliakalniai, parkai ir kt.). Taip pat gali filtruoti pagal miestą.</p>
     <h4>Įrankiai</h4>
     <ul>
       <li><strong>🎲 Staigmena</strong> — peršoka prie atsitiktinės dar nesurinktos vietos. Puiku, kai nežinai, kur eiti.</li>
@@ -3654,7 +3627,7 @@ const HELP_SECTIONS=[
     <p>Programa sugeneruoja optimizuotą maršrutą, telpantį į tavo laiką. Patinka — išsaugok ir keliauk.</p>`},
   {id:'account',icon:'👥',title:'Paskyra, draugai ir siūlymai',teaser:'Sinchronizacija, lyderiai, naujų vietų siūlymas',html:`
     <h4>Paskyra ir sinchronizacija</h4>
-    <p>Prisijungti gali el. paštu (telefone ir naršyklėje) arba su Google (naršyklėje). Prisijungus pažanga — surinktos vietos, XP, serija, ženkleliai — <strong>sinchronizuojama</strong> ir pasiekiama iš bet kurio įrenginio.</p>
+    <p>Prisijungti gali el. paštu (telefone ir naršyklėje). Prisijungus pažanga — surinktos vietos, XP, serija, ženkleliai — <strong>sinchronizuojama</strong> ir pasiekiama iš bet kurio įrenginio.</p>
     <h4>👥 Draugai ir lyderiai</h4>
     <p>Lyderių lentelėje matai, kas surinko daugiausia. Per <strong>draugų kvietimą</strong> pasidalink nuoroda ir pasikviesk draugų lenktyniauti.</p>
     <h4>📍 Siūlyti vietą</h4>
@@ -5432,7 +5405,7 @@ function renderOsmImport(){
   if(!body) return;
   const ic=_getImportCountry();
   const cats=['all','church','museum','fort','nature','history','monument','mound','viewpoint','watertower','mural','cemetery'];
-  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Gamta',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės'};
+  const catLabels={all:'Visos',church:'⛪ Bažnyčios',museum:'🏛 Muziejai',fort:'🏰 Fortai',nature:'🌿 Parkas',history:'⚔ Istorija',monument:'🗿 Monumentai',mound:'⛰ Piliakalnis',viewpoint:'🔭 Apžvalgos',watertower:'🗼 Van. bokštai',mural:'🎨 Gatvės menas',cemetery:'⚱️ Kapinės'};
 
   if(_importTab==='kpd'){
     body.innerHTML=`<div class="osm-wrap">${_countrySelector()}${_tabBar()}${renderKpdPanel()}</div>`;
@@ -7698,7 +7671,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v30';
+const CACHE='spotseekers-v31';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -7792,7 +7765,7 @@ window.onFbAuthReady=async function(user){
 
 function drawerAuthAction(){
   if(window._fbUser) fbLogout();
-  else fbLogin();
+  else openEmailModal();
 }
 
 function updateAuthUI(user){
@@ -7811,8 +7784,6 @@ function updateAuthUI(user){
     if(nameEl) nameEl.textContent=user.displayName||user.email||'Vartotojas';
     if(subEl) subEl.textContent='Sinchronizuota ✓';
     if(btn){btn.textContent='Atsijungti';btn.className='auth-btn out';btn.onclick=fbLogout;}
-    const emailBtn=document.getElementById('authEmailBtn');
-    if(emailBtn) emailBtn.style.display='none';
     if(avatar){
       if(user.photoURL) avatar.innerHTML=`<img class="auth-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`;
       else avatar.textContent='👤';
@@ -7824,9 +7795,7 @@ function updateAuthUI(user){
   } else {
     if(nameEl) nameEl.textContent='Neprisijungęs';
     if(subEl) subEl.textContent='Prisijunk norėdamas sinchronizuoti';
-    if(btn){btn.textContent='Google';btn.className='auth-btn';btn.onclick=fbLogin;}
-    const emailBtn=document.getElementById('authEmailBtn');
-    if(emailBtn) emailBtn.style.display='';
+    if(btn){btn.textContent='Prisijungti';btn.className='auth-btn';btn.onclick=openEmailModal;}
     if(avatar) avatar.innerHTML='👤';
     if(drawerAvatar) drawerAvatar.textContent='👤';
     if(drawerLabel) drawerLabel.textContent='Prisijungti';
@@ -7834,58 +7803,6 @@ function updateAuthUI(user){
     if(mobPill&&window.innerWidth<=600) mobPill.style.display='flex';
   }
 }
-
-function fbLogin(){
-  // Trigger GIS — render button and prompt
-  if(window.google?.accounts?.id){
-    google.accounts.id.prompt();
-  } else {
-    toast('Google prisijungimas kraunamas, bandyk dar kartą...','info');
-  }
-}
-
-// Called by GIS when user picks a Google account
-function handleGisCredential(response){
-  const{auth,signInWithCredential,GoogleAuthProvider}=window._fb||{};
-  if(!auth||!response?.credential){toast('Prisijungimas nepavyko','info');return;}
-  const cred=GoogleAuthProvider.credential(response.credential);
-  signInWithCredential(auth,cred)
-    .then(result=>{
-      closeEmailModal();
-      toast(`👋 Sveiki, ${result.user.displayName||''}!`,'success');
-    })
-    .catch(e=>{
-      console.error(e);
-      toast('Prisijungimas nepavyko: '+e.message,'info');
-    });
-}
-
-// Initialise GIS once the library loads
-function initGIS(){
-  if(!window.google?.accounts?.id) return;
-  google.accounts.id.initialize({
-    client_id:'241890115444-i97i3pcibutqg9mriqjdd67cqg1suudi.apps.googleusercontent.com',
-    callback:handleGisCredential,
-    auto_select:false,
-    cancel_on_tap_outside:true,
-  });
-  // Render the standard Google button inside the modal
-  const btnEl=document.getElementById('gisGoogleBtn');
-  if(btnEl){
-    google.accounts.id.renderButton(btnEl,{
-      type:'standard',
-      theme:'outline',
-      size:'large',
-      text:'signin_with',
-      shape:'pill',
-      logo_alignment:'left',
-      width:280,
-    });
-  }
-}
-// GIS loads async — try after DOM ready and also on load event
-if(document.readyState==='complete') initGIS();
-else window.addEventListener('load',initGIS);
 
 // ── EMAIL AUTH ──
 let _emailRegisterMode=false;
