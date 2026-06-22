@@ -1030,7 +1030,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="logo-pill" onclick="handleLogoClick()">
       <div class="logo-text">SpotSeekers</div>
       <div class="logo-sub" id="topSub">0 / 0 surinkta</div>
-      <div style="font-family:'DM Mono',monospace;font-size:.48rem;color:var(--tm);letter-spacing:.06em;margin-top:1px;opacity:.7">v24.03</div>
+      <div style="font-family:'DM Mono',monospace;font-size:.48rem;color:var(--tm);letter-spacing:.06em;margin-top:1px;opacity:.7">V1.01</div>
     </div>
     <div class="streak-pill" id="streakPill" style="display:none">🔥 <span id="streakNum">0</span></div>
   </div>
@@ -1092,7 +1092,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div style="display:flex;align-items:flex-start;justify-content:space-between">
         <div style="flex:1;min-width:0">
           <div class="drawer-logo">SpotSeekers</div>
-          <div style="font-family:'DM Mono',monospace;font-size:.52rem;color:var(--tm);letter-spacing:.06em;margin-top:-2px;opacity:.7">v24.03</div>
+          <div style="font-family:'DM Mono',monospace;font-size:.52rem;color:var(--tm);letter-spacing:.06em;margin-top:-2px;opacity:.7">V1.01</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
           <!-- XP progress bar -->
@@ -1176,7 +1176,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <div class="country-sw-btn" data-country="PL" onclick="switchCountry('PL')">🇵🇱 Polska</div>
       </div>
     </div>
-    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">v24.03</div>
+    <div style="text-align:center;padding:8px 0 12px;font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm)">V1.01</div>
   </div>
 
   <!-- SUB-PANEL: slides in from right -->
@@ -1779,9 +1779,9 @@ const BADGE_GROUPS=[
   ]},
   // ── Completionist meta (auto-scales with spot data) ──
   {id:'completion',title:'Kolekcionierius',icon:'🧩',cat:null,badges:[
-    {id:'cmp1',name:'Pirma kolekcija',desc:'Užbaik 1 kategoriją 100%',icon:'🧩',catComplete:1,xpReward:100},
-    {id:'cmp3',name:'Kolekcininkas',desc:'Užbaik 3 kategorijas 100%',icon:'📦',catComplete:3,xpReward:250},
-    {id:'cmp5',name:'Rinkėjas',desc:'Užbaik 5 kategorijas 100%',icon:'🏆',catComplete:5,xpReward:500},
+    {id:'col1',name:'Pirma kolekcija',desc:'Užbaik 1 kategoriją 100%',icon:'🧩',catComplete:1,xpReward:100},
+    {id:'col3',name:'Kolekcininkas',desc:'Užbaik 3 kategorijas 100%',icon:'📦',catComplete:3,xpReward:250},
+    {id:'col5',name:'Rinkėjas',desc:'Užbaik 5 kategorijas 100%',icon:'🏆',catComplete:5,xpReward:500},
     {id:'cmpAll',name:'Completionist',desc:'Užbaik VISAS kategorijas 100%',icon:'👑',catCompleteAll:true,xpReward:2000},
     {id:'gen1',name:'Visapusis',desc:'Surink bent po 1 vietą iš kiekvienos kategorijos',icon:'🌈',generalist:true,xpReward:150},
   ]},
@@ -2083,8 +2083,6 @@ let streakRewards=new Set();
 let hiddenSpotUnlocked=false;
 let oldStreak=0;
 // Suggest state
-let nextSuggestId=null;
-let smartSuggestDismissed=localStorage.getItem('ke7_ssd')===new Date().toDateString();
 let approvedSuggestions=0; // loaded from Firestore user doc
 
 // ═══════════ TIER HELPERS (display only) ═══════════
@@ -2099,29 +2097,6 @@ function isSpotUnlocked(spot){return isSpotVisible(spot);}
 function catsForTier(tier){
   const cats=new Set(SPOTS.filter(s=>s.tier===tier).map(s=>s.cat));
   return [...cats];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 // Spot collection radius — 0.85× across the board (tighter zones, especially in dense cities)
@@ -2437,18 +2412,6 @@ function makeIcon(spot){
   });
 }
 
-function addMarker(spot){
-  if(spot.cat==='hidden') return;
-  if(!isSpotUnlocked(spot)) return; // locked T2/T3 — not shown on map
-  const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
-  m._isMarker=true;
-  m.on('click',()=>openSheet(spot));
-  markers[spot.id]=m;
-  const show=activeFilterHidden.size===0||!activeFilterHidden.has(spot.cat);
-  if(show&&clusterGroup) clusterGroup.addLayer(m);
-  else m._hiddenFromCluster=true;
-}
-
 function spotInCity(spot,city){
   const b=getCityBounds()[city];
   if(!b) return true;
@@ -2462,14 +2425,6 @@ function refreshMarkers(){
     if(!SPOTS.find(s=>s.id==id)){delete markers[id];}
   });
   renderViewportMarkers();
-}
-
-function addMarkerToCluster(spot,show){
-  const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
-  m._isMarker=true;
-  m.on('click',()=>openSheet(spot));
-  markers[spot.id]=m;
-  if(show&&clusterGroup) clusterGroup.addLayer(m);
 }
 
 // Viewport lazy rendering — only render markers near current map bounds
@@ -2706,7 +2661,6 @@ function refreshGPS(){
 }
 
 const PROX_DISPLAY_RADIUS=300; // metres — when prox popup shows
-const GPS_VIEW_RADIUS=50000; // 50km — only show spots within this range when GPS is available
 
 function checkProximity(){
   if(userLat===null) return;
@@ -2725,7 +2679,11 @@ function checkProximity(){
   const now=Date.now();
   _proxSoftDismiss.forEach((ts,id)=>{if(now-ts>60000) _proxSoftDismiss.delete(id);});
   let best=null,bestDist=Infinity;
+  // Cheap bounding-box reject before the costly haversine. 0.012° (~0.8–1.3 km here)
+  // comfortably contains the 300 m popup radius, so no spot in range is ever skipped.
+  const _proxBox=0.012;
   SPOTS.forEach(s=>{
+    if(Math.abs(s.lat-userLat)>_proxBox||Math.abs(s.lng-userLng)>_proxBox) return;
     if(found.has(s.id)) return;
     // hidden spots: always proximity-eligible (no tier lock)
     if(s.cat!=='hidden'&&!isSpotVisible(s)) return;
@@ -2986,7 +2944,6 @@ function closeSubPanel(instant){
 
 // Keep switchDrawerPanel as alias for compatibility
 function switchDrawerPanel(name){openSubPanel(name);}
-function renderCurrentPanel(name){if(name) openSubPanel(name);}
 
 function updateDrawerHeader(){
   document.getElementById('drawerSub').textContent=`${COUNTRY_CONFIG[activeCountry].flag} ${found.size} / ${SPOTS.length} · ${getLevel(totalXP).icon} Lv.${getLevel(totalXP).level} · ⭐ ${totalXP} XP`;
@@ -3025,8 +2982,6 @@ function renderTierProgressHTML(){
   </div>`;
 }
 
-// Keep old name as alias so any stray calls don't crash
-function renderDrawerTierProgress(){}
 
 // ═══════════ DAILY QUEST ═══════════
 
@@ -3292,15 +3247,7 @@ function collectCurrent(){
   showXPBurst(xpGain);
   incrementDailyCollect();
   recordWeeklyCollect(selectedSpot.id);
-  save();updateAll();
-  // Sync to Firestore if logged in
-  if(window._fbUser&&window._fb){
-    const{db,doc,setDoc}=window._fb;
-    setDoc(doc(db,'users',window._fbUser.uid),{
-      found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},totalXP,streak,badges:[...earnedBadges],name:playerName,
-      dailyLog,activeDaysTotal,bestDay
-    },{merge:true}).catch(()=>{});
-  }
+  save();updateAll(); // save() syncs to Firestore via fbSaveUserProgress (single merge-write)
 
   proxDismissedIds.delete(selectedSpot.id);
   hideProxPopup();
@@ -6170,11 +6117,20 @@ function submitUsername(){
   playerName=n;
   save();
   document.getElementById('unameOverlay').classList.remove('show');
+  updateDrawerHeader();updateAll();
   toast(`👤 Sveiki, ${n}!`,'success');
 }
 
 function skipUsername(){
+  // Assign a stable generated default so the user always has a display name (editable later in Draugai)
+  if(!playerName||playerName==='Tu'||!playerName.trim()){
+    const seed=getMyUid();
+    let h=0;for(let i=0;i<seed.length;i++){h=(h*31+seed.charCodeAt(i))>>>0;}
+    playerName=`Seeker #${1000+(h%9000)}`;
+    save();
+  }
   document.getElementById('unameOverlay').classList.remove('show');
+  updateDrawerHeader();updateAll();
 }
 
 // ═══════════ SUGGEST SPOT SYSTEM ═══════════
@@ -6570,8 +6526,6 @@ let _lastClusterZoom=-1;
 let _clusterTimer=null;
 
 // Clustering is handled by L.markerClusterGroup — no manual culling needed
-function setupClusteringListener(){}
-function applyViewportCulling(){}
 
 // ═══════════ FAVORITES ═══════════
 
@@ -7361,7 +7315,6 @@ async function promptCreateRoute(){
   toast(`✓ Created "${r.name}"`,'success');
 }
 
-function autoGenerateRoute(){ tpGenerate(); }
 
 // ── Filter: toggle all off ──
 function mobHideAll(){
@@ -7388,67 +7341,7 @@ function toggleRouteFilter(){
 const REVIEW_MILESTONES=[3,20,50,150]; // show review at these spot counts only
 let _reviewRating=0;
 // ═══════════ USERNAME ONBOARDING ═══════════
-function maybeShowUsernamePrompt(){
-  if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
-  // Only show if logged in or after a short delay for guests
-  setTimeout(()=>{
-    if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
-    showUsernameModal();
-  }, 2000);
-}
-
-function showUsernameModal(){
-  let el=document.getElementById('usernameModal');
-  if(!el){
-    el=document.createElement('div');
-    el.id='usernameModal';
-    el.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
-    el.innerHTML=`<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
-      <div style="font-size:2.5rem;margin-bottom:12px">🗺</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px">Labas, Seeker'i!</div>
-      <div style="font-size:.85rem;color:var(--td);margin-bottom:20px;line-height:1.5">Kaip tave vadinti? Tavo vardas pasirodys lyderių lentelėje.</div>
-      <input id="usernameInput" type="text" maxlength="20" placeholder="Seeker'io vardas..."
-        style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--txt);outline:none;margin-bottom:14px;box-sizing:border-box">
-      <button onclick="confirmUsername()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">Pradėti tyrinėti →</button>
-      <div onclick="skipUsername()" style="margin-top:10px;font-size:.75rem;color:var(--tm);cursor:pointer">Praleisti</div>
-    </div>`;
-    document.body.appendChild(el);
-  }
-  el.style.display='flex';
-  setTimeout(()=>document.getElementById('usernameInput')?.focus(),100);
-}
-
-function skipUsername(){
-  // Assign a stable guest name if skipping
-  if(!playerName||playerName==='Tu'){
-    const gid=getGuestId();
-    const suffix=parseInt(gid.replace('guest_','').slice(0,4),36)%9000+1000;
-    playerName=`Seeker #${suffix}`;
-    save();
-  }
-  const el=document.getElementById('usernameModal');
-  if(el) el.style.display='none';
-  updateDrawerHeader();
-  updateAll();
-}
-
-function confirmUsername(){
-  const input=document.getElementById('usernameInput');
-  const name=(input?.value||'').trim();
-  if(name.length>=2) playerName=name;
-  else skipUsername(); // treat empty confirm same as skip
-  save();
-  // Sync to Firestore if logged in
-  const user=window._fbUser;
-  if(user&&window._fb){
-    const{db,doc,setDoc}=window._fb;
-    setDoc(doc(db,'users',user.uid),{name:playerName},{merge:true}).catch(()=>{});
-  }
-  const el=document.getElementById('usernameModal');
-  if(el) el.style.display='none';
-  updateDrawerHeader();
-  updateAll();
-}
+// ── Username: single system — post-login prompt only (see maybePromptUsername / submitUsername / skipUsername above) ──
 
 let _reviewShownThisSession=false;
 
@@ -7671,7 +7564,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v31';
+const CACHE='spotseekers-v32';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -7706,32 +7599,6 @@ self.addEventListener('fetch',e=>{
 
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=async function(user){
-  if(!user) setTimeout(maybeShowUsernamePrompt,3000);
-  if(user){
-    // Load user progress from Firestore (cross-device sync)
-    try{
-      const{db,doc,getDoc}=window._fb;
-      const snap=await getDoc(doc(db,'users',user.uid));
-      if(snap.exists()){
-        const d=snap.data();
-        if(d.found){
-          if(Array.isArray(d.found)){foundByCountry.LT=new Set(d.found);}// migrate old format
-          else{if(d.found.LT)foundByCountry.LT=new Set(d.found.LT);if(d.found.PL)foundByCountry.PL=new Set(d.found.PL);}
-          found=foundByCountry[activeCountry];
-        }
-        if(d.name) playerName=d.name;
-        if(d.totalXP) totalXP=d.totalXP;
-        if(d.streak) streak=d.streak;
-        if(d.badges) earnedBadges=new Set(d.badges);
-        if(d.dailyLog) dailyLog=d.dailyLog;
-        if(d.activeDaysTotal!==undefined) activeDaysTotal=d.activeDaysTotal;
-        if(d.bestDay!==undefined) bestDay=d.bestDay;
-        pruneDailyLog();
-        _spotLevelMap=null; // rebuild with fresh data
-        refreshMarkers();updateAll();
-      }
-    }catch(e){console.log('Firestore load:',e.message);}
-  }
   document.getElementById('authBar').classList.remove('hidden');
   const isAdmin=user&&ADMIN_UIDS.includes(user.uid);
   // Show admin-only UI
@@ -8154,7 +8021,7 @@ async function fbSaveUserProgress(){
       dailyLog,activeDaysTotal,bestDay,
       photoURL:user.photoURL||null,
       updatedAt:serverTimestamp()
-    });
+    },{merge:true});
   } catch(e){
     console.error('fbSaveUserProgress',e);
   }
@@ -8162,7 +8029,6 @@ async function fbSaveUserProgress(){
 
 // ═══════════ OVERRIDE save() TO ALSO SYNC ═══════════
 
-const _localSave=save;
 save=function(){
   // Save everything EXCEPT spots (Firestore owns spots now)
   localStorage.setItem('ke7_found',JSON.stringify({LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]}));
@@ -8181,7 +8047,6 @@ save=function(){
 
 // ═══════════ OVERRIDE saveSpot() TO USE FIRESTORE ═══════════
 
-const _origSaveSpot=saveSpot;
 saveSpot=async function(){
   if(!window._fbUser||!ADMIN_UIDS.includes(window._fbUser.uid)){
     toast('⚠ Tik administratorius gali pridėti vietas','info');return;
@@ -8217,7 +8082,6 @@ saveSpot=async function(){
 
 // ═══════════ OVERRIDE deleteSpot() TO USE FIRESTORE ═══════════
 
-const _origDeleteSpot=deleteSpot;
 deleteSpot=async function(){
   if(!window._fbUser||!ADMIN_UIDS.includes(window._fbUser.uid)){
     toast('⚠ Tik administratorius gali trinti vietas','info');return;
