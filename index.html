@@ -886,19 +886,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .lb-login-prompt{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px}
 .lb-login-prompt .lp-icon{font-size:2rem;margin-bottom:8px}
 .lb-login-prompt .lp-text{font-size:.82rem;color:var(--td);margin-bottom:12px;line-height:1.6}
-/* ── USERNAME PROMPT MODAL ── */
-.uname-overlay{position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:20px}
-.uname-overlay.show{display:flex;animation:fadeIn .25s}
-.uname-sheet{background:var(--surf);border-radius:20px;padding:32px 24px 24px;width:100%;max-width:340px;box-shadow:0 8px 40px var(--sh);text-align:center}
-.uname-glyph{font-size:48px;margin-bottom:12px}
-.uname-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--txt);margin-bottom:6px}
-.uname-sub{font-size:.82rem;color:var(--td);margin-bottom:20px;line-height:1.55}
-.uname-input{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;margin-bottom:12px;transition:border-color .2s;text-align:center}
-.uname-input:focus{border-color:var(--gold)}
-.uname-input::placeholder{color:var(--tm)}
-.uname-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:13px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;cursor:pointer}
-.uname-btn:active{opacity:.85}
-.uname-skip{margin-top:10px;font-size:.75rem;color:var(--td);cursor:pointer;text-decoration:underline}
 /* ── SUGGESTION MODAL ── */
 .suggest-overlay{position:fixed;inset:0;z-index:1400;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center}
 .suggest-overlay.show{display:flex;animation:fadeIn .25s}
@@ -969,18 +956,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 </style>
 </head>
 <body>
-
-<!-- USERNAME PROMPT MODAL -->
-<div class="uname-overlay" id="unameOverlay">
-  <div class="uname-sheet">
-    <div class="uname-glyph">🧭</div>
-    <div class="uname-title">Kaip tave vadinti?</div>
-    <div class="uname-sub">Tavo vardas bus matomas žemėlapyje ir lyderių lentelėje.</div>
-    <input class="uname-input" id="unameInput" maxlength="24" placeholder="Tavo vardas...">
-    <button class="uname-btn" onclick="submitUsername()">Pradėti tyrinėti →</button>
-    <div class="uname-skip" onclick="skipUsername()">Praleisti</div>
-  </div>
-</div>
 
 <!-- SUGGEST SPOT MODAL -->
 <div class="suggest-overlay" id="suggestOverlay">
@@ -6142,41 +6117,6 @@ function osmToggleManual(){
 const ADMIN_UIDS=['Q0pPckRvI7e6T0kylcpfCsKV61x1','wHLbJaH5zYNLlKRLBTYnlahsWQ73'];
 function isAdmin(){return window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid);}
 
-// ═══════════ USERNAME PROMPT ═══════════
-function maybePromptUsername(){
-  // Only show if user is logged in
-  if(!window._fbUser) return;
-  // If Firebase already has a displayName (set during email registration or from Google), use it
-  const fbName=window._fbUser.displayName;
-  if(fbName&&fbName.trim().length>0){
-    // Sync Firebase name to local playerName if still default
-    if(!playerName||playerName==='Tu') { playerName=fbName; save(); }
-    return; // don't prompt — they already have a name
-  }
-  // If local name is already set and non-default, skip
-  if(playerName&&playerName!=='Tu'&&playerName.trim().length>0) return;
-  // Only show once per session
-  if(sessionStorage.getItem('kex_uname_prompted')) return;
-  sessionStorage.setItem('kex_uname_prompted','1');
-  const inp=document.getElementById('unameInput');
-  if(inp) inp.value='';
-  document.getElementById('unameOverlay').classList.add('show');
-}
-
-function submitUsername(){
-  const inp=document.getElementById('unameInput');
-  const n=(inp?.value||'').trim();
-  if(!n){inp&&(inp.style.borderColor='var(--red)');return;}
-  playerName=n;
-  save();
-  document.getElementById('unameOverlay').classList.remove('show');
-  toast(`👤 Sveiki, ${n}!`,'success');
-}
-
-function skipUsername(){
-  document.getElementById('unameOverlay').classList.remove('show');
-}
-
 // ═══════════ SUGGEST SPOT SYSTEM ═══════════
 let _sugLat=null,_sugLng=null;
 
@@ -7387,69 +7327,6 @@ function toggleRouteFilter(){
 
 const REVIEW_MILESTONES=[3,20,50,150]; // show review at these spot counts only
 let _reviewRating=0;
-// ═══════════ USERNAME ONBOARDING ═══════════
-function maybeShowUsernamePrompt(){
-  if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
-  // Only show if logged in or after a short delay for guests
-  setTimeout(()=>{
-    if(playerName&&playerName!=='Tu'&&playerName.trim().length>1) return;
-    showUsernameModal();
-  }, 2000);
-}
-
-function showUsernameModal(){
-  let el=document.getElementById('usernameModal');
-  if(!el){
-    el=document.createElement('div');
-    el.id='usernameModal';
-    el.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
-    el.innerHTML=`<div style="background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
-      <div style="font-size:2.5rem;margin-bottom:12px">🗺</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px">Labas, Seeker'i!</div>
-      <div style="font-size:.85rem;color:var(--td);margin-bottom:20px;line-height:1.5">Kaip tave vadinti? Tavo vardas pasirodys lyderių lentelėje.</div>
-      <input id="usernameInput" type="text" maxlength="20" placeholder="Seeker'io vardas..."
-        style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--txt);outline:none;margin-bottom:14px;box-sizing:border-box">
-      <button onclick="confirmUsername()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:12px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer">Pradėti tyrinėti →</button>
-      <div onclick="skipUsername()" style="margin-top:10px;font-size:.75rem;color:var(--tm);cursor:pointer">Praleisti</div>
-    </div>`;
-    document.body.appendChild(el);
-  }
-  el.style.display='flex';
-  setTimeout(()=>document.getElementById('usernameInput')?.focus(),100);
-}
-
-function skipUsername(){
-  // Assign a stable guest name if skipping
-  if(!playerName||playerName==='Tu'){
-    const gid=getGuestId();
-    const suffix=parseInt(gid.replace('guest_','').slice(0,4),36)%9000+1000;
-    playerName=`Seeker #${suffix}`;
-    save();
-  }
-  const el=document.getElementById('usernameModal');
-  if(el) el.style.display='none';
-  updateDrawerHeader();
-  updateAll();
-}
-
-function confirmUsername(){
-  const input=document.getElementById('usernameInput');
-  const name=(input?.value||'').trim();
-  if(name.length>=2) playerName=name;
-  else skipUsername(); // treat empty confirm same as skip
-  save();
-  // Sync to Firestore if logged in
-  const user=window._fbUser;
-  if(user&&window._fb){
-    const{db,doc,setDoc}=window._fb;
-    setDoc(doc(db,'users',user.uid),{name:playerName},{merge:true}).catch(()=>{});
-  }
-  const el=document.getElementById('usernameModal');
-  if(el) el.style.display='none';
-  updateDrawerHeader();
-  updateAll();
-}
-
 let _reviewShownThisSession=false;
 
 function maybeShowReview(){
@@ -7671,7 +7548,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v31';
+const CACHE='spotseekers-v32';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -7706,7 +7583,6 @@ self.addEventListener('fetch',e=>{
 
 // Show auth bar once Firebase module is ready
 window.onFbAuthReady=async function(user){
-  if(!user) setTimeout(maybeShowUsernamePrompt,3000);
   if(user){
     // Load user progress from Firestore (cross-device sync)
     try{
@@ -7731,6 +7607,12 @@ window.onFbAuthReady=async function(user){
         refreshMarkers();updateAll();
       }
     }catch(e){console.log('Firestore load:',e.message);}
+    // No popup: if we still have no real name, silently adopt the Firebase
+    // sign-in name (set at registration / from the account profile).
+    if((!playerName||playerName==='Tu')&&user.displayName&&user.displayName.trim()){
+      playerName=user.displayName.trim();
+      save();
+    }
   }
   document.getElementById('authBar').classList.remove('hidden');
   const isAdmin=user&&ADMIN_UIDS.includes(user.uid);
@@ -7753,8 +7635,6 @@ window.onFbAuthReady=async function(user){
     // Re-render social panel so leaderboard shows immediately after login
     const socialPanel=document.getElementById('panel-social');
     if(socialPanel&&socialPanel.innerHTML) renderSocial();
-    // Prompt for username if still default
-    setTimeout(()=>maybePromptUsername(),1200);
   } else {
     updateAuthUI(null);
     fbLoadSpots();
@@ -7858,7 +7738,7 @@ async function fbLoginEmail(){
     if(_emailRegisterMode){
       const cred=await createUserWithEmailAndPassword(auth,email,pass);
       await updateProfile(cred.user,{displayName:name});
-      playerName=name; save(); // set immediately so maybePromptUsername() skips
+      playerName=name; save(); // capture name from the signup form
       toast(`👋 Sveiki, ${name}!`,'success');
     } else {
       const cred=await signInWithEmailAndPassword(auth,email,pass);
@@ -8241,7 +8121,7 @@ deleteSpot=async function(){
   let _backTimer=null;
 
   function anyLayerOpen(){
-    const ids=['unameOverlay','eauthOverlay','suggestOverlay','reviewOverlay',
+    const ids=['eauthOverlay','suggestOverlay','reviewOverlay',
                'mobPanelOverlay','achWindow','mobFilterSheet','settingsSheet','editorModal',
                'sheet','drawerSubPanel','drawer','delModalBg'];
     return ids.some(id=>{
@@ -8253,7 +8133,6 @@ deleteSpot=async function(){
 
   function closeAllLayers(){
     // Close every possible panel — order doesn't matter, all close at once
-    try{document.getElementById('unameOverlay')?.classList.remove('show');}catch(e){}
     try{closeEmailModal();}catch(e){}
     try{closeSuggestModal();}catch(e){}
     try{closeReview(false);}catch(e){}
