@@ -573,17 +573,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .sb-btn{background:var(--red);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;margin-top:4px}
 
 /* ── INTRO OVERLAY ── */
-.intro-overlay{position:fixed;inset:0;z-index:2000;background:rgba(14,12,9,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;animation:fadeIn .5s}
-.intro-overlay.hidden{display:none}
-.intro-glyph{font-size:64px;animation:pop .6s cubic-bezier(.34,1.56,.64,1)}
-.intro-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--gold);text-align:center;line-height:1.2}
-.intro-sub{font-size:.95rem;color:var(--td);text-align:center;max-width:280px;line-height:1.7}
-.intro-city{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--tm);text-align:center;letter-spacing:.1em;text-transform:uppercase}
-.intro-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:14px;padding:14px 36px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;cursor:pointer;margin-top:8px;transition:transform .15s}
-.intro-btn:active{transform:scale(.96)}
-.intro-dots{display:flex;gap:6px;margin-top:4px}
-.intro-dot{width:7px;height:7px;border-radius:50%;background:var(--tm)}
-.intro-dot.on{background:var(--gold)}
 
 /* ── MOBILE FILTER BUTTON + SHEET ── */
 .mob-filter-btn{display:none;position:fixed;bottom:90px;left:16px;z-index:190;background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:8px 16px;box-shadow:0 2px 16px var(--sh);cursor:pointer;font-size:.75rem;font-family:'DM Mono',monospace;color:var(--td);gap:6px;align-items:center;-webkit-user-select:none;user-select:none}
@@ -1274,21 +1263,24 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 
 
 
-<!-- INTRO OVERLAY -->
-<div class="intro-overlay hidden" id="introOverlay">
-  <div class="intro-glyph">🗺</div>
-  <div class="intro-title">Labas, Seeker'i! 👋<br>Sveiki į SpotSeekers</div>
-  <div class="intro-sub">Tyrinėk Lietuvą, rink vietas ir tapk tikru Seeker'iu.</div>
-  <div class="intro-city" id="introCityLabel">📍 Lietuva</div>
-  <div class="intro-dots">
-    <div class="intro-dot on" id="introD0"></div>
-    <div class="intro-dot" id="introD1"></div>
-    <div class="intro-dot" id="introD2"></div>
-    <div class="intro-dot" id="introD3"></div>
-    <div class="intro-dot" id="introD4"></div>
-    <div class="intro-dot" id="introD5"></div>
-  </div>
-  <button class="intro-btn" id="introBtn" onclick="introNext()">Pradėti tyrinėti →</button>
+
+<!-- LEVEL UP OVERLAY -->
+<div class="levelup-overlay" id="levelUpOverlay">
+  <div class="lu-glyph" id="luGlyph">⭐</div>
+  <div class="lu-title">Naujas lygis!</div>
+  <div class="lu-level" id="luLevel">Lygis 2</div>
+  <div class="lu-name" id="luName"></div>
+  <div class="lu-reward" id="luReward"></div>
+  <button class="lu-btn" onclick="closeLevelUp()">Tęsti tyrinėjimą →</button>
+</div>
+
+<!-- STREAK BREAK OVERLAY -->
+<div class="streak-break-overlay" id="streakBreakOverlay">
+  <div class="sb-glyph">💔</div>
+  <div class="sb-title">Serija nutrūko</div>
+  <div class="sb-desc" id="sbDesc"></div>
+  <div class="sb-tip">💡 Aplankyk bent vieną vietą kasdien, kad išlaikytum seriją</div>
+  <button class="sb-btn" onclick="closeStreakBreak()">Pradėti iš naujo</button>
 </div>
 
 <!-- MOBILE FILTER BUTTON -->
@@ -2071,33 +2063,6 @@ function t3Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.ti
 // isSpotUnlocked → now uses level system
 function isSpotUnlocked(spot){return isSpotVisible(spot);}
 
-function catsForTier(tier){
-  const cats=new Set(SPOTS.filter(s=>s.tier===tier).map(s=>s.cat));
-  return [...cats];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}
 
 // Spot collection radius — 0.85× across the board (tighter zones, especially in dense cities)
 function spotRadius(spot){
@@ -2412,17 +2377,6 @@ function makeIcon(spot){
   });
 }
 
-function addMarker(spot){
-  if(spot.cat==='hidden') return;
-  if(!isSpotUnlocked(spot)) return; // locked T2/T3 — not shown on map
-  const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
-  m._isMarker=true;
-  m.on('click',()=>openSheet(spot));
-  markers[spot.id]=m;
-  const show=activeFilterHidden.size===0||!activeFilterHidden.has(spot.cat);
-  if(show&&clusterGroup) clusterGroup.addLayer(m);
-  else m._hiddenFromCluster=true;
-}
 
 function spotInCity(spot,city){
   const b=getCityBounds()[city];
@@ -2439,13 +2393,6 @@ function refreshMarkers(){
   renderViewportMarkers();
 }
 
-function addMarkerToCluster(spot,show){
-  const m=L.marker([spot.lat,spot.lng],{icon:makeIcon(spot)});
-  m._isMarker=true;
-  m.on('click',()=>openSheet(spot));
-  markers[spot.id]=m;
-  if(show&&clusterGroup) clusterGroup.addLayer(m);
-}
 
 // Viewport lazy rendering — only render markers near current map bounds
 let _viewportRenderPending=false;
@@ -2563,15 +2510,6 @@ function _syncFilterUI(){
 let activeCity='all'; // 'all' or city name string
 let _cityFilterOpen=false;
 
-function toggleCityFilter(){
-  _cityFilterOpen=!_cityFilterOpen;
-  const arr=document.getElementById('cityFilterArr');
-  const pill=document.getElementById('cityFilterPill');
-  if(arr) arr.style.transform=_cityFilterOpen?'rotate(180deg)':'';
-  if(_cityFilterOpen) showCityFilterSheet();
-  else closeCityFilterSheet();
-  if(pill) pill.classList.toggle('on',_cityFilterOpen||activeCity!=='all');
-}
 
 function showCityFilterSheet(){
   let el=document.getElementById('cityFilterSheet');
@@ -2947,10 +2885,6 @@ function openSubPanel(name){
   if(name==='mysuggestions') renderMySuggestions();
 }
 
-function isPanelOpen(name){
-  const el=document.getElementById('panel-'+name);
-  return el&&el.classList.contains('active')&&document.getElementById('drawerSubPanel')?.classList.contains('open');
-}
 
 function closeSubPanel(instant){
   const sp=document.getElementById('drawerSubPanel');
@@ -2961,7 +2895,6 @@ function closeSubPanel(instant){
 
 // Keep switchDrawerPanel as alias for compatibility
 function switchDrawerPanel(name){openSubPanel(name);}
-function renderCurrentPanel(name){if(name) openSubPanel(name);}
 
 function updateDrawerHeader(){
   document.getElementById('drawerSub').textContent=`${COUNTRY_CONFIG[activeCountry].flag} ${found.size} / ${SPOTS.length} · ${getLevel(totalXP).icon} Lv.${getLevel(totalXP).level} · ⭐ ${totalXP} XP`;
@@ -3001,7 +2934,6 @@ function renderTierProgressHTML(){
 }
 
 // Keep old name as alias so any stray calls don't crash
-function renderDrawerTierProgress(){}
 
 // ═══════════ DAILY QUEST ═══════════
 
@@ -3360,9 +3292,6 @@ function surpriseMe(){
 
 // ═══════════ BADGES ═══════════
 
-function gprog(g){if(!g.cat) return found.size;return SPOTS.filter(s=>s.cat===g.cat&&found.has(s.id)).length;}
-function gtot(g){if(!g.cat) return SPOTS.length;return SPOTS.filter(s=>s.cat===g.cat).length;}
-function tierAllDone(tier){return SPOTS.filter(s=>s.tier===tier).every(s=>found.has(s.id));}
 
 // One pass over SPOTS builds every aggregate the badge evaluator needs,
 // so evalBadge() stays O(1) even when called ~100x during a render.
@@ -4282,18 +4211,6 @@ function goToSpot(id){
 
 // ═══════════ SOCIAL / SHARE ═══════════
 
-function generateShareCode(){
-  const data={
-    n:playerName,
-    f:[...found],
-    xp:totalXP,
-    s:streak,
-    e:[...earnedBadges],
-    v:7,
-    d:new Date().toDateString()
-  };
-  return btoa(encodeURIComponent(JSON.stringify(data)));
-}
 
 // Generate a clean invite URL with the user's name as ref
 function getInviteUrl(){
@@ -4388,11 +4305,6 @@ function nativeShare(url,text){
   document.getElementById('shareSheet')?.remove();
 }
 
-function copyText(text){
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(text).then(()=>toast('📋 Nukopijuota!','success')).catch(()=>fallbackCopy(text));
-  } else fallbackCopy(text);
-}
 
 function fallbackCopy(text){
   const ta=document.createElement('textarea');
@@ -6350,42 +6262,9 @@ function checkContributorBadges(count,isCurrentUser){
 }
 
 
-const INTRO_STEPS=[
-  {glyph:'🗺',title:'Labas, Seeker\'i!',sub:'SpotSeekers — tyrinėk Lietuvą realiu laiku. Surink vietas fiziškai apsilankydamas prie jų.'},
-  {glyph:'📍',title:'Kaip surinkti vietą?',sub:'Prieik prie žymeklio žemėlapyje ir paspausk "Surinkti". GPS aptiks tavo buvimo vietą automatiškai.'},
-  {glyph:'🔓',title:'Lygiai & atrakinimai',sub:'Pradedi su ~910 vietų. Kiekvienas lygis atveria naujas — iki viso 9000+ Lietuvoje.'},
-  {glyph:'🏅',title:'XP, ženkleliai & serijos',sub:'Kiekviena vieta duoda XP. Rinki ženklelius pagal kategorijas — bažnyčios, piliakalnis, fortai ir dar daugiau.'},
-  {glyph:'🏆',title:'Lyderių lentelė',sub:'Lenktyniauk su kitais Seeker\'iais. Prisijunk kad sinchronizuoti pažangą tarp įrenginių.'},
-  {glyph:'🚀',title:'Pradėk tyrinėti!',sub:'GPS veikia fone. Matai vietas 50 km spinduliu. Sėkmės, Seeker\'i!',isLast:true},
-];
-let _introStep=0;
 
-function showIntroIfNeeded(){
-  if(localStorage.getItem('kex_intro_done')) return;
-  _introStep=0;
-  renderIntroStep();
-  document.getElementById('introOverlay').classList.remove('hidden');
-}
 
-function renderIntroStep(){
-  const s=INTRO_STEPS[_introStep];
-  document.querySelector('.intro-glyph').textContent=s.glyph;
-  document.querySelector('.intro-title').textContent=s.title;
-  document.querySelector('.intro-sub').textContent=s.sub;
-  document.querySelectorAll('.intro-dot').forEach((d,i)=>d.classList.toggle('on',i===_introStep));
-  const btn=document.getElementById('introBtn');
-  btn.textContent=_introStep<INTRO_STEPS.length-1?'Toliau →':'🗺 Pradėti!';
-}
 
-function introNext(){
-  _introStep++;
-  if(_introStep>=INTRO_STEPS.length){
-    localStorage.setItem('kex_intro_done','1');
-    document.getElementById('introOverlay').classList.add('hidden');
-    return;
-  }
-  renderIntroStep();
-}
 
 // Mobile nav — on mobile opens a dedicated full-screen overlay (not the drawer)
 // This keeps the map accessible — user taps ✕ to return to map
@@ -6510,8 +6389,6 @@ let _lastClusterZoom=-1;
 let _clusterTimer=null;
 
 // Clustering is handled by L.markerClusterGroup — no manual culling needed
-function setupClusteringListener(){}
-function applyViewportCulling(){}
 
 // ═══════════ FAVORITES ═══════════
 
@@ -7301,27 +7178,10 @@ async function promptCreateRoute(){
   toast(`✓ Created "${r.name}"`,'success');
 }
 
-function autoGenerateRoute(){ tpGenerate(); }
 
 // ── Filter: toggle all off ──
-function mobHideAll(){
-  Object.keys(CATS).filter(k=>k!=='hidden').forEach(k=>activeFilterHidden.add(k));
-  buildMobFilterSheet();_syncFilterUI();refreshMarkers();
-}
 
 // ── Filter: route chip ──
-function toggleRouteFilter(){
-  if(!activeRouteId){
-    // No active route — navigate to routes panel
-    closeMobFilterSheet();
-    setTimeout(()=>mobNavTo('routes'),200);
-    return;
-  }
-  routeFilterActive=!routeFilterActive;
-  const chip=document.getElementById('routeFilterChip');
-  if(chip) chip.classList.toggle('on',routeFilterActive);
-  refreshMarkers();
-}
 
 // ═══════════ REVIEW SYSTEM ═══════════
 
@@ -7548,7 +7408,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v32';
+const CACHE='spotseekers-v33';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -7925,10 +7785,6 @@ async function rebuildKVCache(){
 }
 
 // Clear local spots cache (force fresh load next time)
-function clearSpotsCache(){
-  localStorage.removeItem(spotsCacheKey());
-  toast('🗑 Talpykla išvalyta — perkrauk puslapį','info');
-}
 
 // Push all DEFAULT_SPOTS to Firestore — called once on first ever load
 async function fbPushDefaultSpots(){
