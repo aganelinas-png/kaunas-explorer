@@ -28,7 +28,7 @@
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where,writeBatch,arrayUnion}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,deleteField,serverTimestamp,query,orderBy,limit,where,writeBatch,arrayUnion}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import{getAuth,signOut,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
@@ -49,7 +49,7 @@ setPersistence(auth,browserLocalPersistence).catch(()=>{});
 
 // Expose to global scope so non-module code can use them
 window._fb={db,auth,
-  doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
+  doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,deleteField,serverTimestamp,
   query,orderBy,limit,where,writeBatch,arrayUnion,
   signOut,onAuthStateChanged,
   createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
@@ -514,6 +514,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 /* ── ROUTE BAR PULSE ── */
 .rb-stop-pulse{color:var(--gold);animation:rbPulse 1.5s infinite}
 @keyframes rbPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ── FEATURED SPOTS — pulsating gold ring ── */
+@keyframes ftdPulse{0%{box-shadow:0 0 0 0 rgba(232,200,120,.55)}70%{box-shadow:0 0 0 11px rgba(232,200,120,0)}100%{box-shadow:0 0 0 0 rgba(232,200,120,0)}}
+.ftd-ring{position:absolute;inset:0;border-radius:50%;animation:ftdPulse 2s ease-out infinite;pointer-events:none}
 
 
 
@@ -1783,6 +1787,12 @@ const BADGE_GROUPS=[
     {id:'sp150',name:'Tolimų kelių žinovas',desc:'Surink vietas, nutolusias 150+ km',icon:'🛤',spanKm:150,xpReward:120},
     {id:'sp300',name:'Nuo jūros iki sienos',desc:'Surink vietas, nutolusias 300+ km',icon:'🌍',spanKm:300,xpReward:300},
   ]},
+  // ── Weekly leaderboard champion (event-driven counter: weeklyWins) ──
+  {id:'champ',title:'Čempionatai',icon:'🏆',cat:null,badges:[
+    {id:'wc1',name:'Savaitės čempionas',desc:'Laimėk savaitės lyderių lentelę',icon:'🏆',weeklyWins:1,xpReward:25},
+    {id:'wc3',name:'Trigubas čempionas',desc:'Laimėk 3 savaites',icon:'🥇',weeklyWins:3,xpReward:75},
+    {id:'wc10',name:'Dinastija',desc:'Laimėk 10 savaičių',icon:'👑',weeklyWins:10,xpReward:250},
+  ]},
 ];
 
 // ═══════════ LEVEL SYSTEM ═══════════
@@ -2112,8 +2122,60 @@ function lbMonthKey(d){
 // and after every load (localStorage or Firestore).
 function rolloverPeriods(){
   const wk=lbWeekKey(),mk=lbMonthKey();
-  if(weekKey!==wk){weekKey=wk;weekXP=0;}
+  if(weekKey!==wk){
+    // Week just ended with XP on the board — stash it for the champion check
+    if(weekKey&&weekXP>0){
+      try{localStorage.setItem('ss_prev_week',JSON.stringify({wk:weekKey,xp:weekXP}));}catch(e){}
+      setTimeout(()=>checkWeeklyChampion(),3000);
+    }
+    weekKey=wk;weekXP=0;
+  }
   if(monthKey!==mk){monthKey=mk;monthXP=0;}
+}
+
+// ── Weekly champion (badge B) ──
+// Client-side detection: after a week rolls over, query last week's top player.
+// Known limitation (accepted at current scale): players who already earned XP in
+// the NEW week have rolled their doc over and vanish from last week's query, so
+// a very late check can miss a competitor. Mitigations: check fires at rollover
+// + on every login; my own stashed XP is compared against the visible top.
+// Cross-device double-award is blocked by wwinLastKey persisted in Firestore.
+let weeklyWins=0;      // total weekly leaderboard wins (drives champ badges)
+let wwinLastKey='';    // last week key already credited as a win
+
+async function checkWeeklyChampion(){
+  const user=window._fbUser;
+  const{db,collection,getDocs,query,orderBy,limit,where}=window._fb||{};
+  if(!user||!db)return;
+  let stash=null;
+  try{stash=JSON.parse(localStorage.getItem('ss_prev_week')||'null');}catch(e){}
+  if(!stash||!stash.wk)return;
+  if(stash.wk===lbWeekKey())return;                 // week not actually over
+  if(wwinLastKey===stash.wk){localStorage.removeItem('ss_prev_week');return;} // already credited (any device)
+  if(localStorage.getItem('ss_wwin_checked')===stash.wk)return;               // this device already checked
+  try{
+    let top=null;
+    try{
+      const snap=await getDocs(query(collection(db,'users'),where('weekKey','==',stash.wk),orderBy('weekXP','desc'),limit(1)));
+      snap.forEach(d=>{const x=d.data();top={uid:d.id,xp:x.weekXP||0};});
+    }catch(idxErr){
+      // Index fallback — full read, client filter
+      const snap=await getDocs(collection(db,'users'));
+      snap.forEach(d=>{const x=d.data();
+        if(x.weekKey===stash.wk&&(!top||(x.weekXP||0)>top.xp))top={uid:d.id,xp:x.weekXP||0};});
+    }
+    localStorage.setItem('ss_wwin_checked',stash.wk);
+    localStorage.removeItem('ss_prev_week');
+    const won=!top?stash.xp>0:(top.uid===user.uid||stash.xp>top.xp);
+    if(!won)return;
+    weeklyWins++;
+    wwinLastKey=stash.wk;
+    addXP(50); // Monday head start — lands in the NEW week's tally
+    showXPBurst(50);
+    toast('🏆 Savaitės čempionas! +50 XP','gold');
+    launchConfetti();
+    setTimeout(checkBadges,800); // unlocks wc1/wc3/wc10 via weeklyWins
+  }catch(e){console.error('checkWeeklyChampion',e);}
 }
 
 
@@ -2164,7 +2226,7 @@ function save(){
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
   localStorage.setItem('ke7_xp',totalXP);
-  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP}));
+  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP,ww:weeklyWins,wwk:wwinLastKey}));
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
@@ -2192,7 +2254,7 @@ function load(){
   const b=localStorage.getItem('ke7_badges');earnedBadges=b?new Set(JSON.parse(b)):new Set();
   isDark=localStorage.getItem('ke7_theme')!=='light';
   totalXP=parseInt(localStorage.getItem('ke7_xp')||'0');
-  try{const px=JSON.parse(localStorage.getItem('ke7_pxp')||'null');if(px){weekKey=px.wk||'';weekXP=px.w||0;monthKey=px.mk||'';monthXP=px.m||0;}}catch(e){}
+  try{const px=JSON.parse(localStorage.getItem('ke7_pxp')||'null');if(px){weekKey=px.wk||'';weekXP=px.w||0;monthKey=px.mk||'';monthXP=px.m||0;weeklyWins=px.ww||0;wwinLastKey=px.wwk||'';}}catch(e){}
   rolloverPeriods();
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
@@ -2423,12 +2485,23 @@ function makeIcon(spot){
   }
 
   const bg=isF?cat.color:(isDark?'#1a1710':'#fff');
-  const bd=isF?cat.color:(isDark?tc.color:'#bbb');
-  const ring=`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${tc.color},0 3px 10px rgba(0,0,0,.4)`;
+  const ftd=!!spot.featured;
+  const bd=ftd?'#e8c878':(isF?cat.color:(isDark?tc.color:'#bbb'));
+  const ring=`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${ftd?'#e8c878':tc.color},0 3px 10px rgba(0,0,0,.4)`;
+
+  const circle=`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;${ring}">${cat.emoji}</div>`;
+
+  if(ftd){
+    return L.divIcon({
+      className:'',
+      html:`<div style="position:relative;width:36px;height:36px"><div class="ftd-ring"></div>${circle}<div style="position:absolute;top:-7px;left:-7px;font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.5);pointer-events:none">⭐</div></div>`,
+      iconSize:[36,36],iconAnchor:[18,18],
+    });
+  }
 
   return L.divIcon({
     className:'',
-    html:`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;${ring}">${cat.emoji}</div>`,
+    html:circle,
     iconSize:[36,36],iconAnchor:[18,18],
   });
 }
@@ -3143,6 +3216,7 @@ function openSheet(spot){
       <div class="stitle">${spot.name}</div>
       <div class="tier-badge t${spot.tier||1}">${tc.icon} ${tc.label}</div>
       <div class="schips">
+        ${spot.featured?`<span class="chip" style="border-color:#e8c878;color:#e8c878;background:rgba(232,200,120,.12)">⭐ Featured — vietinių rekomenduojama</span>`:''}
         ${spot.tag?`<span class="chip hi">${spot.tag}</span>`:''}
       </div>
       ${spot.year&&spot.year!=='—'?(()=>{
@@ -3164,7 +3238,7 @@ function openSheet(spot){
 
   const _footer=document.getElementById('sheetFooter');
   if(_footer){
-    _footer.innerHTML = locked ? '' : `<div style="display:flex;gap:8px;margin-bottom:8px"><button class="route-show-btn" id="routeShowBtn" style="flex:1;margin-bottom:0" onclick="showRouteTo(selectedSpot)">🧭 Rodyk kelią</button><button class="route-show-btn" style="flex:1;margin-bottom:0" onclick="tpFromHere(selectedSpot.id)">🗺 Planuoti</button></div><div class="crow"><div class="dbadge" id="distBadge">—</div><button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button><button class="editbtn" id="favBtn" onclick="toggleSpotInActiveRoute()" title="Pridėti į maršrutą" style="font-size:18px;padding:10px 12px">＋</button>${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?'<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button>':''}</div>`;
+    _footer.innerHTML = locked ? '' : `<div style="display:flex;gap:8px;margin-bottom:8px"><button class="route-show-btn" id="routeShowBtn" style="flex:1;margin-bottom:0" onclick="showRouteTo(selectedSpot)">🧭 Rodyk kelią</button><button class="route-show-btn" style="flex:1;margin-bottom:0" onclick="tpFromHere(selectedSpot.id)">🗺 Planuoti</button></div><div class="crow"><div class="dbadge" id="distBadge">—</div><button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button><button class="editbtn" id="favBtn" onclick="toggleSpotInActiveRoute()" title="Pridėti į maršrutą" style="font-size:18px;padding:10px 12px">＋</button>${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?`<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button><button class="editbtn" onclick="toggleFeatured()" title="Featured" style="${spot.featured?'background:rgba(232,200,120,.25);border-color:#e8c878':''}">⭐</button>`:''}</div>`;
   }
   hideProxPopup();   // B1: don't let the proximity popup cover the footer
   clearRoute();      // clear any prior route line when opening a new spot
@@ -3386,6 +3460,7 @@ function evalBadge(b,g,ctx){
   else if(b.activeDays){need=b.activeDays;cur=activeDaysTotal;}
   else if(b.spanKm){need=b.spanKm;cur=Math.round(ctx.spanKm);}
   else if(b.streak){need=b.streak;cur=streak;}
+  else if(b.weeklyWins){need=b.weeklyWins;cur=weeklyWins;}
   else if(b.xpNeed){need=b.xpNeed;cur=totalXP;}
   else if(b.all){need=b.need;cur=found.size;}
   else if(b.contribNeed){need=b.contribNeed;cur=approvedSuggestions;}
@@ -4486,10 +4561,11 @@ function renderSocial(){
       </div>`:''}
     <div class="lb-tabs">
       <div class="lb-tab ${_lbTab==='xp'?'on':''}" onclick="setLbTab('xp')">⭐ XP</div>
+      <div class="lb-tab ${_lbTab==='friends'?'on':''}" onclick="setLbTab('friends')">👥 Draugai</div>
       <div class="lb-tab ${_lbTab==='spots'?'on':''}" onclick="setLbTab('spots')">📍 Vietos</div>
       <div class="lb-tab ${_lbTab==='streak'?'on':''}" onclick="setLbTab('streak')">🔥 Serija</div>
     </div>
-    ${_lbTab==='xp'?`<div class="lb-tabs lb-period-tabs">
+    ${(_lbTab==='xp'||_lbTab==='friends')?`<div class="lb-tabs lb-period-tabs">
       <div class="lb-tab ${_lbPeriod==='week'?'on':''}" onclick="setLbPeriod('week')">Savaitė</div>
       <div class="lb-tab ${_lbPeriod==='month'?'on':''}" onclick="setLbPeriod('month')">Mėnuo</div>
       <div class="lb-tab ${_lbPeriod==='all'?'on':''}" onclick="setLbPeriod('all')">Visų laikų</div>
@@ -4520,8 +4596,8 @@ const LB_CACHE_KEY='ss_lb_cache';
 const LB_CACHE_TTL_ALL=24*60*60*1000; // all-time: 24 h (slow-moving)
 const LB_CACHE_TTL_LIVE=60*60*1000;   // weekly/monthly race: 1 h (must feel alive)
 
-// Effective period: only the XP tab is period-scoped; spots/streak stay all-time.
-function lbPeriod(){return _lbTab==='xp'?_lbPeriod:'all';}
+// Effective period: XP and Draugai tabs are period-scoped; spots/streak stay all-time.
+function lbPeriod(){return (_lbTab==='xp'||_lbTab==='friends')?_lbPeriod:'all';}
 
 function lbUserFromDoc(d){
   const data=d.data();
@@ -4536,6 +4612,7 @@ async function loadLeaderboard(){
   if(!db) return;
   const el=document.getElementById('lbList');
   if(!el) return;
+  if(_lbTab==='friends'){loadFriendsBoard(el);return;} // small N — no cache needed
   const period=lbPeriod();
   const ttl=period==='all'?LB_CACHE_TTL_ALL:LB_CACHE_TTL_LIVE;
 
@@ -4597,8 +4674,50 @@ async function loadLeaderboard(){
 
 // Value shown on the right of a leaderboard row for the current tab+period
 function lbVal(u){
-  if(_lbTab==='xp') return lbPeriod()==='week'?u.wxp:lbPeriod()==='month'?u.mxp:u.xp;
+  if(_lbTab==='xp'||_lbTab==='friends') return lbPeriod()==='week'?u.wxp:lbPeriod()==='month'?u.mxp:u.xp;
   return _lbTab==='spots'?u.spots:u.streak;
+}
+
+// Draugai tab: me + my friends, sorted by the selected period's XP.
+// Zeroes stale period values client-side (a friend inactive this week still
+// carries last week's weekXP on their doc until they next earn XP).
+async function loadFriendsBoard(el){
+  const user=window._fbUser;
+  const{db,doc,getDoc,collection,getDocs,query,where}=window._fb||{};
+  if(!user||!db){el.innerHTML='<div class="lb-empty">Prisijunk 🔒</div>';return;}
+  try{
+    const fsSnap=await getDocs(query(collection(db,'friendships'),where('members','array-contains',user.uid)));
+    const others=[];
+    fsSnap.forEach(d=>{
+      const x=d.data();
+      const o=(x.members||[]).find(m=>m!==user.uid);
+      if(o)others.push(o);
+    });
+    const wk=lbWeekKey(),mk=lbMonthKey();
+    const friends=(await Promise.all(others.map(async uid=>{
+      try{
+        const s=await getDoc(doc(db,'users',uid));
+        if(!s.exists())return null;
+        const u=lbUserFromDoc(s);
+        if(u.wk!==wk)u.wxp=0;
+        if(u.mk!==mk)u.mxp=0;
+        return u;
+      }catch(e){return null;}
+    }))).filter(Boolean);
+    rolloverPeriods(); // my live values, current-period-safe
+    const me={uid:user.uid,name:playerName||'Tu',xp:totalXP,
+      spots:foundByCountry.LT.size+foundByCountry.PL.size,streak,
+      wxp:weekXP,mxp:monthXP,photo:user.photoURL||null};
+    const users=[me,...friends].sort((a,b)=>lbVal(b)-lbVal(a));
+    if(!friends.length){
+      el.innerHTML='<div class="lb-empty">Dar neturi draugų — pridėk juos 6 skaitmenų kodu skiltyje „Draugai" 👆</div>';
+      return;
+    }
+    renderLbUsers(users,el);
+  }catch(e){
+    console.error('loadFriendsBoard',e);
+    el.innerHTML='<div class="lb-empty">Nepavyko įkelti 😕</div>';
+  }
 }
 
 function renderLbUsers(users,el){
@@ -4616,9 +4735,9 @@ function renderLbUsers(users,el){
       const val=lbVal(myData);
       html+=`<div class="lb-me-row lb-row">
         <div class="lb-rank">#${myRank}</div>
-        <div class="lb-avatar me">${myData.photo?`<img src="${myData.photo}" referrerpolicy="no-referrer">`:'👤'}</div>
+        <div class="lb-avatar me">${myData.photo?`<img src="${escHtml(myData.photo)}" referrerpolicy="no-referrer">`:'👤'}</div>
         <div class="lb-info">
-          <div class="lb-name me">${myData.name} (Tu)</div>
+          <div class="lb-name me">${escHtml(myData.name)} (Tu)</div>
           <div class="lb-meta">${lbMeta(myData)}</div>
         </div>
         <div class="lb-val">${val}</div>
@@ -4631,9 +4750,9 @@ function renderLbUsers(users,el){
       const rank=i<3?medals[i]:`#${i+1}`;
       html+=`<div class="lb-row${isMe?' lb-me-row':''}">
         <div class="lb-rank ${rankClass(i)}">${rank}</div>
-        <div class="lb-avatar ${isMe?'me':''}">${u.photo?`<img src="${u.photo}" referrerpolicy="no-referrer">`:'👤'}</div>
+        <div class="lb-avatar ${isMe?'me':''}">${u.photo?`<img src="${escHtml(u.photo)}" referrerpolicy="no-referrer">`:'👤'}</div>
         <div class="lb-info">
-          <div class="lb-name ${isMe?'me':''}">${u.name}${isMe?' (Tu)':''}</div>
+          <div class="lb-name ${isMe?'me':''}">${escHtml(u.name)}${isMe?' (Tu)':''}</div>
           <div class="lb-meta">${lbMeta(u)}</div>
         </div>
         <div class="lb-val">${val}</div>
@@ -4645,8 +4764,9 @@ function renderLbUsers(users,el){
 
 function lbMeta(u){
   const parts=[];
-  if(_lbTab!=='xp') parts.push(`⭐ ${u.xp} XP`);
-  if(_lbTab==='xp'&&lbPeriod()!=='all') parts.push(`⭐ ${u.xp} XP viso`);
+  const xpTab=(_lbTab==='xp'||_lbTab==='friends');
+  if(!xpTab) parts.push(`⭐ ${u.xp} XP`);
+  if(xpTab&&lbPeriod()!=='all') parts.push(`⭐ ${u.xp} XP viso`);
   if(_lbTab!=='spots') parts.push(`📍 ${u.spots}`);
   if(_lbTab!=='streak') parts.push(`🔥 ${u.streak}d`);
   return parts.join(' · ');
@@ -6597,6 +6717,31 @@ function osmToggleManual(){
 const ADMIN_UIDS=['Q0pPckRvI7e6T0kylcpfCsKV61x1','wHLbJaH5zYNLlKRLBTYnlahsWQ73'];
 function isAdmin(){return window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid);}
 
+// ═══════════ FEATURED SPOTS (admin toggle) ═══════════
+// Option A persistence: writes Firestore + local state only.
+// Other users see the change after the next manual KV rebuild (admin panel → Atnaujinti KV talpyklą).
+async function toggleFeatured(){
+  if(!isAdmin()||!selectedSpot) return;
+  const{db,doc,updateDoc,deleteField}=window._fb||{};
+  if(!db){toast('Firebase nepasiekiamas','info');return;}
+  const spot=selectedSpot;
+  const fid=spot._fid||spot.id;
+  const makeFeatured=!spot.featured;
+  try{
+    await updateDoc(doc(db,'spots',String(fid)),{featured:makeFeatured?1:deleteField()});
+    if(makeFeatured){spot.featured=1;}else{delete spot.featured;}
+    const idx=SPOTS.findIndex(s=>s.id==spot.id);
+    if(idx!==-1&&SPOTS[idx]!==spot){if(makeFeatured){SPOTS[idx].featured=1;}else{delete SPOTS[idx].featured;}}
+    if(markers[spot.id])markers[spot.id].setIcon(makeIcon(spot));
+    save();
+    openSheet(spot); // re-render chip + toggle button state
+    toast(makeFeatured?'⭐ Pažymėta Featured! Nepamiršk atnaujinti KV talpyklą.':'Featured nuimta. Nepamiršk atnaujinti KV talpyklą.','success');
+  }catch(e){
+    console.error('toggleFeatured',e);
+    toast(`❌ Nepavyko: ${e.message}`,'info');
+  }
+}
+
 // ═══════════ SUGGEST SPOT SYSTEM ═══════════
 let _sugLat=null,_sugLng=null;
 
@@ -7976,7 +8121,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v34';
+const CACHE='spotseekers-v36';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -8061,6 +8206,7 @@ window.onFbAuthReady=async function(user){
     fbLoadSpots();
     fbLoadUserProgress(user.uid);
     checkPartyState(); // pending invites + apply teammate party collects
+    checkWeeklyChampion(); // credit last week's leaderboard win if any
     // Re-render social panel so leaderboard shows immediately after login
     const socialPanel=document.getElementById('panel-social');
     if(socialPanel&&socialPanel.innerHTML) renderSocial();
@@ -8430,6 +8576,8 @@ async function fbLoadUserProgress(uid){
       if(d.totalXP!==undefined) totalXP=d.totalXP;
       if(d.weekKey!==undefined){weekKey=d.weekKey;weekXP=d.weekXP||0;}
       if(d.monthKey!==undefined){monthKey=d.monthKey;monthXP=d.monthXP||0;}
+      if(d.weeklyWins!==undefined)weeklyWins=d.weeklyWins;
+      if(d.wwinLastKey)wwinLastKey=d.wwinLastKey;
       rolloverPeriods();
       if(d.friendCode) myFriendCode=d.friendCode;
       if(d.notes) notes=d.notes;
@@ -8459,6 +8607,7 @@ async function fbSaveUserProgress(){
       foundCount:foundByCountry.LT.size+foundByCountry.PL.size, // total across all countries
       streak,lastDate,totalXP,notes,
       weekKey,weekXP,monthKey,monthXP,
+      weeklyWins,wwinLastKey,
       ...(myFriendCode?{friendCode:myFriendCode}:{}),
       earnedBadges:[...earnedBadges],
       playerName,
@@ -8483,7 +8632,7 @@ save=function(){
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
   localStorage.setItem('ke7_xp',totalXP);
-  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP}));
+  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP,ww:weeklyWins,wwk:wwinLastKey}));
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
