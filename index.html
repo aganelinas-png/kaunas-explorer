@@ -28,7 +28,7 @@
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where,writeBatch}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,query,orderBy,limit,where,writeBatch,arrayUnion}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import{getAuth,signOut,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
@@ -50,7 +50,7 @@ setPersistence(auth,browserLocalPersistence).catch(()=>{});
 // Expose to global scope so non-module code can use them
 window._fb={db,auth,
   doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,serverTimestamp,
-  query,orderBy,limit,where,writeBatch,
+  query,orderBy,limit,where,writeBatch,arrayUnion,
   signOut,onAuthStateChanged,
   createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
 };
@@ -855,6 +855,31 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .lb-tabs{display:flex;gap:6px;margin-bottom:12px}
 .lb-tab{flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:7px;font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);cursor:pointer;text-align:center;-webkit-user-select:none;user-select:none;transition:all .2s}
 .lb-tab.on{background:var(--gold);color:#0e0c09;border-color:var(--gold);font-weight:600}
+.lb-period-tabs{margin-top:-6px;margin-bottom:12px}
+.lb-period-tabs .lb-tab{padding:5px;font-size:.62rem}
+/* ── FRIENDS ── */
+.fr-code-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.fr-code-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.fr-code-row{display:flex;align-items:center;gap:8px}
+.fr-code-val{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--gold);letter-spacing:.12em;flex:1}
+.fr-mini-btn{background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:6px 10px;font-size:.72rem;font-family:'DM Mono',monospace;color:var(--td);cursor:pointer;-webkit-user-select:none;user-select:none;flex-shrink:0}
+.fr-mini-btn.ok{background:rgba(201,168,76,.15);color:var(--gold);border-color:var(--gold)}
+.fr-req-card{background:rgba(201,168,76,.08);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fr-req-text{flex:1;font-size:.78rem;color:var(--txt);min-width:140px}
+.fr-req-actions{display:flex;gap:6px}
+/* ── PARTY ── */
+.party-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.party-card.active{border-color:var(--gold);background:rgba(201,168,76,.07)}
+.party-card.invite{border-color:var(--gold);background:rgba(201,168,76,.1)}
+.party-title{font-size:.85rem;font-weight:700;color:var(--txt);margin-bottom:4px}
+.party-sub{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--td);margin-bottom:8px}
+.party-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.party-actions .auth-btn{flex:1;min-width:120px}
+.party-info-toggle{font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);cursor:pointer;margin-top:8px;-webkit-user-select:none;user-select:none}
+.party-info{display:none;font-size:.72rem;color:var(--td);margin-top:6px;line-height:1.5}
+.party-info.open{display:block}
+.party-info ul{margin:0;padding-left:16px}
+.party-info li{margin-bottom:3px}
 .lb-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr)}
 .lb-row:last-child{border-bottom:none}
 .lb-rank{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:700;color:var(--td);width:24px;text-align:center;flex-shrink:0}
@@ -2063,6 +2088,34 @@ function t3Collected(){return[...found].filter(id=>SPOTS.find(s=>s.id===id&&s.ti
 // isSpotUnlocked → now uses level system
 function isSpotUnlocked(spot){return isSpotVisible(spot);}
 
+// ═══════════ PERIOD XP (weekly/monthly leaderboards) ═══════════
+// Monday-based ISO week key in device local time (LT market → Europe/Vilnius).
+// Separate from the weekly-challenge getWeekSeed() (jan1-anchored) — do not merge.
+let weekKey='',weekXP=0,monthKey='',monthXP=0;
+let myFriendCode=null; // 6-digit friend code, lazily generated, stored in users/{uid}
+
+function lbWeekKey(d){
+  d=d?new Date(d):new Date();
+  // ISO week: Thursday of the current week determines the year/week number
+  const t=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const day=(t.getDay()+6)%7;            // Mon=0 … Sun=6
+  t.setDate(t.getDate()-day+3);          // move to Thursday
+  const jan4=new Date(t.getFullYear(),0,4);
+  const wk=1+Math.round(((t-jan4)/86400000-3+((jan4.getDay()+6)%7))/7);
+  return t.getFullYear()+'-W'+String(wk).padStart(2,'0');
+}
+function lbMonthKey(d){
+  d=d?new Date(d):new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+// If the stored period is stale, zero the counter. Called before every XP add
+// and after every load (localStorage or Firestore).
+function rolloverPeriods(){
+  const wk=lbWeekKey(),mk=lbMonthKey();
+  if(weekKey!==wk){weekKey=wk;weekXP=0;}
+  if(monthKey!==mk){monthKey=mk;monthXP=0;}
+}
+
 
 // Spot collection radius — 0.85× across the board (tighter zones, especially in dense cities)
 function spotRadius(spot){
@@ -2111,6 +2164,7 @@ function save(){
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
   localStorage.setItem('ke7_xp',totalXP);
+  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP}));
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
@@ -2138,6 +2192,8 @@ function load(){
   const b=localStorage.getItem('ke7_badges');earnedBadges=b?new Set(JSON.parse(b)):new Set();
   isDark=localStorage.getItem('ke7_theme')!=='light';
   totalXP=parseInt(localStorage.getItem('ke7_xp')||'0');
+  try{const px=JSON.parse(localStorage.getItem('ke7_pxp')||'null');if(px){weekKey=px.wk||'';weekXP=px.w||0;monthKey=px.mk||'';monthXP=px.m||0;}}catch(e){}
+  rolloverPeriods();
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
   dailyQuestDone=localStorage.getItem('ke7_dqdone')==='1';
@@ -3023,7 +3079,10 @@ function renderQuestCard(){
 // ═══════════ XP SYSTEM ═══════════
 
 function addXP(amount){
+  rolloverPeriods();
   totalXP+=amount;
+  weekXP+=amount;
+  monthXP+=amount;
   save();
   updateAll();
   checkLevelUp();
@@ -3205,9 +3264,12 @@ function collectCurrent(){
     const{db,doc,setDoc}=window._fb;
     setDoc(doc(db,'users',window._fbUser.uid),{
       found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},totalXP,streak,badges:[...earnedBadges],name:playerName,
+      weekKey,weekXP,monthKey,monthXP,
       dailyLog,activeDaysTotal,bestDay
     },{merge:true}).catch(()=>{});
   }
+  // Party: share this collect with the teammate (fire-and-forget)
+  partyPushCollect(selectedSpot,xpGain);
 
   proxDismissedIds.delete(selectedSpot.id);
   hideProxPopup();
@@ -4339,6 +4401,7 @@ function checkRefParam(){
 }
 
 let _lbTab='xp'; // current leaderboard sort tab
+let _lbPeriod='week'; // 'week' | 'month' | 'all' — applies to the XP tab only
 
 function renderSocial(){
   const body=document.getElementById('panel-social');
@@ -4389,6 +4452,30 @@ function renderSocial(){
       </div>
     </button>
 
+    <!-- PARTY (filled async by renderPartyBox) -->
+    <div id="partyBox"></div>
+
+    <!-- FRIENDS -->
+    <div class="social-title" style="margin-bottom:8px">👥 Draugai</div>
+    ${!user?`
+      <div class="lb-login-prompt" style="margin-bottom:14px">
+        <div class="lp-icon">👥</div>
+        <div class="lp-text">Prisijunk, kad galėtum pridėti draugų ir žaisti komandoje.</div>
+      </div>`:`
+      <div class="fr-code-card">
+        <div class="fr-code-label">Tavo draugo kodas</div>
+        <div class="fr-code-row">
+          <div class="fr-code-val" id="myCodeVal">·····•</div>
+          <button class="fr-mini-btn" onclick="copyMyCode()" title="Kopijuoti">📋</button>
+        </div>
+      </div>
+      <div class="name-row" style="margin-bottom:8px">
+        <input class="fi" id="frCodeInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Įvesk draugo kodą (6 skaitmenys)">
+        <button class="name-save-btn" onclick="sendFriendRequest()">➕</button>
+      </div>
+      <div id="frRequests"></div>
+      <div id="frList" style="margin-bottom:14px"><div class="lb-loading">Kraunama...</div></div>`}
+
     <!-- LEADERBOARD -->
     <div class="social-title" style="margin-bottom:8px">🏆 Lyderių lentelė</div>
     ${!user?`
@@ -4402,11 +4489,21 @@ function renderSocial(){
       <div class="lb-tab ${_lbTab==='spots'?'on':''}" onclick="setLbTab('spots')">📍 Vietos</div>
       <div class="lb-tab ${_lbTab==='streak'?'on':''}" onclick="setLbTab('streak')">🔥 Serija</div>
     </div>
+    ${_lbTab==='xp'?`<div class="lb-tabs lb-period-tabs">
+      <div class="lb-tab ${_lbPeriod==='week'?'on':''}" onclick="setLbPeriod('week')">Savaitė</div>
+      <div class="lb-tab ${_lbPeriod==='month'?'on':''}" onclick="setLbPeriod('month')">Mėnuo</div>
+      <div class="lb-tab ${_lbPeriod==='all'?'on':''}" onclick="setLbPeriod('all')">Visų laikų</div>
+    </div>`:''}
     <div id="lbList" style="padding-bottom:40px"><div class="lb-loading">Kraunama...</div></div>
   </div>`;
 
   document.getElementById('socialBadge').style.display='none';
-  if(user) loadLeaderboard();
+  if(user){
+    loadLeaderboard();
+    ensureFriendCode(false);
+    loadFriendPanel();
+    checkPartyState();
+  }
 }
 
 function setLbTab(tab){
@@ -4414,56 +4511,94 @@ function setLbTab(tab){
   renderSocial();
 }
 
+function setLbPeriod(p){
+  _lbPeriod=p;
+  renderSocial();
+}
+
 const LB_CACHE_KEY='ss_lb_cache';
-const LB_CACHE_TTL=24*60*60*1000; // 24 hours
+const LB_CACHE_TTL_ALL=24*60*60*1000; // all-time: 24 h (slow-moving)
+const LB_CACHE_TTL_LIVE=60*60*1000;   // weekly/monthly race: 1 h (must feel alive)
+
+// Effective period: only the XP tab is period-scoped; spots/streak stay all-time.
+function lbPeriod(){return _lbTab==='xp'?_lbPeriod:'all';}
+
+function lbUserFromDoc(d){
+  const data=d.data();
+  return{uid:d.id,name:data.playerName||data.name||'Anonimas',
+    xp:data.totalXP||0,spots:data.foundCount||0,streak:data.streak||0,
+    wk:data.weekKey||'',wxp:data.weekXP||0,mk:data.monthKey||'',mxp:data.monthXP||0,
+    photo:data.photoURL||null};
+}
 
 async function loadLeaderboard(){
-  const{db,collection,getDocs,query,orderBy,limit}=window._fb||{};
+  const{db,collection,getDocs,query,orderBy,limit,where}=window._fb||{};
   if(!db) return;
   const el=document.getElementById('lbList');
   if(!el) return;
+  const period=lbPeriod();
+  const ttl=period==='all'?LB_CACHE_TTL_ALL:LB_CACHE_TTL_LIVE;
 
-  // Check 24hr cache
+  // Cache keyed by tab + period
   try{
     const cached=JSON.parse(localStorage.getItem(LB_CACHE_KEY)||'null');
-    if(cached&&cached.tab===_lbTab&&(Date.now()-cached.ts)<LB_CACHE_TTL){
+    if(cached&&cached.tab===_lbTab&&cached.period===period&&(Date.now()-cached.ts)<ttl){
       renderLbUsers(cached.users,el);
       return;
     }
   }catch(e){}
 
   try{
-    const field=_lbTab==='xp'?'totalXP':_lbTab==='spots'?'foundCount':'streak';
     let users=[];
     try{
-      // Try indexed query first (10 reads max)
-      const q=query(collection(db,'users'),orderBy(field,'desc'),limit(10));
+      // Indexed query first (10 reads max)
+      let q;
+      if(_lbTab==='xp'&&period==='week'){
+        q=query(collection(db,'users'),where('weekKey','==',lbWeekKey()),orderBy('weekXP','desc'),limit(10));
+      }else if(_lbTab==='xp'&&period==='month'){
+        q=query(collection(db,'users'),where('monthKey','==',lbMonthKey()),orderBy('monthXP','desc'),limit(10));
+      }else{
+        const field=_lbTab==='xp'?'totalXP':_lbTab==='spots'?'foundCount':'streak';
+        q=query(collection(db,'users'),orderBy(field,'desc'),limit(10));
+      }
       const snap=await getDocs(q);
-      snap.forEach(d=>{
-        const data=d.data();
-        users.push({uid:d.id,name:data.playerName||data.name||'Anonimas',xp:data.totalXP||0,spots:data.foundCount||0,streak:data.streak||0,photo:data.photoURL||null});
-      });
+      snap.forEach(d=>users.push(lbUserFromDoc(d)));
     }catch(indexErr){
-      // Index not ready yet — fall back to full read with client sort
+      // Composite index not ready yet — full read + client filter/sort.
+      // Firestore puts the index-creation link in this error message:
+      console.warn('loadLeaderboard index fallback:',indexErr.message);
       const snap=await getDocs(collection(db,'users'));
-      snap.forEach(d=>{
-        const data=d.data();
-        users.push({uid:d.id,name:data.playerName||data.name||'Anonimas',xp:data.totalXP||0,spots:data.foundCount||0,streak:data.streak||0,photo:data.photoURL||null});
-      });
-      const sortKey=_lbTab==='xp'?'xp':_lbTab==='spots'?'spots':'streak';
-      users.sort((a,b)=>b[sortKey]-a[sortKey]);
+      snap.forEach(d=>users.push(lbUserFromDoc(d)));
+      if(_lbTab==='xp'&&period==='week'){
+        const wk=lbWeekKey();
+        users=users.filter(u=>u.wk===wk).sort((a,b)=>b.wxp-a.wxp);
+      }else if(_lbTab==='xp'&&period==='month'){
+        const mk=lbMonthKey();
+        users=users.filter(u=>u.mk===mk).sort((a,b)=>b.mxp-a.mxp);
+      }else{
+        const sortKey=_lbTab==='xp'?'xp':_lbTab==='spots'?'spots':'streak';
+        users.sort((a,b)=>b[sortKey]-a[sortKey]);
+      }
       users=users.slice(0,10);
     }
 
-    // Save to cache
-    try{localStorage.setItem(LB_CACHE_KEY,JSON.stringify({tab:_lbTab,ts:Date.now(),users}));}catch(e){}
+    try{localStorage.setItem(LB_CACHE_KEY,JSON.stringify({tab:_lbTab,period,ts:Date.now(),users}));}catch(e){}
 
-    if(!users.length){el.innerHTML='<div class="lb-empty">Dar nėra žaidėjų 👀</div>';return;}
+    if(!users.length){
+      el.innerHTML=`<div class="lb-empty">${period==='week'?'Šią savaitę dar tuščia — būk pirmas! 👀':period==='month'?'Šį mėnesį dar tuščia — būk pirmas! 👀':'Dar nėra žaidėjų 👀'}</div>`;
+      return;
+    }
     renderLbUsers(users,el);
   }catch(e){
     console.error('loadLeaderboard',e);
     el.innerHTML='<div class="lb-empty">Nepavyko įkelti 😕</div>';
   }
+}
+
+// Value shown on the right of a leaderboard row for the current tab+period
+function lbVal(u){
+  if(_lbTab==='xp') return lbPeriod()==='week'?u.wxp:lbPeriod()==='month'?u.mxp:u.xp;
+  return _lbTab==='spots'?u.spots:u.streak;
 }
 
 function renderLbUsers(users,el){
@@ -4478,7 +4613,7 @@ function renderLbUsers(users,el){
 
     // My rank card if not in top 20
     if(myData&&myRank>10){
-      const val=_lbTab==='xp'?myData.xp:_lbTab==='spots'?myData.spots:myData.streak;
+      const val=lbVal(myData);
       html+=`<div class="lb-me-row lb-row">
         <div class="lb-rank">#${myRank}</div>
         <div class="lb-avatar me">${myData.photo?`<img src="${myData.photo}" referrerpolicy="no-referrer">`:'👤'}</div>
@@ -4492,7 +4627,7 @@ function renderLbUsers(users,el){
 
     top.forEach((u,i)=>{
       const isMe=u.uid===getMyUid();
-      const val=_lbTab==='xp'?u.xp:_lbTab==='spots'?u.spots:u.streak;
+      const val=lbVal(u);
       const rank=i<3?medals[i]:`#${i+1}`;
       html+=`<div class="lb-row${isMe?' lb-me-row':''}">
         <div class="lb-rank ${rankClass(i)}">${rank}</div>
@@ -4511,6 +4646,7 @@ function renderLbUsers(users,el){
 function lbMeta(u){
   const parts=[];
   if(_lbTab!=='xp') parts.push(`⭐ ${u.xp} XP`);
+  if(_lbTab==='xp'&&lbPeriod()!=='all') parts.push(`⭐ ${u.xp} XP viso`);
   if(_lbTab!=='spots') parts.push(`📍 ${u.spots}`);
   if(_lbTab!=='streak') parts.push(`🔥 ${u.streak}d`);
   return parts.join(' · ');
@@ -4526,6 +4662,438 @@ function saveName(){
   renderSocial();
   toast(`👤 Vardas: ${n}`,'success');
 }
+
+// ═══════════ FRIENDS ═══════════
+// Firestore: users/{uid}.friendCode (6 digits), friendRequests/{id}, friendships/{id}
+// All queries are equality-only or array-contains → no composite indexes needed.
+
+function escHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+let _myFriends=[]; // [{fsId,uid,name,level,wxp,xp}]
+let _frReqs=[];    // incoming pending requests [{id,from,fromName}]
+
+function fmtFriendCode(c){return String(c).replace(/^(\d{3})(\d{3})$/,'$1 $2');}
+
+// Generate (or just display) my 6-digit code. Lazy — created on first social panel open.
+async function ensureFriendCode(interactive){
+  const user=window._fbUser;
+  if(!user) return;
+  const el=document.getElementById('myCodeVal');
+  if(myFriendCode){if(el)el.textContent=fmtFriendCode(myFriendCode);return;}
+  const{db,doc,setDoc,collection,getDocs,query,where,limit}=window._fb||{};
+  if(!db) return;
+  try{
+    for(let i=0;i<5;i++){
+      const code=String(Math.floor(100000+Math.random()*900000));
+      const snap=await getDocs(query(collection(db,'users'),where('friendCode','==',code),limit(1)));
+      if(snap.empty){
+        await setDoc(doc(db,'users',user.uid),{friendCode:code},{merge:true});
+        myFriendCode=code;
+        if(el)el.textContent=fmtFriendCode(code);
+        return;
+      }
+    }
+    if(el)el.textContent='—';
+  }catch(e){
+    console.error('ensureFriendCode',e);
+    if(el)el.textContent='—';
+    if(interactive)toast('Nepavyko sukurti kodo 😕','info');
+  }
+}
+
+function copyMyCode(){
+  if(!myFriendCode){toast('Kodas dar kuriamas…','info');return;}
+  try{navigator.clipboard.writeText(myFriendCode);toast('📋 Kodas nukopijuotas','success');}
+  catch(e){toast(`Tavo kodas: ${fmtFriendCode(myFriendCode)}`,'info');}
+}
+
+async function sendFriendRequest(){
+  const user=window._fbUser;
+  if(!user){toast('🔒 Prisijunk pirma','info');return;}
+  const inp=document.getElementById('frCodeInput');
+  const code=(inp?inp.value:'').replace(/\D/g,'');
+  if(code.length!==6){toast('⚠ Kodas — 6 skaitmenys','info');return;}
+  if(code===myFriendCode){toast('🙃 Tai tavo paties kodas','info');return;}
+  const{db,collection,getDocs,addDoc,query,where,limit}=window._fb||{};
+  if(!db) return;
+  try{
+    const snap=await getDocs(query(collection(db,'users'),where('friendCode','==',code),limit(1)));
+    if(snap.empty){toast('❌ Žaidėjas su tokiu kodu nerastas','info');return;}
+    const target=snap.docs[0];
+    const tUid=target.id;
+    const tData=target.data();
+    const tName=tData.playerName||tData.name||'Seekeris';
+    if(tUid===user.uid){toast('🙃 Tai tavo paties kodas','info');return;}
+    if(_myFriends.some(f=>f.uid===tUid)){toast(`✓ ${tName} jau tavo draugas`,'info');return;}
+    // Already a pending request between us? (both directions)
+    const[outSnap,inSnap]=await Promise.all([
+      getDocs(query(collection(db,'friendRequests'),where('from','==',user.uid),where('to','==',tUid),where('status','==','pending'))),
+      getDocs(query(collection(db,'friendRequests'),where('from','==',tUid),where('to','==',user.uid),where('status','==','pending')))
+    ]);
+    if(!outSnap.empty){toast('⏳ Kvietimas jau išsiųstas — laukiama','info');return;}
+    if(!inSnap.empty){toast(`📨 ${tName} jau pakvietė tave — patvirtink jo kvietimą!`,'gold');loadFriendPanel();return;}
+    await addDoc(collection(db,'friendRequests'),{
+      from:user.uid,fromName:playerName||'Seekeris',
+      to:tUid,toName:tName,
+      status:'pending',ms:Date.now()
+    });
+    if(inp)inp.value='';
+    toast(`📨 Kvietimas išsiųstas: ${tName}`,'success');
+  }catch(e){
+    console.error('sendFriendRequest',e);
+    toast('Nepavyko išsiųsti 😕','info');
+  }
+}
+
+async function loadFriendPanel(){
+  const user=window._fbUser;
+  if(!user) return;
+  const{db,doc,getDoc,collection,getDocs,query,where}=window._fb||{};
+  if(!db) return;
+  const reqEl=document.getElementById('frRequests');
+  const listEl=document.getElementById('frList');
+  try{
+    // Incoming pending requests
+    const reqSnap=await getDocs(query(collection(db,'friendRequests'),where('to','==',user.uid),where('status','==','pending')));
+    _frReqs=[];
+    reqSnap.forEach(d=>{const x=d.data();_frReqs.push({id:d.id,from:x.from,fromName:x.fromName||'Seekeris',ms:x.ms||0});});
+    _frReqs.sort((a,b)=>b.ms-a.ms);
+    if(reqEl){
+      reqEl.innerHTML=_frReqs.map((r,i)=>`
+        <div class="fr-req-card">
+          <div class="fr-req-text">📨 <b>${escHtml(r.fromName)}</b> nori tapti draugu</div>
+          <div class="fr-req-actions">
+            <button class="fr-mini-btn ok" onclick="acceptFriendRequest(${i})">✓ Priimti</button>
+            <button class="fr-mini-btn" onclick="declineFriendRequest(${i})">✕</button>
+          </div>
+        </div>`).join('');
+    }
+    // Friendships
+    const fsSnap=await getDocs(query(collection(db,'friendships'),where('members','array-contains',user.uid)));
+    const raw=[];
+    fsSnap.forEach(d=>{
+      const x=d.data();
+      const other=(x.members||[]).find(m=>m!==user.uid);
+      if(other)raw.push({fsId:d.id,uid:other,name:(x.names&&x.names[other])||'Seekeris'});
+    });
+    // Fetch fresh stats per friend (few reads — friend counts are small)
+    const enriched=await Promise.all(raw.map(async f=>{
+      try{
+        const s=await getDoc(doc(db,'users',f.uid));
+        if(s.exists()){
+          const d2=s.data();
+          const wk=lbWeekKey();
+          return{...f,name:d2.playerName||d2.name||f.name,xp:d2.totalXP||0,
+            wxp:(d2.weekKey===wk?(d2.weekXP||0):0),
+            level:getLevel(d2.totalXP||0).level,spots:d2.foundCount||0,photo:d2.photoURL||null};
+        }
+      }catch(e){}
+      return{...f,xp:0,wxp:0,level:1,spots:0,photo:null};
+    }));
+    enriched.sort((a,b)=>b.wxp-a.wxp||b.xp-a.xp);
+    _myFriends=enriched;
+    if(listEl){
+      listEl.innerHTML=enriched.length?enriched.map((f,i)=>`
+        <div class="lb-row">
+          <div class="lb-avatar">${f.photo?`<img src="${escHtml(f.photo)}" referrerpolicy="no-referrer">`:'👤'}</div>
+          <div class="lb-info">
+            <div class="lb-name">${escHtml(f.name)}</div>
+            <div class="lb-meta">Lv.${f.level} · 📍 ${f.spots} · ⭐ ${f.wxp} XP šią sav.</div>
+          </div>
+          <button class="fr-mini-btn ok" onclick="inviteToParty(${i})" title="Kviesti į komandą">🤝</button>
+          <button class="fr-mini-btn" onclick="removeFriend(${i})" title="Pašalinti">✕</button>
+        </div>`).join('')
+      :'<div class="lb-empty" style="padding:10px 0">Dar neturi draugų — pasidalink savo kodu! 👆</div>';
+    }
+  }catch(e){
+    console.error('loadFriendPanel',e);
+    if(listEl)listEl.innerHTML='<div class="lb-empty">Nepavyko įkelti 😕</div>';
+  }
+}
+
+async function acceptFriendRequest(idx){
+  const r=_frReqs[idx];
+  const user=window._fbUser;
+  if(!r||!user) return;
+  const{db,doc,collection,addDoc,deleteDoc}=window._fb||{};
+  try{
+    await addDoc(collection(db,'friendships'),{
+      members:[user.uid,r.from],
+      names:{[user.uid]:playerName||'Seekeris',[r.from]:r.fromName},
+      ms:Date.now()
+    });
+    await deleteDoc(doc(db,'friendRequests',r.id));
+    toast(`🤝 ${r.fromName} — dabar draugai!`,'success');
+    loadFriendPanel();
+  }catch(e){console.error('acceptFriendRequest',e);toast('Nepavyko 😕','info');}
+}
+
+async function declineFriendRequest(idx){
+  const r=_frReqs[idx];
+  if(!r) return;
+  const{db,doc,deleteDoc}=window._fb||{};
+  try{
+    await deleteDoc(doc(db,'friendRequests',r.id));
+    loadFriendPanel();
+  }catch(e){console.error('declineFriendRequest',e);}
+}
+
+async function removeFriend(idx){
+  const f=_myFriends[idx];
+  if(!f) return;
+  if(!confirm(`Pašalinti draugą ${f.name}?`)) return;
+  const{db,doc,deleteDoc}=window._fb||{};
+  try{
+    await deleteDoc(doc(db,'friendships',f.fsId));
+    toast(`✕ ${f.name} pašalintas`,'info');
+    loadFriendPanel();
+  }catch(e){console.error('removeFriend',e);toast('Nepavyko 😕','info');}
+}
+
+// ═══════════ PARTY (Komanda) — B1 model ═══════════
+// 2 players. Start requires both physically together (join-time GPS check vs
+// leader's location, ≤PARTY_JOIN_RADIUS m). While active (3 h), either member's
+// collects are appended to the party doc; the other member's device applies
+// them (spot + XP, no streak) whenever the app is open — apply is idempotent
+// because a spot already in `found` is skipped. Nobody ever writes to the
+// other player's user doc.
+const PARTY_TTL_MS=3*60*60*1000;        // party lifetime: 3 h
+const PARTY_JOIN_RADIUS=120;            // metres (100 m rule + GPS grace)
+const PARTY_INVITE_VALID_MS=30*60*1000; // invite must be accepted within 30 min
+const PARTY_LOOKBACK_MS=48*60*60*1000;  // apply leftover collects up to 48 h back
+const PARTY_POLL_MS=90*1000;
+
+let _party=null;      // {id,...docData} for the current pending/active party
+let _partyInvite=null;// pending invite where I'm the partner
+let _partyPollTimer=null;
+
+function partyIsActive(p){return p&&p.status==='active'&&Date.now()<(p.expiresMs||0);}
+
+async function inviteToParty(idx){
+  const f=_myFriends[idx];
+  const user=window._fbUser;
+  if(!f||!user) return;
+  if(userLat===null){toast('📍 Įjunk GPS — komandą pradėti galima tik būnant kartu','info');return;}
+  if(partyIsActive(_party)){toast('🤝 Jau esi komandoje — pirma ją užbaik','info');return;}
+  const{db,collection,addDoc}=window._fb||{};
+  try{
+    const ref=await addDoc(collection(db,'parties'),{
+      leader:user.uid,leaderName:playerName||'Seekeris',
+      partner:f.uid,partnerName:f.name,
+      status:'pending',
+      lLat:userLat,lLng:userLng,
+      createdMs:Date.now(),expiresMs:Date.now()+PARTY_TTL_MS,
+      collects:[]
+    });
+    _party={id:ref.id,leader:user.uid,leaderName:playerName,partner:f.uid,partnerName:f.name,
+      status:'pending',lLat:userLat,lLng:userLng,createdMs:Date.now(),expiresMs:Date.now()+PARTY_TTL_MS,collects:[]};
+    localStorage.setItem('ss_party_id',ref.id);
+    renderPartyBox();
+    toast(`🤝 Kvietimas išsiųstas! ${f.name} turi patvirtinti būdamas šalia tavęs`,'gold');
+  }catch(e){console.error('inviteToParty',e);toast('Nepavyko sukurti komandos 😕','info');}
+}
+
+// Runs on: login, social panel open, app foregrounded, poll tick.
+async function checkPartyState(){
+  const user=window._fbUser;
+  if(!user) return;
+  const{db,collection,getDocs,query,where}=window._fb||{};
+  if(!db) return;
+  try{
+    const[asPartner,asLeader]=await Promise.all([
+      getDocs(query(collection(db,'parties'),where('partner','==',user.uid))),
+      getDocs(query(collection(db,'parties'),where('leader','==',user.uid)))
+    ]);
+    const now=Date.now();
+    const docs=[];
+    asPartner.forEach(d=>docs.push({id:d.id,...d.data()}));
+    asLeader.forEach(d=>docs.push({id:d.id,...d.data()}));
+    _party=null;_partyInvite=null;
+    for(const p of docs){
+      if((p.createdMs||0)<now-PARTY_LOOKBACK_MS)continue;
+      // Apply any teammate collects from active/ended parties (idempotent)
+      if(p.status==='active'||p.status==='ended')applyPartyCollects(p);
+      if(p.status==='pending'&&p.partner===user.uid&&(p.createdMs||0)>now-PARTY_INVITE_VALID_MS){_partyInvite=p;}
+      if(p.status==='pending'&&p.leader===user.uid&&(p.createdMs||0)>now-PARTY_INVITE_VALID_MS){_party=p;}
+      if(partyIsActive(p)){_party=p;}
+    }
+    if(partyIsActive(_party))startPartyPoll();else stopPartyPoll();
+    renderPartyBox();
+  }catch(e){console.error('checkPartyState',e);}
+}
+
+function renderPartyBox(){
+  const el=document.getElementById('partyBox');
+  if(!el) return;
+  const user=window._fbUser;
+  if(!user){el.innerHTML='';return;}
+  let html='';
+  if(_partyInvite){
+    html=`<div class="party-card invite">
+      <div class="party-title">🤝 ${escHtml(_partyInvite.leaderName||'Draugas')} kviečia į komandą!</div>
+      <div class="party-sub">Prisijungti gali tik būdamas šalia (≤100 m)</div>
+      <div class="party-actions">
+        <button class="auth-btn" onclick="acceptParty()">✓ Prisijungti</button>
+        <button class="fr-mini-btn" onclick="declineParty()">✕ Atmesti</button>
+      </div>
+    </div>`;
+  }else if(_party&&_party.status==='pending'){
+    html=`<div class="party-card">
+      <div class="party-title">⏳ Laukiama ${escHtml(_party.partnerName||'draugo')}...</div>
+      <div class="party-sub">Draugas turi atsidaryti programėlę ir patvirtinti būdamas šalia tavęs</div>
+      <div class="party-actions"><button class="fr-mini-btn" onclick="cancelParty()">✕ Atšaukti</button></div>
+    </div>`;
+  }else if(partyIsActive(_party)){
+    const other=_party.leader===user.uid?_party.partnerName:_party.leaderName;
+    const mins=Math.max(0,Math.round((_party.expiresMs-Date.now())/60000));
+    const cnt=(_party.collects||[]).length;
+    html=`<div class="party-card active">
+      <div class="party-title">🤝 Komanda su ${escHtml(other||'draugu')}</div>
+      <div class="party-sub">⏱ liko ${Math.floor(mins/60)}h ${mins%60}min · 📍 surinkta kartu: ${cnt}</div>
+      <div class="party-actions">
+        <button class="fr-mini-btn" onclick="checkPartyState()">🔄 Atnaujinti</button>
+        <button class="fr-mini-btn" onclick="endParty()">🏁 Baigti</button>
+      </div>
+      <div class="party-info-toggle" onclick="this.nextElementSibling.classList.toggle('open')">ⓘ Kaip veikia komanda?</div>
+      <div class="party-info">${partyInfoHtml()}</div>
+    </div>`;
+  }
+  el.innerHTML=html;
+}
+
+function partyInfoHtml(){
+  return `<ul>
+    <li>Komandą sudaro <b>2 draugai</b>.</li>
+    <li>Pradėti galima tik <b>būnant kartu</b> (≤100 m atstumu).</li>
+    <li>Komanda veikia <b>3 valandas</b>.</li>
+    <li>Kol komanda aktyvi, <b>vieno surinktos vietos atitenka abiem</b> (kartu su XP).</li>
+    <li>Draugo telefonas gali likti kišenėje — vietos įsirašys, kai jis atsidarys programėlę.</li>
+    <li>Sąžiningas žaidimas: komanda skirta tyrinėti <b>kartu</b>. 🙂</li>
+  </ul>`;
+}
+
+async function acceptParty(){
+  const p=_partyInvite;
+  const user=window._fbUser;
+  if(!p||!user) return;
+  if(userLat===null){toast('📍 Įjunk GPS, kad patvirtintum','info');return;}
+  if(Date.now()>(p.createdMs||0)+PARTY_INVITE_VALID_MS){toast('⌛ Kvietimas nebegalioja','info');_partyInvite=null;renderPartyBox();return;}
+  const d=dist(userLat,userLng,p.lLat,p.lLng);
+  if(d>PARTY_JOIN_RADIUS){
+    const lbl=d<1000?`${Math.round(d)} m`:`${(d/1000).toFixed(1)} km`;
+    toast(`📍 Per toli nuo draugo (${lbl}) — turite būti kartu!`,'info');
+    return;
+  }
+  const{db,doc,updateDoc}=window._fb||{};
+  try{
+    await updateDoc(doc(db,'parties',p.id),{status:'active',pJoinedMs:Date.now()});
+    _party={...p,status:'active',pJoinedMs:Date.now()};
+    _partyInvite=null;
+    localStorage.setItem('ss_party_id',p.id);
+    startPartyPoll();
+    renderPartyBox();
+    toast(`🤝 Komanda su ${p.leaderName} aktyvi! Geros medžioklės!`,'gold');
+  }catch(e){console.error('acceptParty',e);toast('Nepavyko prisijungti 😕','info');}
+}
+
+async function declineParty(){
+  const p=_partyInvite;
+  if(!p) return;
+  const{db,doc,updateDoc}=window._fb||{};
+  try{
+    await updateDoc(doc(db,'parties',p.id),{status:'declined'});
+    _partyInvite=null;
+    renderPartyBox();
+  }catch(e){console.error('declineParty',e);}
+}
+
+async function cancelParty(){
+  const p=_party;
+  if(!p||p.status!=='pending') return;
+  const{db,doc,updateDoc}=window._fb||{};
+  try{
+    await updateDoc(doc(db,'parties',p.id),{status:'declined'});
+    _party=null;
+    localStorage.removeItem('ss_party_id');
+    renderPartyBox();
+  }catch(e){console.error('cancelParty',e);}
+}
+
+async function endParty(){
+  const p=_party;
+  if(!p) return;
+  const{db,doc,updateDoc}=window._fb||{};
+  try{
+    await updateDoc(doc(db,'parties',p.id),{status:'ended',endedMs:Date.now()});
+    _party=null;
+    stopPartyPoll();
+    localStorage.removeItem('ss_party_id');
+    renderPartyBox();
+    toast('🏁 Komanda baigta','info');
+  }catch(e){console.error('endParty',e);}
+}
+
+// Called from collectCurrent after a successful collect.
+function partyPushCollect(spot,xp){
+  if(!partyIsActive(_party))return;
+  const user=window._fbUser;
+  if(!user||!spot)return;
+  const{db,doc,updateDoc,arrayUnion}=window._fb||{};
+  if(!db||!arrayUnion)return;
+  const entry={id:spot.id,c:activeCountry,by:user.uid,ts:Date.now(),xp:xp||20,n:spot.name||''};
+  _party.collects=(_party.collects||[]);_party.collects.push(entry);
+  updateDoc(doc(db,'parties',_party.id),{collects:arrayUnion(entry)}).catch(()=>{});
+}
+
+// Apply teammate collects from a party doc. Idempotent — spots already in
+// `found` are skipped, so this can run repeatedly and from ended parties.
+function applyPartyCollects(p){
+  const user=window._fbUser;
+  if(!user||!p)return;
+  const list=p.collects||[];
+  let applied=0,xpSum=0;
+  const prevLvl=getPlayerLevel(totalXP);
+  for(const c of list){
+    if(!c||c.by===user.uid)continue;
+    if((c.ts||0)>(p.expiresMs||0))continue; // outside the trust window
+    const set=foundByCountry[c.c]||null;
+    if(!set||set.has(c.id))continue;
+    set.add(c.id);
+    applied++;xpSum+=(c.xp||20);
+  }
+  if(!applied)return;
+  addXP(xpSum); // handles save + updateAll + level-up overlay + Firestore sync
+  showXPBurst(xpSum);
+  if(getPlayerLevel(totalXP)>prevLvl)_spotLevelMap=null;
+  refreshMarkers();
+  setTimeout(checkBadges,500);
+  toast(`🤝 Komanda: +${applied} ${applied===1?'vieta':'vietos'} (+${xpSum} XP)`,'gold');
+}
+
+function startPartyPoll(){
+  if(_partyPollTimer)return;
+  _partyPollTimer=setInterval(async()=>{
+    if(document.visibilityState!=='visible')return;
+    if(!partyIsActive(_party)){stopPartyPoll();renderPartyBox();return;}
+    const{db,doc,getDoc}=window._fb||{};
+    if(!db)return;
+    try{
+      const snap=await getDoc(doc(db,'parties',_party.id));
+      if(snap.exists()){
+        _party={id:snap.id,...snap.data()};
+        applyPartyCollects(_party);
+        if(!partyIsActive(_party)){stopPartyPoll();}
+        renderPartyBox();
+      }
+    }catch(e){}
+  },PARTY_POLL_MS);
+}
+function stopPartyPoll(){if(_partyPollTimer){clearInterval(_partyPollTimer);_partyPollTimer=null;}}
+
+// The pocket-phone moment: partner opens the app → sync party immediately.
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&window._fbUser)checkPartyState();
+});
 
 // ═══════════ EDITOR ═══════════
 
@@ -7408,7 +7976,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v33';
+const CACHE='spotseekers-v34';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -7492,6 +8060,7 @@ window.onFbAuthReady=async function(user){
     updateAuthUI(user);
     fbLoadSpots();
     fbLoadUserProgress(user.uid);
+    checkPartyState(); // pending invites + apply teammate party collects
     // Re-render social panel so leaderboard shows immediately after login
     const socialPanel=document.getElementById('panel-social');
     if(socialPanel&&socialPanel.innerHTML) renderSocial();
@@ -7859,6 +8428,10 @@ async function fbLoadUserProgress(uid){
       if(d.streak!==undefined) streak=d.streak;
       if(d.lastDate) lastDate=d.lastDate;
       if(d.totalXP!==undefined) totalXP=d.totalXP;
+      if(d.weekKey!==undefined){weekKey=d.weekKey;weekXP=d.weekXP||0;}
+      if(d.monthKey!==undefined){monthKey=d.monthKey;monthXP=d.monthXP||0;}
+      rolloverPeriods();
+      if(d.friendCode) myFriendCode=d.friendCode;
       if(d.notes) notes=d.notes;
       if(d.earnedBadges) earnedBadges=new Set(d.earnedBadges);
       if(d.dailyLog) dailyLog=d.dailyLog;
@@ -7885,12 +8458,14 @@ async function fbSaveUserProgress(){
       found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},
       foundCount:foundByCountry.LT.size+foundByCountry.PL.size, // total across all countries
       streak,lastDate,totalXP,notes,
+      weekKey,weekXP,monthKey,monthXP,
+      ...(myFriendCode?{friendCode:myFriendCode}:{}),
       earnedBadges:[...earnedBadges],
       playerName,
       dailyLog,activeDaysTotal,bestDay,
       photoURL:user.photoURL||null,
       updatedAt:serverTimestamp()
-    });
+    },{merge:true}); // merge — a full replace here silently wiped any field not listed above
   } catch(e){
     console.error('fbSaveUserProgress',e);
   }
@@ -7908,6 +8483,7 @@ save=function(){
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
   localStorage.setItem('ke7_xp',totalXP);
+  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP}));
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
