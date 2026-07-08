@@ -944,31 +944,6 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .ob-text{font-size:.88rem;color:var(--td);line-height:1.65;margin-bottom:32px}
 .ob-btn{width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:14px;padding:14px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;margin-bottom:12px}
 .ob-skip{font-size:.75rem;color:var(--tm);cursor:pointer;padding:4px}
-.route-card{margin:10px 14px;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s;-webkit-user-select:none;user-select:none}
-.route-card:active{transform:scale(.98)}
-.rc-head{padding:12px 14px 8px}
-.rc-emoji{font-size:20px;margin-bottom:4px}
-.rc-name{font-family:'Playfair Display',serif;font-size:.92rem;color:var(--txt);margin-bottom:2px}
-.rc-desc{font-size:.72rem;color:var(--td);line-height:1.5;margin-bottom:7px}
-.rc-meta{display:flex;gap:6px;flex-wrap:wrap}
-.rc-chip{background:var(--surf);border:1px solid var(--bdr);border-radius:20px;padding:2px 8px;font-family:'DM Mono',monospace;font-size:.6rem;color:var(--td)}
-.rc-stops{padding:8px 14px}
-.rc-stop{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:.75rem;color:var(--td)}
-.rc-stop-dot{width:7px;height:7px;border-radius:50%;background:var(--bdr);flex-shrink:0}
-.rc-stop.done .rc-stop-dot{background:var(--gold)}
-.rc-stop.locked-stop{color:var(--tm)}
-.rc-prog{height:2px;background:var(--bdr);border-radius:1px;margin:6px 0 0;overflow:hidden}
-.rc-pf{height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:1px;transition:width .5s}
-.start-route-btn{width:calc(100% - 28px);margin:0 14px 12px;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.83rem;cursor:pointer}
-.start-route-btn:active{transform:scale(.98)}
-.route-bar{position:fixed;bottom:0;left:0;right:0;z-index:195;background:var(--surf);border-top:1px solid var(--gold);padding:10px 16px;display:none;align-items:center;gap:10px;box-shadow:0 -4px 20px var(--sh)}
-.route-bar.active{display:flex}
-.rb-info{flex:1}
-.rb-label{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gd);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
-.rb-name{font-size:.85rem;font-weight:600;color:var(--txt)}
-.rb-stop{font-family:'DM Mono',monospace;font-size:.62rem;color:var(--td)}
-.rb-btn{background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer}
-.rb-end{background:none;border:1px solid var(--bdr);color:var(--td);border-radius:8px;padding:8px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer}
 .rb-stop-pulse{color:var(--gold);animation:rbPulse 1.5s infinite}
 @keyframes rbPulse{0%,100%{opacity:1}50%{opacity:.5}}
 </style>
@@ -2048,6 +2023,7 @@ let routes=[],activeRouteId=null,routeFilterActive=false,_routePolyline=null;
 let _routeEditMode=false,_routeEditRouteId=null;
 let _tpStart=null,_tpDest=null,_tpPreview=null,_tpPreviewLayer=null;
 let _tpUI={cats:[],mode:'car',shape:'loop',time:120};
+let _tpExpanded=false;
 let isDark=false;
 // Filter: Set of HIDDEN category ids. Empty = show all. Toggle-off model.
 let activeFilterHidden=new Set();
@@ -2898,7 +2874,7 @@ async function showRouteTo(spot){
     _routeSteps=(route.legs&&route.legs[0]&&route.legs[0].steps)||[];
     drewReal=true;
     const km=(route.distance/1000).toFixed(1), min=Math.round(route.duration/60);
-    setTimeout(()=>toast(`🧭 ${km} km · ~${min} min. važiuojant`,'success'),300);
+    setTimeout(()=>toast(`🧭 ${km} km · ~${min} min. automobiliu`,'success'),300);
   }catch(e){
     _routeLayer=L.polyline([[userLat,userLng],[spot.lat,spot.lng]],{color:'#c9a84c',weight:4,opacity:.7,dashArray:'8,8'}).addTo(map);
     _routeSteps=null;
@@ -3656,7 +3632,7 @@ const HELP_SECTIONS=[
     <p>Meniu apačioje gali perjungti šalį (🇱🇹 Lietuva / 🇵🇱 Polska). Kiekvienos šalies pažanga skaičiuojama atskirai.</p>`},
   {id:'routes',icon:'🧭',title:'Maršrutai ir auto. planuoklis',teaser:'Susiplanuok kelionę arba leisk tai padaryti programai',html:`
     <h4>🗺 Maršrutai</h4>
-    <p>Iš vietos kortelės gali pridėti tašką į maršrutą. Maršrute taškus pertvarkyk, optimizuok (apskaičiuojamas trumpiausias kelias tikrais keliais) ir keliauk su navigacija — viršuje matysi, kur sukti toliau.</p>
+    <p>Iš vietos kortelės gali pridėti tašką į maršrutą. Maršrute taškus pertvarkyk, optimizuok (stotelės išrikiuojamos trumpiausia tvarka) ir keliauk su navigacija — viršuje matysi, kur sukti toliau.</p>
     <h4>⚡ Automatinis maršrutas</h4>
     <p>Nenori planuoti pats? Atidaryk <strong>Maršrutai</strong> ir naudok automatinį planuoklį:</p>
     <ul>
@@ -7304,8 +7280,7 @@ function _tpPlannerHTML(){
     ?"flex:1;background:var(--gold);color:#0e0c09;border:1px solid var(--gold);border-radius:8px;padding:8px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif"
     :"flex:1;background:var(--surf2);color:var(--td);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-size:.8rem;cursor:pointer;font-family:'DM Sans',sans-serif";
   setTimeout(_tpUpdateEstimate,30);
-  return `<div id="tpPlanner" style="margin:14px 14px 0;padding-top:14px;border-top:1px solid var(--bdr)">
-    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">⚡ Automatinis maršrutas</div>
+  return `<div id="tpPlanner" style="margin:10px 14px 4px">
     <button onclick="_tpOpenCats()" style="${SS};margin-bottom:8px">${_tpCatLabel()}</button>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button onclick="_tpSetMode('car')" style="${seg(_tpUI.mode==='car')}">🚗 Automobiliu</button>
@@ -7392,16 +7367,17 @@ function _tpPick(which){
   map.once('click',e=>{
     const ll={lat:e.latlng.lat,lng:e.latlng.lng,label:`${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}`};
     if(which==='dest')_tpDest=ll;else _tpStart=ll;
+    _tpExpanded=true;
     b.style.display='none';
     setTimeout(()=>mobNavTo('routes'),150);
     toast(`📍 ${which==='dest'?'Tikslas':'Pradžia'} nustatyta`,'success');
   });
 }
-function _tpUseGps(){_tpStart=null;mobNavTo('routes');toast(userLat!=null?'📍 Naudojama tavo vieta':'Nėra GPS — pasirink pradžią žemėlapyje','info');}
+function _tpUseGps(){_tpStart=null;_tpExpanded=true;mobNavTo('routes');toast(userLat!=null?'📍 Naudojama tavo vieta':'Nėra GPS — pasirink pradžią žemėlapyje','info');}
 
 function tpFromHere(spotId){
   const s=SPOTS.find(x=>String(x.id)===String(spotId));if(!s)return;
-  _tpStart={lat:s.lat,lng:s.lng,label:(s.name||'Ši vieta')};_tpDest=null;_tpUI.shape='loop';
+  _tpStart={lat:s.lat,lng:s.lng,label:(s.name||'Ši vieta')};_tpDest=null;_tpUI.shape='loop';_tpExpanded=true;
   closeSheet&&closeSheet();
   mobNavTo('routes');
   setTimeout(_tpUpdateEstimate,220);
@@ -7414,10 +7390,10 @@ function tpGenerate(){
   const plan=buildTripPlan(o);
   if(!plan||!plan.stops.length){toast('Šiam maršrutui vietų diapazone nėra','info');return;}
   _tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);
-  osrmTripRefine(plan,o).then(ref=>{
+  if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{
     if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;
     plan.stops=ref.stops;const sp=[];plan.stops.forEach(c=>c.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;
-    plan.estKm=ref.km;if(o.mode==='car')plan.estMin=ref.min;plan._osrmCoords=ref.coords;
+    plan.estKm=ref.km;plan.estMin=ref.min;plan._osrmCoords=ref.coords;
     _tpDrawPreview(plan,o);_tpShowPreview();
   });
 }
@@ -7461,7 +7437,7 @@ function _tpShowPreview(){
   el.style.display='flex';
 }
 function tpDiscardPreview(){const el=document.getElementById('tpPreviewSheet');if(el)el.style.display='none';_tpClearPreview();}
-function tpRegenerate(){if(!_tpPreview)return;const o=_tpPreview.opts;const plan=buildTripPlan(o);if(!plan||!plan.stops.length){toast('No spots in range','info');return;}_tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(c=>c.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;if(o.mode==='car')plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});}
+function tpRegenerate(){if(!_tpPreview)return;const o=_tpPreview.opts;const plan=buildTripPlan(o);if(!plan||!plan.stops.length){toast('No spots in range','info');return;}_tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(c=>c.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});}
 function _tpCampaignSig(o){return `${[...o.cats].sort().join(',')}|${o.mode}|${o.shape}`;}
 function _tpCampaignTripCount(sig){return routes.filter(r=>r.campaign&&r.campaign.sig===sig).length;}
 function tpSavePreview(){
@@ -7483,7 +7459,7 @@ function tpSavePreview(){
   routes.push(r);saveRoutes();
   const el=document.getElementById('tpPreviewSheet');if(el)el.style.display='none';
   if(_tpPreviewLayer){try{map.removeLayer(_tpPreviewLayer);}catch(e){}_tpPreviewLayer=null;}
-  _tpPreview=null;
+  _tpPreview=null;_tpExpanded=false;
   setActiveRoute(r.id);renderRoutes();updateAll();
   toast(`✓ Maršrutas išsaugotas: ${r.stops.length} stotelės`,'success');
 }
@@ -7502,7 +7478,7 @@ function tpGenerateNext(routeId){
   if(!plan||!plan.stops.length){toast('🎉 Šioje kampanijoje nesurinktų vietų nebeliko','success');return;}
   closeDrawer();closeMobPanel();
   _tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);
-  osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(cl=>cl.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;if(o.mode==='car')plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});
+  if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(cl=>cl.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});
 }
 
 function loadRoutes(){
@@ -7611,7 +7587,7 @@ async function fetchAndDrawRoute(routeId){
   if(wp.length>25) wp=wp.slice(0,25);
   if(wp.length<2){clearRoutePolyline();return;}
   const coords=wp.map(p=>`${p[1]},${p[0]}`).join(';');
-  try{
+  if(r.mode!=='foot')try{
     const res=await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`,{signal:AbortSignal.timeout(8000)});
     const data=await res.json();
     if(data.routes&&data.routes[0]){
@@ -7783,17 +7759,16 @@ function renderRoutes(){
 function renderRoutesInto(body){
   _routeView='list';
   if(!routes.length){
-    body.innerHTML=`<div style="padding:40px 20px;text-align:center">
-      <div style="font-size:40px;margin-bottom:12px">🗺</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--txt);margin-bottom:8px">Dar nėra maršrutų</div>
-      <div style="font-size:.8rem;color:var(--td);line-height:1.6;margin-bottom:20px">Sukurk maršrutą ir suplanuok kelionę po istorines vietas.</div>
-      <button onclick="promptCreateRoute()" style="background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:10px 22px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer">+ Naujas maršrutas</button>
-    </div>${_buildAutoGenSection()}`;
+    body.innerHTML=`${_buildAutoGenSection()}<div style="padding:30px 20px;text-align:center">
+      <div style="font-size:36px;margin-bottom:10px">🗺</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--txt);margin-bottom:6px">Dar nėra maršrutų</div>
+      <div style="font-size:.8rem;color:var(--td);line-height:1.6;margin-bottom:14px">Sugeneruok maršrutą viršuje — arba susikurk savo.</div>
+      <button onclick="promptCreateRoute()" style="background:none;border:none;color:var(--gold);font-size:.8rem;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;padding:4px">+ Sukurti rankinį maršrutą</button>
+    </div>`;
     return;
   }
-  let h=`<div style="padding:12px 14px 6px;display:flex;align-items:center;justify-content:space-between">
+  let h=`${_buildAutoGenSection()}<div style="padding:12px 14px 2px">
     <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">${routes.length} maršruta${routes.length===1?'s':'i'}</div>
-    <button onclick="promptCreateRoute()" style="background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:5px 12px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer">+ Naujas</button>
   </div>`;
   routes.forEach(r=>{
     const total=r.spots.length;
@@ -7813,11 +7788,29 @@ function renderRoutesInto(body){
       </div>
     </div>`;
   });
-  h+=_buildAutoGenSection();
+  h+=`<div style="padding:4px 14px 16px;text-align:center"><button onclick="promptCreateRoute()" style="background:none;border:none;color:var(--td);font-size:.78rem;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;padding:4px">+ Sukurti rankinį maršrutą</button></div>`;
   body.innerHTML=h;
 }
 
-function _buildAutoGenSection(){ return _tpPlannerHTML(); }
+function _tpToggleExpand(){
+  _tpExpanded=!_tpExpanded;
+  const el=document.getElementById('tpAutoGenWrap');
+  if(el){el.outerHTML=_buildAutoGenSection();if(_tpExpanded)setTimeout(_tpUpdateEstimate,30);}
+}
+function _buildAutoGenSection(){
+  if(!_tpExpanded){
+    return `<div id="tpAutoGenWrap" style="padding:12px 14px 6px;border-bottom:1px solid var(--bdr)">
+      <button onclick="_tpToggleExpand()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.87rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">⚡ Sugeneruok maršrutą <span style="font-size:.68rem;opacity:.7">▾</span></button>
+    </div>`;
+  }
+  return `<div id="tpAutoGenWrap" style="padding:12px 0 8px;border-bottom:1px solid var(--bdr)">
+    <div onclick="_tpToggleExpand()" style="display:flex;align-items:center;justify-content:space-between;padding:0 14px;cursor:pointer;-webkit-user-select:none;user-select:none">
+      <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gold);text-transform:uppercase;letter-spacing:.08em">⚡ Automatinis maršrutas</div>
+      <span style="color:var(--td);font-size:.85rem;padding:2px 6px">▴</span>
+    </div>
+    ${_tpPlannerHTML()}
+  </div>`;
+}
 
 function openRouteDetail(routeId){
   const r=routes.find(rr=>rr.id===routeId);if(!r) return;
@@ -8121,7 +8114,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v36';
+const CACHE='spotseekers-v37';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
