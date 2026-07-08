@@ -119,7 +119,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .logo-sub{font-family:'DM Mono',monospace;font-size:.58rem;color:var(--td);margin-top:1px}
 
 /* ── WEATHER ── */
-.wx-expanded{position:fixed;top:58px;right:12px;z-index:191;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px var(--sh);min-width:180px;display:none}
+.wx-expanded{position:fixed;top:120px;left:12px;z-index:400;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px var(--sh);min-width:180px;display:none}
 .wx-expanded.open{display:block}
 .we-temp{font-family:'Playfair Display',serif;font-size:2rem;color:var(--txt);line-height:1}
 .we-desc{font-size:.75rem;color:var(--td);margin-top:2px;text-transform:capitalize}
@@ -1005,10 +1005,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <!-- FILTERS inline in topbar -->
   <div class="tb-filters" id="filterBar">
     <div class="fcap on" data-cat="all" onclick="setFilter('all')">Visos</div>
+    <div class="fcap" data-cat="none" onclick="setFilter('none')">✕ Nė vienos</div>
     <!-- group pills generated from FILTER_GROUPS by buildDesktopFilterBar() — keeps desktop + mobile in sync -->
   </div>
   <div class="tb-right">
-    <div class="ib wx-ib" id="wxBtn" onclick="toggleWeather()" title="Oras"><span id="wxIcon">🌤</span></div>
     <div class="ib" id="themeBtn" onclick="toggleTheme()" title="Dienos/nakties režimas">☀️</div>
     <div class="ib" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS" style="position:relative"><span id="gpsRefreshIcon">↻</span><span class="gd" id="gpsDot" style="position:absolute;top:8px;right:8px;width:6px;height:6px"></span></div>
     <div class="ib" onclick="centerUser()">📍</div>
@@ -1063,6 +1063,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
           <div style="font-family:'DM Mono',monospace;font-size:.52rem;color:var(--tm);letter-spacing:.06em;margin-top:-2px;opacity:.7">v24.03</div>
           <div class="drawer-sub" id="drawerSub">0 / 0 surinkta · ⭐ 0 XP</div>
           <div class="drawer-sub" id="drawerStreak" style="margin-top:2px;color:var(--gold)">Pradėk seriją!</div>
+          <div class="drawer-sub" id="wxDrawerRow" onclick="toggleWeather()" style="margin-top:3px;cursor:pointer;display:none;-webkit-user-select:none;user-select:none"><span id="wxIcon">🌤</span> <span id="wxTemp">--°</span> · Oras ▸</div>
           <!-- XP progress bar -->
           <div style="margin-top:8px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
@@ -1302,6 +1303,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     </div>
     <div class="mob-filter-chips">
       <div class="mob-filter-chip on" data-cat="all" onclick="mobSetFilter('all')">🗺 Rodyti viską</div>
+      <div class="mob-filter-chip" data-cat="none" onclick="mobSetFilter('none')">✕ Nė vienos</div>
     </div>
     <div id="mobFilterGroups"></div>
   </div>
@@ -2461,10 +2463,21 @@ function makeIcon(spot){
 
   const bg=isF?cat.color:(isDark?'#1a1710':'#fff');
   const ftd=!!spot.featured;
-  const bd=ftd?'#e8c878':(isF?cat.color:(isDark?tc.color:'#bbb'));
-  const ring=`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${ftd?'#e8c878':tc.color},0 3px 10px rgba(0,0,0,.4)`;
+  const editSel=_routeEditMode&&route&&route.spots.includes(String(spot.id));
+  const bd=editSel?'#e8c878':(ftd?'#e8c878':(isF?cat.color:(isDark?tc.color:'#bbb')));
+  const ring=editSel
+    ?`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 4px #e8c878,0 0 14px 4px rgba(232,200,120,.6)`
+    :`box-shadow:0 0 0 2px ${isDark?'#0e0c09':'#f2ede3'},0 0 0 3.5px ${ftd?'#e8c878':tc.color},0 3px 10px rgba(0,0,0,.4)`;
 
-  const circle=`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;${ring}">${cat.emoji}</div>`;
+  const circle=`<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${bd};display:flex;align-items:center;justify-content:center;font-size:15px;${ring}${_routeEditMode&&!editSel?';opacity:.7':''}">${cat.emoji}</div>`;
+
+  if(editSel){
+    return L.divIcon({
+      className:'',
+      html:`<div style="position:relative;width:36px;height:36px">${circle}<div style="position:absolute;top:-7px;right:-7px;width:16px;height:16px;border-radius:50%;background:#e8c878;color:#0e0c09;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none">✓</div></div>`,
+      iconSize:[36,36],iconAnchor:[18,18],
+    });
+  }
 
   if(ftd){
     return L.divIcon({
@@ -2566,6 +2579,8 @@ function setFilter(cat){
   // Toggle-off model: 'all' resets everything; otherwise toggle the cat in/out of hidden set
   if(cat==='all'){
     activeFilterHidden.clear();
+  } else if(cat==='none'){
+    activeFilterHidden=new Set(Object.keys(CATS));
   } else {
     if(activeFilterHidden.has(cat)) activeFilterHidden.delete(cat);
     else activeFilterHidden.add(cat);
@@ -2915,7 +2930,9 @@ function fetchWeather(lat,lng){
       const c=d.current;
       const temp=Math.round(c.temperature_2m);
       const icon=wxIcon(c.weather_code);
-      document.getElementById('wxIcon').textContent=icon;
+      const wi=document.getElementById('wxIcon');if(wi)wi.textContent=icon;
+      const wt=document.getElementById('wxTemp');if(wt)wt.textContent=`${temp}°C`;
+      const wr=document.getElementById('wxDrawerRow');if(wr)wr.style.display='block';
       document.getElementById('weTemp').textContent=`${temp}°C`;
       document.getElementById('weIcon').textContent=icon;
       document.getElementById('weDesc').textContent=wxDesc(c.weather_code);
@@ -2929,16 +2946,14 @@ function wxDesc(c){if(c===0)return'Giedra';if(c<=2)return'Iš dalies debesuota';
 function toggleWeather(){
   wxOpen=!wxOpen;
   document.getElementById('wxExpanded').classList.toggle('open',wxOpen);
-  document.getElementById('wxBtn').classList.toggle('on',wxOpen);
   if(wxOpen) setTimeout(()=>document.addEventListener('click',closeWxOut,true),50);
 }
 function closeWxOut(e){
   const exp=document.getElementById('wxExpanded');
-  const btn=document.getElementById('wxBtn');
-  if(!exp.contains(e.target)&&!btn.contains(e.target)){
+  const row=document.getElementById('wxDrawerRow');
+  if(!exp.contains(e.target)&&!(row&&row.contains(e.target))){
     wxOpen=false;
     exp.classList.remove('open');
-    btn.classList.remove('on');
     document.removeEventListener('click',closeWxOut,true);
   }
 }
@@ -3154,6 +3169,7 @@ function openSheet(spot){
     const key=String(spot.id);
     if(route.spots.includes(key)){removeSpotFromRoute(key);toast(`－ ${spot.name||'Vieta'}`,'info');}
     else{addSpotToRoute(key);toast(`＋ ${spot.name||'Vieta'}`,'success');}
+    const mk=markers[spot.id];if(mk)mk.setIcon(makeIcon(spot));
     return;
   }
   // hidden spots: only open if already found
@@ -4910,7 +4926,7 @@ async function loadFriendPanel(){
     }
   }catch(e){
     console.error('loadFriendPanel',e);
-    if(listEl)listEl.innerHTML='<div class="lb-empty">Nepavyko įkelti 😕</div>';
+    if(listEl)listEl.innerHTML=`<div class="lb-empty">Nepavyko įkelti 😕${e&&e.code==='permission-denied'?'<div style="font-size:.62rem;color:var(--tm);margin-top:4px">(prieigos klaida — Firestore taisyklės)</div>':''}<br><button onclick="loadFriendPanel()" style="margin-top:8px;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:6px 14px;color:var(--td);font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif">↻ Bandyti dar kartą</button></div>`;
   }
 }
 
@@ -7622,6 +7638,7 @@ function startRouteEditMode(){
   }
   banner.innerHTML=`<span style="flex:1">🗺 Bakstelėk vietas žemėlapyje — pridėsi ar pašalinsi</span><button onclick="exitRouteEditMode()" style="background:#0e0c09;color:var(--gold);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer">Baigta ✓</button>`;
   banner.style.display='flex';
+  refreshMarkers();
 }
 function exitRouteEditMode(){
   const banner=document.getElementById('routeEditBanner');
@@ -7632,6 +7649,7 @@ function exitRouteEditMode(){
     _autoOptimize();delete route.distKm;saveRoutes();
     clearRoutePolyline();if(route.spots.length>=2)fetchAndDrawRoute();
   }
+  refreshMarkers();
   renderRoutes();updateRouteBar();updateAll();
 }
 
@@ -7978,7 +7996,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v38';
+const CACHE='spotseekers-v39';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
