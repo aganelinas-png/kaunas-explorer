@@ -1134,6 +1134,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;padding:2px 4px 6px">Admin įrankiai</div>
         <div onclick="rebuildKVCache()" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔄 Atnaujinti KV talpyklą</div>
         <div onclick="removeOutsideLT()" style="padding:9px 12px;border-radius:8px;background:rgba(140,74,74,.1);border:1px solid var(--red);color:var(--red);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🌍 Trinti vietas už LT ribų</div>
+        <div onclick="removeAbandonedSpots()" style="padding:9px 12px;border-radius:8px;background:rgba(140,74,74,.1);border:1px solid var(--red);color:var(--red);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🏚 Trinti abandoned/urbex vietas</div>
         <div onclick="autoDeleteAllDuplicates()" style="padding:9px 12px;border-radius:8px;background:rgba(140,74,74,.1);border:1px solid var(--red);color:var(--red);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔍 Valyti dublikatus (50m · 80% vardo)</div>
       </div>
     </div>
@@ -6575,13 +6576,43 @@ function _nameSim(a,b){
 }
 const NAME_SIM_THRESHOLD=0.8;
 
-// Delete spots whose coordinates fall outside the Lithuania bounding box.
-// Scope: LT-view spots only (country==='LT' or no country) — leaves legit PL data alone.
+// Delete corrupted abandoned/urbex import spots (cat or name/desc keyword match).
+const ABANDONED_CATS=['abandoned','urbex','ruins','derelict'];
+const ABANDONED_KEYWORDS=['abandoned','urbex'];
+function _isAbandonedSpot(s){
+  const cat=(s.cat||'').toLowerCase();
+  if(ABANDONED_CATS.includes(cat)) return true;
+  const txt=((s.name||'')+' '+(s.desc||'')).toLowerCase();
+  return ABANDONED_KEYWORDS.some(k=>txt.includes(k));
+}
+async function removeAbandonedSpots(){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
+  const bad=SPOTS.filter(_isAbandonedSpot);
+  if(!bad.length){toast('✅ Abandoned/urbex vietų nerasta','success');return;}
+  const sample=bad.slice(0,12).map(s=>`• ${s.name||'—'} [${s.cat||'?'}]`).join('\n');
+  if(!confirm(`Rasta ${bad.length} abandoned/urbex vietų:\n\n${sample}${bad.length>12?`\n…ir dar ${bad.length-12}`:''}\n\n⚠ NEGRĮŽTAMA. Ištrinti visas ${bad.length}?`)) return;
+  toast(`⏳ Trinama ${bad.length}...`,'info');
+  let deleted=0,failed=0;
+  for(const s of bad){
+    const fid=s._fid||s.id;
+    if(!fid){failed++;continue;}
+    try{
+      await fbDeleteSpot(fid);
+      SPOTS=SPOTS.filter(x=>x._fid!==fid&&String(x.id)!==String(fid));
+      deleted++;
+      if(deleted%20===0) toast(`⏳ ${deleted}/${bad.length}...`,'info');
+    }catch(e){failed++;console.error('removeAbandonedSpots',fid,e);}
+    await new Promise(r=>setTimeout(r,100));
+  }
+  refreshMarkers();updateAll();
+  toast(`✅ Ištrinta ${deleted}${failed?`, nepavyko ${failed}`:''}. Atnaujink KV talpyklą!`,'success');
+}
+
+// Delete spots whose coordinates fall outside the Lithuania bounding box — ALL spots, any country.
 async function removeOutsideLT(){
   if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
   const b=COUNTRY_CONFIG.LT.bounds;
   const outside=SPOTS.filter(s=>
-    (s.country==='LT'||!s.country) &&
     typeof s.lat==='number' && typeof s.lng==='number' &&
     (s.lat<b.minLat||s.lat>b.maxLat||s.lng<b.minLng||s.lng>b.maxLng)
   );
@@ -8035,7 +8066,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v41';
+const CACHE='spotseekers-v43';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
