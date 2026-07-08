@@ -1109,6 +1109,10 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
         <span class="dnav-badge" id="socialBadge" style="display:none">!</span>
         <span class="dnmi-arrow">›</span>
       </div>
+      <div class="dnav-main-item" onclick="openSubPanel('leaderboard')">
+        <span class="dnmi-icon">🏆</span><span class="dnmi-label">Lyderių lentelė</span>
+        <span class="dnmi-arrow">›</span>
+      </div>
       <!-- Suggest spot — authenticated users only -->
       <div class="dnav-main-item" id="suggestNavItem" style="display:none" onclick="closeDrawer();openSuggestModal()">
         <span class="dnmi-icon">📍</span><span class="dnmi-label">Siūlyti vietą</span><span class="dnmi-arrow">›</span>
@@ -1129,6 +1133,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div id="adminDataSection" style="display:none;margin-top:8px;border-top:1px solid var(--bdr);padding-top:8px">
         <div style="font-family:'DM Mono',monospace;font-size:.58rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em;padding:2px 4px 6px">Admin įrankiai</div>
         <div onclick="rebuildKVCache()" style="padding:9px 12px;border-radius:8px;background:rgba(74,140,92,.12);border:1px solid var(--green);color:var(--green);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔄 Atnaujinti KV talpyklą</div>
+        <div onclick="removeOutsideLT()" style="padding:9px 12px;border-radius:8px;background:rgba(140,74,74,.1);border:1px solid var(--red);color:var(--red);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🌍 Trinti vietas už LT ribų</div>
+        <div onclick="autoDeleteAllDuplicates()" style="padding:9px 12px;border-radius:8px;background:rgba(140,74,74,.1);border:1px solid var(--red);color:var(--red);font-size:.78rem;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:8px">🔍 Valyti dublikatus (50m · 80% vardo)</div>
       </div>
     </div>
     <div class="drawer-bottom" style="flex-shrink:0">
@@ -1160,6 +1166,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="panel-section" id="panel-routes"></div>
       <div class="panel-section" id="panel-zenklai"></div>
       <div class="panel-section" id="panel-social"></div>
+      <div class="panel-section" id="panel-leaderboard"></div>
       <div class="panel-section" id="panel-osm"></div>
       <div class="panel-section" id="panel-reviews"></div>
       <div class="panel-section" id="panel-suggestions"></div>
@@ -2980,6 +2987,7 @@ const PANEL_TITLES={
   routes:'🗺 Maršrutai',
   zenklai:'🏅 Ženkleliai',
   social:'👥 Draugai',
+  leaderboard:'🏆 Lyderių lentelė',
   osm:'🗺 OSM Import',
   reviews:'💬 Atsiliepimai',
   suggestions:'📬 Vartotojų siūlymai',
@@ -2988,7 +2996,7 @@ const PANEL_TITLES={
 
 function openSubPanel(name){
   if(name==='zenklai'){openAchievements();return;}
-  ['aboutme','vietos','routes','zenklai','social','osm','reviews','suggestions','mysuggestions'].forEach(p=>{
+  ['aboutme','vietos','routes','zenklai','social','leaderboard','osm','reviews','suggestions','mysuggestions'].forEach(p=>{
     document.getElementById('panel-'+p).classList.toggle('active',p===name);
   });
   document.getElementById('drawerSubTitle').textContent=PANEL_TITLES[name]||'';
@@ -2998,6 +3006,7 @@ function openSubPanel(name){
   if(name==='routes') renderRoutes();
   if(name==='zenklai') renderBadges();
   if(name==='social') renderSocial();
+  if(name==='leaderboard') renderLeaderboard();
   if(name==='osm') renderOsmImport();
   if(name==='reviews') renderReviews();
   if(name==='suggestions') renderAdminSuggestions();
@@ -4479,32 +4488,9 @@ let _lbPeriod='week'; // 'week' | 'month' | 'all' — applies to the XP tab only
 
 function renderSocial(){
   const body=document.getElementById('panel-social');
-  const pct=SPOTS.length?Math.round(found.size/SPOTS.length*100):0;
-  const lv=getLevel(totalXP);
-  const badgeCount=[...earnedBadges].length;
   const user=window._fbUser;
 
   body.innerHTML=`<div class="social-section" style="padding-bottom:60px">
-
-    <!-- MY STATS -->
-    <div class="my-stats-card">
-      <div class="msc-title">${lv.icon} Lv.${lv.level} — ${lv.name}</div>
-      <div class="msc-grid">
-        <div class="msc-cell"><div class="msc-val">${found.size}</div><div class="msc-lbl">Vietos</div></div>
-        <div class="msc-cell"><div class="msc-val">${totalXP}</div><div class="msc-lbl">XP</div></div>
-        <div class="msc-cell"><div class="msc-val">${streak}</div><div class="msc-lbl">🔥 Serija</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-        <div class="msc-cell"><div class="msc-val">${badgeCount}</div><div class="msc-lbl">🏅 Ženkleliai</div></div>
-        <div class="msc-cell"><div class="msc-val">${streak}</div><div class="msc-lbl">🔥 Serija</div></div>
-      </div>
-      <div style="margin-top:10px">
-        <div style="height:4px;background:var(--bdr);border-radius:2px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;transition:width .5s"></div>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:.65rem;color:var(--td);margin-top:4px;text-align:right">${pct}% ištyrinėta</div>
-      </div>
-    </div>
 
     <!-- NAME + SHARE -->
     <div class="name-row" style="margin-bottom:6px">
@@ -4549,9 +4535,23 @@ function renderSocial(){
       </div>
       <div id="frRequests"></div>
       <div id="frList" style="margin-bottom:14px"><div class="lb-loading">Kraunama...</div></div>`}
+  </div>`;
 
-    <!-- LEADERBOARD -->
-    <div class="social-title" style="margin-bottom:8px">🏆 Lyderių lentelė</div>
+  document.getElementById('socialBadge').style.display='none';
+  if(user){
+    ensureFriendCode(false);
+    loadFriendPanel();
+    checkPartyState();
+  }
+}
+
+// ── Leaderboard panel (split from Draugai) ──
+function renderLeaderboard(){
+  const body=document.getElementById('panel-leaderboard');
+  if(!body) return;
+  const user=window._fbUser;
+
+  body.innerHTML=`<div class="social-section" style="padding-bottom:60px">
     ${!user?`
       <div class="lb-login-prompt">
         <div class="lp-icon">🏆</div>
@@ -4572,23 +4572,17 @@ function renderSocial(){
     <div id="lbList" style="padding-bottom:40px"><div class="lb-loading">Kraunama...</div></div>
   </div>`;
 
-  document.getElementById('socialBadge').style.display='none';
-  if(user){
-    loadLeaderboard();
-    ensureFriendCode(false);
-    loadFriendPanel();
-    checkPartyState();
-  }
+  if(user) loadLeaderboard();
 }
 
 function setLbTab(tab){
   _lbTab=tab;
-  renderSocial();
+  renderLeaderboard();
 }
 
 function setLbPeriod(p){
   _lbPeriod=p;
-  renderSocial();
+  renderLeaderboard();
 }
 
 const LB_CACHE_KEY='ss_lb_cache';
@@ -6512,7 +6506,7 @@ function findDuplicateSpots(){
       if(b.cat!==a.cat) continue;
       const dlat=Math.abs(a.lat-b.lat);
       const dlng=Math.abs(a.lng-b.lng);
-      if(dlat<DEG_50M&&dlng<DEG_50M){
+      if(dlat<DEG_50M&&dlng<DEG_50M&&_nameSim(a.name,b.name)>=NAME_SIM_THRESHOLD){
         group.push(b);
         used.add(j);
       }
@@ -6565,9 +6559,54 @@ function _spotScore(s){
   return score;
 }
 
+// Normalised name similarity (0..1) — Levenshtein-based
+function _nameSim(a,b){
+  a=(a||'').trim().toLowerCase();b=(b||'').trim().toLowerCase();
+  if(!a||!b) return 0;
+  if(a===b) return 1;
+  const m=a.length,n=b.length;
+  const d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++) d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){
+    const c=a[i-1]===b[j-1]?0:1;
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);
+  }
+  return 1-d[m][n]/Math.max(m,n);
+}
+const NAME_SIM_THRESHOLD=0.8;
+
+// Delete spots whose coordinates fall outside the Lithuania bounding box.
+// Scope: LT-view spots only (country==='LT' or no country) — leaves legit PL data alone.
+async function removeOutsideLT(){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');return;}
+  const b=COUNTRY_CONFIG.LT.bounds;
+  const outside=SPOTS.filter(s=>
+    (s.country==='LT'||!s.country) &&
+    typeof s.lat==='number' && typeof s.lng==='number' &&
+    (s.lat<b.minLat||s.lat>b.maxLat||s.lng<b.minLng||s.lng>b.maxLng)
+  );
+  if(!outside.length){toast('✅ Vietų už LT ribų nerasta','success');return;}
+  const sample=outside.slice(0,12).map(s=>`• ${s.name||'—'} (${s.lat.toFixed(3)}, ${s.lng.toFixed(3)})`).join('\n');
+  if(!confirm(`Rasta ${outside.length} vietų už Lietuvos ribų:\n\n${sample}${outside.length>12?`\n…ir dar ${outside.length-12}`:''}\n\n⚠ Šis veiksmas NEGRĮŽTAMAS. Ištrinti visas ${outside.length}?`)) return;
+  toast(`⏳ Trinama ${outside.length}...`,'info');
+  let deleted=0,failed=0;
+  for(const s of outside){
+    const fid=s._fid||s.id;
+    if(!fid){failed++;continue;}
+    try{
+      await fbDeleteSpot(fid);
+      SPOTS=SPOTS.filter(x=>x._fid!==fid&&String(x.id)!==String(fid));
+      deleted++;
+      if(deleted%20===0) toast(`⏳ ${deleted}/${outside.length}...`,'info');
+    }catch(e){failed++;console.error('removeOutsideLT',fid,e);}
+    await new Promise(r=>setTimeout(r,100));
+  }
+  refreshMarkers();updateAll();
+  toast(`✅ Ištrinta ${deleted}${failed?`, nepavyko ${failed}`:''}. Atnaujink KV talpyklą!`,'success');
+}
+
 async function autoDeleteAllDuplicates(){
   if(!isAdmin()) return;
-  if(!confirm(`Automatiškai ištrinti visus dublikatus?\n\nAlgoritmas paliks geriausią kiekvienos grupės vietą (KPD > Wikidata > OSM, ilgesnis aprašas = geriau).\n\nTęsti?`)) return;
 
   osmSetStatus('🔍 Ieškoma dublikatų...');
   const groups=[];
@@ -6580,7 +6619,7 @@ async function autoDeleteAllDuplicates(){
       if(used.has(j)) continue;
       const b=SPOTS[j];
       if(b.cat!==a.cat) continue;
-      if(Math.abs(a.lat-b.lat)<DEG_50M&&Math.abs(a.lng-b.lng)<DEG_50M){
+      if(Math.abs(a.lat-b.lat)<DEG_50M&&Math.abs(a.lng-b.lng)<DEG_50M&&_nameSim(a.name,b.name)>=NAME_SIM_THRESHOLD){
         group.push({spot:b,idx:j});
         used.add(j);
       }
@@ -6597,19 +6636,19 @@ async function autoDeleteAllDuplicates(){
     return;
   }
 
-  osmSetStatus(`⏳ Rasta ${groups.length} grupių. Trinami dublikatai...`);
-
-  // For each group — keep highest score, delete the rest
+  // Count what will be deleted (keep highest-scored per group)
   const toDelete=[];
   for(const group of groups){
     group.sort((a,b)=>_spotScore(b.spot)-_spotScore(a.spot));
-    // Keep first (highest score), delete rest
     for(let k=1;k<group.length;k++){
       const s=group[k].spot;
       const fid=s._fid||s.id;
       if(fid) toDelete.push(fid);
     }
   }
+
+  const sample=groups.slice(0,8).map(g=>`• ${g[0].spot.name||'—'} ×${g.length}`).join('\n');
+  if(!confirm(`Rasta ${groups.length} dublikatų grupių (50m · ≥80% vardo).\nBus ištrinta ${toDelete.length} vietų, paliktas geriausias kiekvienoje grupėje (KPD > Wikidata > OSM, ilgesnis aprašas):\n\n${sample}${groups.length>8?`\n…ir dar ${groups.length-8} grupių`:''}\n\n⚠ NEGRĮŽTAMA. Tęsti?`)) return;
 
   osmSetStatus(`⏳ Trinami ${toDelete.length} dublikatų...`);
 
@@ -7996,7 +8035,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v39';
+const CACHE='spotseekers-v41';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -8082,9 +8121,11 @@ window.onFbAuthReady=async function(user){
     fbLoadUserProgress(user.uid);
     checkPartyState(); // pending invites + apply teammate party collects
     checkWeeklyChampion(); // credit last week's leaderboard win if any
-    // Re-render social panel so leaderboard shows immediately after login
+    // Re-render social + leaderboard panels so they refresh immediately after login
     const socialPanel=document.getElementById('panel-social');
     if(socialPanel&&socialPanel.innerHTML) renderSocial();
+    const lbPanel=document.getElementById('panel-leaderboard');
+    if(lbPanel&&lbPanel.innerHTML) renderLeaderboard();
   } else {
     updateAuthUI(null);
     fbLoadSpots();
@@ -8347,8 +8388,10 @@ async function rebuildKVCache(){
     // Always fetch fresh from Firestore for rebuild
     await fbLoadSpotsFromFirestore();
     if(btn){btn.textContent='⏳ Siunčiama į KV...';}
-    // Strip Firestore-only fields that aren't needed client-side
-    const spotsToCache=SPOTS.map(s=>({...s}));
+    // Only push spots matching the active country (prevents non-LT spots polluting spots_lt_v1)
+    const spotsToCache=SPOTS
+      .filter(s=>s.country===activeCountry||(activeCountry==='LT'&&!s.country))
+      .map(s=>({...s}));
     const res=await fetch(`/api/admin/rebuild?country=${activeCountry}`,{
       method:'POST',
       headers:{
