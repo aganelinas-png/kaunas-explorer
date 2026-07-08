@@ -395,6 +395,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .social-section{padding:14px}
 .social-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--txt);margin-bottom:4px}
 .social-sub{font-size:.78rem;color:var(--td);margin-bottom:14px;line-height:1.6}
+.social-divider{height:1px;background:var(--bdr);margin:18px 0 16px;opacity:.7}
 .social-btn{width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:12px;padding:14px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--txt);cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:10px;transition:all .2s;-webkit-user-select:none;user-select:none;text-align:left}
 .social-btn:active{background:var(--surf3)}
 .social-btn .sb-icon{font-size:22px;flex-shrink:0}
@@ -4513,11 +4514,17 @@ function renderSocial(){
       </div>
     </button>
 
+    <!-- ═══ KOMANDA (Party) — temporary proximity mode ═══ -->
+    <div class="social-title">🤝 Komanda</div>
+    <div class="social-sub">Laikinas režimas — rinkite vietas kartu, kol esate greta. Trunka 3 val.</div>
     <!-- PARTY (filled async by renderPartyBox) -->
     <div id="partyBox"></div>
 
-    <!-- FRIENDS -->
-    <div class="social-title" style="margin-bottom:8px">👥 Draugai</div>
+    <div class="social-divider"></div>
+
+    <!-- ═══ DRAUGAI (Friends) — persistent social list ═══ -->
+    <div class="social-title">👥 Draugai</div>
+    <div class="social-sub">Nuolatinis sąrašas — kvietimai kodu, statistika, kvietimas į komandą.</div>
     ${!user?`
       <div class="lb-login-prompt" style="margin-bottom:14px">
         <div class="lp-icon">👥</div>
@@ -4839,6 +4846,12 @@ async function sendFriendRequest(){
     const tName=tData.playerName||tData.name||'Seekeris';
     if(tUid===user.uid){toast('🙃 Tai tavo paties kodas','info');return;}
     if(_myFriends.some(f=>f.uid===tUid)){toast(`✓ ${tName} jau tavo draugas`,'info');return;}
+    // Authoritative friendship check — _myFriends cache may be empty if panel
+    // wasn't opened this session (was the duplicate-friendship bug source).
+    const fsDup=await getDocs(query(collection(db,'friendships'),where('members','array-contains',user.uid)));
+    let alreadyFriends=false;
+    fsDup.forEach(d=>{if((d.data().members||[]).includes(tUid))alreadyFriends=true;});
+    if(alreadyFriends){toast(`✓ ${tName} jau tavo draugas`,'info');return;}
     // Already a pending request between us? (both directions)
     const[outSnap,inSnap]=await Promise.all([
       getDocs(query(collection(db,'friendRequests'),where('from','==',user.uid),where('to','==',tUid),where('status','==','pending'))),
@@ -8066,7 +8079,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v43';
+const CACHE='spotseekers-v44';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
