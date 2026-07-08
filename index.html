@@ -2019,11 +2019,10 @@ let streak=0,lastDate=null,notes={},earnedBadges=new Set();
 let dailyLog={},activeDaysTotal=0,bestDay=0;
 const DAILY_LOG_KEEP=21; // days of detail to retain (covers consecutive-day badges)
 let selectedSpot=null,userLat=null,userLng=null;
-let routes=[],activeRouteId=null,routeFilterActive=false,_routePolyline=null;
-let _routeEditMode=false,_routeEditRouteId=null;
+let route=null,_routePolyline=null;
+let _routeEditMode=false;
 let _tpStart=null,_tpDest=null,_tpPreview=null,_tpPreviewLayer=null;
 let _tpUI={cats:[],mode:'car',shape:'loop',time:120};
-let _tpExpanded=false;
 let isDark=false;
 // Filter: Set of HIDDEN category ids. Empty = show all. Toggle-off model.
 let activeFilterHidden=new Set();
@@ -2867,13 +2866,13 @@ async function showRouteTo(spot){
     const res=await fetch(url,{signal:AbortSignal.timeout(12000)});
     if(!res.ok) throw new Error('osrm '+res.status);
     const data=await res.json();
-    const route=data.routes&&data.routes[0];
-    if(!route) throw new Error('no route');
-    const coords=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+    const rt=data.routes&&data.routes[0];
+    if(!rt) throw new Error('no route');
+    const coords=rt.geometry.coordinates.map(c=>[c[1],c[0]]);
     _routeLayer=L.polyline(coords,{color:'#c9a84c',weight:5,opacity:.85,lineCap:'round',lineJoin:'round'}).addTo(map);
-    _routeSteps=(route.legs&&route.legs[0]&&route.legs[0].steps)||[];
+    _routeSteps=(rt.legs&&rt.legs[0]&&rt.legs[0].steps)||[];
     drewReal=true;
-    const km=(route.distance/1000).toFixed(1), min=Math.round(route.duration/60);
+    const km=(rt.distance/1000).toFixed(1), min=Math.round(rt.duration/60);
     setTimeout(()=>toast(`🧭 ${km} km · ~${min} min. automobiliu`,'success'),300);
   }catch(e){
     _routeLayer=L.polyline([[userLat,userLng],[spot.lat,spot.lng]],{color:'#c9a84c',weight:4,opacity:.7,dashArray:'8,8'}).addTo(map);
@@ -3150,6 +3149,13 @@ function showXPBurst(amount){
 // ═══════════ SHEET ═══════════
 
 function openSheet(spot){
+  if(_routeEditMode&&route){
+    if(spot.cat==='hidden'&&!found.has(spot.id)){toast('🔮 Paslėpta vieta','info');return;}
+    const key=String(spot.id);
+    if(route.spots.includes(key)){removeSpotFromRoute(key);toast(`－ ${spot.name||'Vieta'}`,'info');}
+    else{addSpotToRoute(key);toast(`＋ ${spot.name||'Vieta'}`,'success');}
+    return;
+  }
   // hidden spots: only open if already found
   if(spot.cat==='hidden'&&!found.has(spot.id)){
     toast('🔮 Paslėpta vieta — prieik arčiau ir surink!','gold');
@@ -3630,11 +3636,12 @@ const HELP_SECTIONS=[
     </ul>
     <h4>Šalies perjungimas</h4>
     <p>Meniu apačioje gali perjungti šalį (🇱🇹 Lietuva / 🇵🇱 Polska). Kiekvienos šalies pažanga skaičiuojama atskirai.</p>`},
-  {id:'routes',icon:'🧭',title:'Maršrutai ir auto. planuoklis',teaser:'Susiplanuok kelionę arba leisk tai padaryti programai',html:`
-    <h4>🗺 Maršrutai</h4>
-    <p>Iš vietos kortelės gali pridėti tašką į maršrutą. Maršrute taškus pertvarkyk, optimizuok (stotelės išrikiuojamos trumpiausia tvarka) ir keliauk su navigacija — viršuje matysi, kur sukti toliau.</p>
+  {id:'routes',icon:'🧭',title:'Maršrutas ir auto. planuoklis',teaser:'Vienas maršrutas vienu metu — sugeneruok arba susikurk pats',html:`
+    <h4>🗺 Vienas maršrutas</h4>
+    <p>Vienu metu turi <strong>vieną maršrutą</strong>. Jį gali sugeneruoti automatiškai arba susikurti pats: iš vietos kortelės spausk ＋, arba maršruto lange „＋ Pridėti vietų" ir bakstelėk vietas tiesiai žemėlapyje. Stotelių tvarka sutvarkoma automatiškai.</p>
+    <p>Spausk <strong>🧭 Keliauti</strong> — programa ves nuo stotelės prie stotelės, viršuje matysi, kur sukti toliau. Baigei ar nori kito? Spausk ✕ ir kurk naują.</p>
     <h4>⚡ Automatinis maršrutas</h4>
-    <p>Nenori planuoti pats? Atidaryk <strong>Maršrutai</strong> ir naudok automatinį planuoklį:</p>
+    <p>Kai maršruto neturi, <strong>Maršrutai</strong> lange rasi planuoklį:</p>
     <ul>
       <li>Pasirink <strong>kategorijas</strong>, kurias nori aplankyti.</li>
       <li>Būdą: 🚗 Automobiliu arba 🚶 Pėsčiomis.</li>
@@ -5242,6 +5249,7 @@ function deleteSpot(){
 // ═══════════ HEADER ═══════════
 
 function updateAll(){
+  try{updateRouteBar();}catch(e){}
   document.getElementById('topSub').textContent=`${found.size} surinkta · Lv.${getPlayerLevel(totalXP)}`;
   const s=streak||0;
   document.getElementById('streakNum').textContent=s;
@@ -5253,12 +5261,12 @@ function updateAll(){
   renderDrawerStats();
   // Routes badge (drawer)
   const fb=document.getElementById('routesBadge');
-  if(fb){const fc=routes.length;fb.textContent=fc;fb.style.display=fc>0?'inline-flex':'none';}
+  if(fb){fb.textContent='1';fb.style.display=route?'inline-flex':'none';}
   // Mobile bottom nav badges
   const mnf=document.getElementById('mobNavFoundBadge');
   if(mnf){mnf.textContent=found.size;mnf.style.display=found.size>0?'block':'none';}
   const mnfav=document.getElementById('mobNavRoutesBadge');
-  if(mnfav){mnfav.textContent=routes.length;mnfav.style.display=routes.length>0?'block':'none';}
+  if(mnfav){mnfav.textContent='1';mnfav.style.display=route?'block':'none';}
   // Mobile filter icon update
   const mfi=document.getElementById('mobNavFilterIcon');
   const mfl=document.getElementById('mobNavFilterLabel');
@@ -7367,17 +7375,21 @@ function _tpPick(which){
   map.once('click',e=>{
     const ll={lat:e.latlng.lat,lng:e.latlng.lng,label:`${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}`};
     if(which==='dest')_tpDest=ll;else _tpStart=ll;
-    _tpExpanded=true;
     b.style.display='none';
     setTimeout(()=>mobNavTo('routes'),150);
     toast(`📍 ${which==='dest'?'Tikslas':'Pradžia'} nustatyta`,'success');
   });
 }
-function _tpUseGps(){_tpStart=null;_tpExpanded=true;mobNavTo('routes');toast(userLat!=null?'📍 Naudojama tavo vieta':'Nėra GPS — pasirink pradžią žemėlapyje','info');}
+function _tpUseGps(){_tpStart=null;mobNavTo('routes');toast(userLat!=null?'📍 Naudojama tavo vieta':'Nėra GPS — pasirink pradžią žemėlapyje','info');}
 
-function tpFromHere(spotId){
+async function tpFromHere(spotId){
   const s=SPOTS.find(x=>String(x.id)===String(spotId));if(!s)return;
-  _tpStart={lat:s.lat,lng:s.lng,label:(s.name||'Ši vieta')};_tpDest=null;_tpUI.shape='loop';_tpExpanded=true;
+  if(route){
+    const ok=await _uiConfirm({title:'Planuoti naują maršrutą?',message:'Esamas maršrutas bus pakeistas nauju.',ok:'Tęsti'});
+    if(!ok)return;
+    route=null;saveRoutes();clearRoutePolyline();updateRouteBar();updateAll();
+  }
+  _tpStart={lat:s.lat,lng:s.lng,label:(s.name||'Ši vieta')};_tpDest=null;_tpUI.shape='loop';
   closeSheet&&closeSheet();
   mobNavTo('routes');
   setTimeout(_tpUpdateEstimate,220);
@@ -7438,126 +7450,100 @@ function _tpShowPreview(){
 }
 function tpDiscardPreview(){const el=document.getElementById('tpPreviewSheet');if(el)el.style.display='none';_tpClearPreview();}
 function tpRegenerate(){if(!_tpPreview)return;const o=_tpPreview.opts;const plan=buildTripPlan(o);if(!plan||!plan.stops.length){toast('No spots in range','info');return;}_tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(c=>c.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});}
-function _tpCampaignSig(o){return `${[...o.cats].sort().join(',')}|${o.mode}|${o.shape}`;}
-function _tpCampaignTripCount(sig){return routes.filter(r=>r.campaign&&r.campaign.sig===sig).length;}
 function tpSavePreview(){
   if(!_tpPreview)return;const{plan,opts}=_tpPreview;
-  const sig=_tpCampaignSig(opts);
-  const n=_tpCampaignTripCount(sig)+1;
   let label,emoji;
   if(!opts.cats.length){label='Mišrus';emoji='✷';}
   else if(opts.cats.length===1){const c=CATS[opts.cats[0]];label=c?c.label:opts.cats[0];emoji=c?c.emoji:'🗺';}
   else{label=`${opts.cats.length} kategorijų`;emoji='✷';}
-  const r={
-    id:'r_'+Date.now(),name:`${emoji} ${label} · Maršrutas ${n}`.trim(),
+  route={
+    id:'r_'+Date.now(),name:`${emoji} ${label} · Maršrutas`.trim(),
     spots:plan.spots.slice(),
     stops:plan.stops.map(c=>c.spots.map(s=>String(s.id))),
     created:Date.now(),mode:opts.mode,shape:opts.shape,
-    distKm:plan.estKm.toFixed(1),durationMin:plan.estMin,
-    campaign:{sig,cats:opts.cats.slice(),mode:opts.mode,shape:opts.shape}
+    startLat:opts.startLat,startLng:opts.startLng,
+    destLat:opts.destLat,destLng:opts.destLng,
+    distKm:plan.estKm.toFixed(1),durationMin:plan.estMin
   };
-  routes.push(r);saveRoutes();
+  saveRoutes();
   const el=document.getElementById('tpPreviewSheet');if(el)el.style.display='none';
   if(_tpPreviewLayer){try{map.removeLayer(_tpPreviewLayer);}catch(e){}_tpPreviewLayer=null;}
-  _tpPreview=null;_tpExpanded=false;
-  setActiveRoute(r.id);renderRoutes();updateAll();
-  toast(`✓ Maršrutas išsaugotas: ${r.stops.length} stotelės`,'success');
-}
-function tpGenerateNext(routeId){
-  const base=routes.find(r=>r.id===routeId);
-  if(!base||!base.campaign){toast('Tai ne sugeneruotas maršrutas','info');return;}
-  const c=base.campaign;
-  const exclude=new Set();
-  routes.filter(r=>r.campaign&&r.campaign.sig===c.sig).forEach(r=>r.spots.forEach(id=>exclude.add(String(id))));
-  const start=_tpResolveStart();
-  const o={cats:c.cats||[],mode:c.mode,shape:c.shape,budgetMin:base.durationMin||120,
-    startLat:start?start.lat:null,startLng:start?start.lng:null,
-    destLat:_tpDest?_tpDest.lat:null,destLng:_tpDest?_tpDest.lng:null,excludeIds:exclude};
-  if(o.startLat==null){toast('Įjunk GPS arba nustatyk pradžią kitam maršrutui','info');return;}
-  const plan=buildTripPlan(o);
-  if(!plan||!plan.stops.length){toast('🎉 Šioje kampanijoje nesurinktų vietų nebeliko','success');return;}
-  closeDrawer();closeMobPanel();
-  _tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);
-  if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(cl=>cl.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});
+  _tpPreview=null;
+  fetchAndDrawRoute();updateRouteBar();renderRoutes();updateAll();
+  toast(`✓ Maršrutas paruoštas: ${route.stops.length} stotelės`,'success');
+  navigateToNext();
 }
 
+// ═══════════ ROUTE — one journey at a time ═══════════
 function loadRoutes(){
-  try{const r=localStorage.getItem('ke7_routes');routes=r?JSON.parse(r):[];}catch(e){routes=[];}
-  activeRouteId=localStorage.getItem('ke7_activeRoute')||null;
-  // Validate activeRouteId still exists
-  if(activeRouteId&&!routes.find(r=>r.id===activeRouteId)) activeRouteId=null;
+  try{const r=localStorage.getItem('ke7_route');route=r?JSON.parse(r):null;}catch(e){route=null;}
+  if(!route){
+    // Migrate from old multi-route storage (v37 and earlier): keep active (or most recent) route
+    try{
+      const old=JSON.parse(localStorage.getItem('ke7_routes')||'[]');
+      if(Array.isArray(old)&&old.length){
+        const aid=localStorage.getItem('ke7_activeRoute');
+        route=old.find(r=>r&&r.id===aid)||old[old.length-1]||null;
+        if(route){delete route.campaign;saveRoutes();}
+      }
+    }catch(e){}
+    try{localStorage.removeItem('ke7_routes');localStorage.removeItem('ke7_activeRoute');}catch(e){}
+  }
+  if(route&&!Array.isArray(route.spots))route=null;
 }
-
 function saveRoutes(){
-  localStorage.setItem('ke7_routes',JSON.stringify(routes));
-  if(activeRouteId) localStorage.setItem('ke7_activeRoute',activeRouteId);
-  else localStorage.removeItem('ke7_activeRoute');
+  try{
+    if(route)localStorage.setItem('ke7_route',JSON.stringify(route));
+    else localStorage.removeItem('ke7_route');
+  }catch(e){}
+}
+function getActiveRoute(){return route;}
+
+async function renameRoute(){
+  if(!route)return;
+  const name=await _uiPrompt({title:'Pervadinti maršrutą',value:route.name,ok:'Išsaugoti'});
+  if(!name)return;
+  route.name=name.trim();saveRoutes();renderRoutes();updateRouteBar();
 }
 
-function getActiveRoute(){return routes.find(r=>r.id===activeRouteId)||null;}
-
-function createRoute(name){
-  const r={id:'r_'+Date.now(),name:name.trim(),spots:[],created:Date.now()};
-  routes.push(r);saveRoutes();return r;
+async function endActiveRoute(){
+  if(!route)return;
+  const ok=await _uiConfirm({title:'Užbaigti maršrutą?',message:'Maršrutas bus pašalintas. Surinktos vietos liks surinktos.',ok:'Užbaigti',danger:true});
+  if(!ok)return;
+  route=null;saveRoutes();
+  exitRouteEditMode();clearRoutePolyline();updateRouteBar();renderRoutes();updateAll();
 }
 
-async function deleteRoute(id){
-  if(!(await _uiConfirm({title:'Ištrinti maršrutą?',message:'Maršrutas bus pašalintas iš sąrašo. Surinktos vietos liks surinktos.',ok:'Ištrinti',danger:true}))) return;
-  routes=routes.filter(r=>r.id!==id);
-  if(activeRouteId===id){activeRouteId=null;routeFilterActive=false;clearRoutePolyline();}
-  saveRoutes();updateAll();updateRouteBar();refreshMarkers();renderRoutes();
-}
-
-async function renameRoute(id){
-  const r=routes.find(r=>r.id===id);if(!r) return;
-  const name=await _uiPrompt({title:'Pervadinti maršrutą',value:r.name,ok:'Išsaugoti'});
-  if(!name) return;
-  r.name=name;saveRoutes();renderRoutes();updateRouteBar();
-}
-
-function setActiveRoute(id){
-  activeRouteId=id===activeRouteId?null:id; // toggle
-  saveRoutes();updateRouteBar();
-  clearRoutePolyline();
-  if(activeRouteId) fetchAndDrawRoute(activeRouteId);
-  refreshMarkers();updateAll();
-}
-
-function addSpotToRoute(routeId,spotId){
-  const r=routes.find(r=>r.id===routeId);if(!r) return;
+// ── Stop management (auto-ordered, no manual arrows) ──
+function addSpotToRoute(spotId){
+  if(!route)return;
   const key=String(spotId);
-  if(!r.spots.includes(key)) r.spots.push(key);
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();
-  if(routeId===activeRouteId){clearRoutePolyline();if(r.spots.length>=2) fetchAndDrawRoute(routeId);}
+  if(!route.spots.includes(key))route.spots.push(key);
+  delete route.stops;delete route.durationMin;
+  if(!_routeEditMode){
+    _autoOptimize();
+    delete route.distKm;
+    clearRoutePolyline();if(route.spots.length>=2)fetchAndDrawRoute();
+  }
+  saveRoutes();updateRouteBar();updateAll();
 }
-
-function removeSpotFromRoute(routeId,spotId){
-  const r=routes.find(r=>r.id===routeId);if(!r) return;
-  r.spots=r.spots.filter(s=>s!==String(spotId));
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();
-  if(routeId===activeRouteId){clearRoutePolyline();if(r.spots.length>=2) fetchAndDrawRoute(routeId);}
+function removeSpotFromRoute(spotId){
+  if(!route)return;
+  const key=String(spotId);
+  route.spots=route.spots.filter(s=>s!==key);
+  if(route.stops)route.stops=route.stops.map(g=>g.filter(id=>id!==key)).filter(g=>g.length);
+  delete route.durationMin;
+  if(!_routeEditMode){
+    delete route.distKm;
+    clearRoutePolyline();if(route.spots.length>=2)fetchAndDrawRoute();
+  }
+  saveRoutes();updateRouteBar();updateAll();
 }
-
-function moveSpotInRoute(routeId,spotId,dir){
-  const r=routes.find(r=>r.id===routeId);if(!r) return;
-  const idx=r.spots.indexOf(String(spotId));if(idx<0) return;
-  const ni=idx+dir;if(ni<0||ni>=r.spots.length) return;
-  [r.spots[idx],r.spots[ni]]=[r.spots[ni],r.spots[idx]];
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();clearRoutePolyline();
-  if(routeId===activeRouteId&&r.spots.length>=2) fetchAndDrawRoute(routeId);
-  // Re-render detail if open
-  const detEl=document.getElementById('_routeDetailPanel');
-  if(detEl) renderRouteDetailInto(r,detEl.closest('[id^="panel-"],[id="mobPanelBody"]'),routeId);
-}
-
-function optimizeRoute(routeId){
-  const r=routes.find(r=>r.id===routeId);
-  if(!r||r.spots.length<2){toast('At least 2 points needed','info');return;}
-  const objs=r.spots.map(id=>SPOTS.find(s=>String(s.id)===id)).filter(Boolean);
-  if(objs.length<2) return;
+// Silent nearest-neighbour ordering — runs automatically after edits, no button
+function _autoOptimize(){
+  if(!route||route.spots.length<3)return;
+  const objs=route.spots.map(id=>SPOTS.find(s=>String(s.id)===id)).filter(Boolean);
+  if(objs.length<3)return;
   const ordered=[objs[0]];const rem=objs.slice(1);
   while(rem.length>0){
     const last=ordered[ordered.length-1];
@@ -7565,323 +7551,201 @@ function optimizeRoute(routeId){
     rem.forEach((s,i)=>{const d=dist(last.lat,last.lng,s.lat,s.lng);if(d<bd){bd=d;bi=i;}});
     ordered.push(rem.splice(bi,1)[0]);
   }
-  r.spots=ordered.map(s=>String(s.id));
-  delete r.distKm;delete r.durationMin;
-  saveRoutes();clearRoutePolyline();
-  if(routeId===activeRouteId&&r.spots.length>=2) fetchAndDrawRoute(routeId);
-  toast('✓ Maršrutas optimizuotas','success');
-  const detEl=document.getElementById('_routeDetailPanel');
-  if(detEl) renderRouteDetailInto(r,detEl.closest('[id^="panel-"],[id="mobPanelBody"]'),routeId);
+  route.spots=ordered.map(s=>String(s.id));
 }
 
-// OSRM: fetch real road distance + draw polyline on map
-async function fetchAndDrawRoute(routeId){
-  const r=routes.find(rr=>rr.id===routeId);
+// ── OSRM: real road distance + polyline (foot routes keep honest straight line) ──
+async function fetchAndDrawRoute(){
+  const r=route;
   if(!r){clearRoutePolyline();return;}
-  let wp=_routeWaypoints(r);                // stop centroids (<=20) or auto-clustered legacy spots — never 1000
+  let wp=_routeWaypoints(r);
   if(r.startLat!=null){
     wp=[[r.startLat,r.startLng]].concat(wp);
-    if(r.shape==='dest'&&r.destLat!=null) wp=wp.concat([[r.destLat,r.destLng]]);   // end at destination — no loop back
-    else wp=wp.concat([[r.startLat,r.startLng]]);                                  // round trip closes to start
+    if(r.shape==='dest'&&r.destLat!=null)wp=wp.concat([[r.destLat,r.destLng]]);
+    else wp=wp.concat([[r.startLat,r.startLng]]);
   }
-  if(wp.length>25) wp=wp.slice(0,25);
+  if(wp.length>25)wp=wp.slice(0,25);
   if(wp.length<2){clearRoutePolyline();return;}
   const coords=wp.map(p=>`${p[1]},${p[0]}`).join(';');
   if(r.mode!=='foot')try{
     const res=await fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`,{signal:AbortSignal.timeout(8000)});
     const data=await res.json();
-    if(data.routes&&data.routes[0]){
-      const route=data.routes[0];
-      r.distKm=(route.distance/1000).toFixed(1);
+    if(data.routes&&data.routes[0]&&route===r){
+      const rt=data.routes[0];
+      r.distKm=(rt.distance/1000).toFixed(1);
       saveRoutes();updateRouteBar();
       clearRoutePolyline();
-      const ll=route.geometry.coordinates.map(c=>[c[1],c[0]]);
+      const ll=rt.geometry.coordinates.map(c=>[c[1],c[0]]);
       _routePolyline=L.polyline(ll,{color:'#c9a84c',weight:3,opacity:.85,dashArray:'8,6'}).addTo(map);
       return;
     }
   }catch(e){}
-  // Fallback: straight-line through stop waypoints with urban correction
+  if(route!==r)return;
   let total=0;
-  for(let i=0;i<wp.length-1;i++) total+=dist(wp[i][0],wp[i][1],wp[i+1][0],wp[i+1][1]);
+  for(let i=0;i<wp.length-1;i++)total+=dist(wp[i][0],wp[i][1],wp[i+1][0],wp[i+1][1]);
   r.distKm=(total/1000*TRIP_DETOUR).toFixed(1);
   saveRoutes();updateRouteBar();
   clearRoutePolyline();
   _routePolyline=L.polyline(wp,{color:'#c9a84c',weight:2,opacity:.5,dashArray:'4,8'}).addTo(map);
 }
-
 function clearRoutePolyline(){
-  if(_routePolyline){map&&map.removeLayer(_routePolyline);_routePolyline=null;}
+  if(_routePolyline){try{map.removeLayer(_routePolyline);}catch(e){}_routePolyline=null;}
 }
 
+// ── Navigation ──
 function navigateToNext(){
-  const r=getActiveRoute();if(!r) return;
-  const next=r.spots.map(id=>SPOTS.find(s=>String(s.id)===id)).filter(s=>s&&!found.has(s.id))[0];
+  if(!route)return;
+  const next=route.spots.map(id=>SPOTS.find(s=>String(s.id)===id)).filter(s=>s&&!found.has(s.id))[0];
   if(!next){toast('🎉 Visos maršruto stotelės surinktos!','success');return;}
   closeDrawer();closeMobPanel();
   goToSpot(next.id);
 }
-function startRouteNav(routeId){
-  const r=routes.find(x=>x.id===routeId);if(!r) return;
-  if(r.spots.length<1){toast('Šiame maršrute dar nėra stotelių','info');return;}
-  if(activeRouteId!==routeId) setActiveRoute(routeId);  // activate + draw + route bar (same as Save & start)
-  closeDrawer();closeMobPanel();
+function startRouteNav(){
+  if(!route)return;
+  if(!route.spots.length){toast('Maršrute dar nėra stotelių','info');startRouteEditMode();return;}
+  if(!_routePolyline&&route.spots.length>=2)fetchAndDrawRoute();
+  updateRouteBar();
   navigateToNext();
 }
 
-function endActiveRoute(){
-  activeRouteId=null;routeFilterActive=false;
-  clearRoutePolyline();saveRoutes();updateRouteBar();
-  const chip=document.getElementById('routeFilterChip');
-  if(chip) chip.classList.remove('on');
-  refreshMarkers();updateAll();
-}
-
-function startRouteEditMode(routeId){
-  const r=routes.find(rr=>rr.id===routeId);if(!r) return;
-  _routeEditMode=true;_routeEditRouteId=routeId;
-  // Close drawer/panel so map is visible
+// ── Map edit mode: tap spots on the map to add/remove ──
+function startRouteEditMode(){
+  if(!route)return;
+  _routeEditMode=true;
   closeDrawer();closeMobPanel();
-  // Show edit banner
   let banner=document.getElementById('routeEditBanner');
   if(!banner){
     banner=document.createElement('div');
     banner.id='routeEditBanner';
-    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:500;background:var(--gold);color:#0e0c09;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3);font-family:"DM Sans",sans-serif;font-size:.85rem;font-weight:600';
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:600;background:var(--gold);color:#0e0c09;padding:10px 14px;display:flex;align-items:center;gap:10px;font-family:DM Sans,sans-serif;font-size:.8rem;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.3)';
     document.body.appendChild(banner);
   }
-  banner.innerHTML=`<span style="flex:1">🗺 ${r.name} — bakstelėk vietas, kad pridėtum/pašalintum</span><button onclick="exitRouteEditMode()" style="background:#0e0c09;color:var(--gold);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer">Gerai ✓</button>`;
+  banner.innerHTML=`<span style="flex:1">🗺 Bakstelėk vietas žemėlapyje — pridėsi ar pašalinsi</span><button onclick="exitRouteEditMode()" style="background:#0e0c09;color:var(--gold);border:none;border-radius:8px;padding:6px 14px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer">Baigta ✓</button>`;
   banner.style.display='flex';
-  // Refresh all markers to show gold highlights
-  refreshMarkers();
 }
-
 function exitRouteEditMode(){
-  _routeEditMode=false;_routeEditRouteId=null;
   const banner=document.getElementById('routeEditBanner');
-  if(banner) banner.style.display='none';
-  // Refresh markers back to normal
-  refreshMarkers();
+  if(banner)banner.style.display='none';
+  if(!_routeEditMode)return;
+  _routeEditMode=false;
+  if(route){
+    _autoOptimize();delete route.distKm;saveRoutes();
+    clearRoutePolyline();if(route.spots.length>=2)fetchAndDrawRoute();
+  }
+  renderRoutes();updateRouteBar();updateAll();
 }
 
 function updateRouteBar(){
-  const bar=document.getElementById('routeBar');if(!bar) return;
-  const r=getActiveRoute();
-  if(!r){bar.classList.remove('active');return;}
-  const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-  document.getElementById('rbName').textContent=r.name;
-  document.getElementById('rbStop').textContent=`${done}/${r.spots.length} surinkta${r.distKm?` · ~${r.distKm}km`:''}`;
+  const bar=document.getElementById('routeBar');if(!bar)return;
+  if(!route){bar.classList.remove('active');return;}
+  const done=route.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
+  document.getElementById('rbName').textContent=route.name;
+  document.getElementById('rbStop').textContent=`${done}/${route.spots.length} surinkta${route.distKm?` · ~${route.distKm}km`:''}`;
   bar.classList.add('active');
 }
 
-// ── Spot button: add/remove from active route ──
+// ── Spot card ＋ button: add/remove from the route (creates one if none) ──
 function toggleSpotInActiveRoute(){
-  if(!selectedSpot) return;
-  if(!activeRouteId){showRoutePicker(selectedSpot.id);return;}
+  if(!selectedSpot)return;
   const key=String(selectedSpot.id);
-  const r=getActiveRoute();if(!r) return;
-  if(r.spots.includes(key)){
-    removeSpotFromRoute(activeRouteId,key);
-    updateFavBtn();
-    toast(`✓ Removed from "${r.name}"`,'info');
+  if(!route){
+    route={id:'r_'+Date.now(),name:'🗺 Mano maršrutas',spots:[key],created:Date.now()};
+    saveRoutes();updateFavBtn();updateRouteBar();updateAll();
+    toast('＋ Sukurtas naujas maršrutas','success');
+    return;
+  }
+  if(route.spots.includes(key)){
+    removeSpotFromRoute(key);updateFavBtn();
+    toast('－ Pašalinta iš maršruto','info');
   }else{
-    addSpotToRoute(activeRouteId,key);
-    updateFavBtn();
-    toast(`＋ Added to "${r.name}"`,'success');
+    addSpotToRoute(key);updateFavBtn();
+    toast(`＋ Pridėta į „${route.name}"`,'success');
   }
 }
-
 function updateFavBtn(){
-  const btn=document.getElementById('favBtn');if(!btn||!selectedSpot) return;
-  if(!activeRouteId){btn.textContent='＋';btn.title='Pridėti į maršrutą';btn.style.color='';return;}
-  const r=getActiveRoute();if(!r){btn.textContent='＋';btn.style.color='';return;}
-  const inRoute=r.spots.includes(String(selectedSpot.id));
+  const btn=document.getElementById('favBtn');if(!btn||!selectedSpot)return;
+  if(!route){btn.textContent='＋';btn.title='Pridėti į maršrutą';btn.style.color='';return;}
+  const inRoute=route.spots.includes(String(selectedSpot.id));
   btn.textContent=inRoute?'✓':'＋';
-  btn.title=inRoute?`Remove from "${r.name}"`:`Add to "${r.name}"`;
+  btn.title=inRoute?'Pašalinti iš maršruto':'Pridėti į maršrutą';
   btn.style.color=inRoute?'var(--gold)':'';
 }
 
-// ── Route picker sheet ──
-function showRoutePicker(spotId){
-  if(!routes.length){ return promptCreateRouteForSpot(spotId); }
-  let el=document.getElementById('routePickerSheet');
-  if(!el){el=document.createElement('div');el.id='routePickerSheet';document.body.appendChild(el);}
-  el.style.cssText='position:fixed;inset:0;z-index:700;display:flex;align-items:flex-end';
-  el.innerHTML=`
-    <div onclick="closeRoutePicker()" style="position:absolute;inset:0;background:rgba(0,0,0,.55)"></div>
-    <div style="position:relative;width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:16px 16px 40px;max-height:70vh;overflow-y:auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <div style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--txt)">Pasirink maršrutą</div>
-        <div onclick="closeRoutePicker()" style="width:28px;height:28px;background:var(--surf2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--td)">✕</div>
-      </div>
-      ${routes.map(r=>{
-        const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-        return`<div onclick="pickRouteForSpot('${r.id}','${spotId}')" style="padding:12px;background:var(--surf2);border:1px solid ${r.id===activeRouteId?'var(--gold)':'var(--bdr)'};border-radius:10px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:.88rem;color:var(--txt);font-weight:600">${r.name}</div>
-            <div style="font-size:.72rem;color:var(--td);margin-top:2px">📍 ${r.spots.length} vietų · ✓ ${done}/${r.spots.length}</div>
-          </div>
-          ${r.id===activeRouteId?'<span style="font-size:.65rem;color:var(--gold);font-family:DM Mono,monospace;background:rgba(201,168,76,.15);padding:2px 7px;border-radius:10px">aktyvus</span>':''}
-        </div>`;
-      }).join('')}
-      <button onclick="promptCreateRouteForSpot('${spotId}')" style="width:100%;background:var(--surf3);border:1px solid var(--bdr);border-radius:10px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--td);cursor:pointer;margin-top:4px">+ Naujas maršrutas</button>
-    </div>`;
-}
-
-function closeRoutePicker(){const el=document.getElementById('routePickerSheet');if(el) el.style.display='none';}
-
-function pickRouteForSpot(routeId,spotId){
-  if(activeRouteId!==routeId) setActiveRoute(routeId);
-  addSpotToRoute(routeId,spotId);
-  closeRoutePicker();updateFavBtn();updateAll();
-  const r=routes.find(r=>r.id===routeId);
-  toast(`＋ Added to "${r?.name||'route'}"`,'success');
-}
-
-async function promptCreateRouteForSpot(spotId){
-  closeRoutePicker();
-  const name=await _uiPrompt({title:'Naujas maršrutas',placeholder:'Maršruto pavadinimas',ok:'Sukurti'});
-  if(!name) return;
-  const r=createRoute(name);
-  setActiveRoute(r.id);
-  addSpotToRoute(r.id,spotId);
-  updateFavBtn();updateAll();
-  toast(`＋ Added to "${r.name}"`,'success');
-}
-
-// ── Routes panel renderer ──
-let _routeView='list'; // 'list' or routeId string
-
+// ── Routes panel: planner when no route, route view when one exists ──
 function renderRoutes(){
-  const body=document.getElementById('panel-routes');
-  if(body) renderRoutesInto(body);
+  const d=document.getElementById('panel-routes');
+  if(d)renderRoutesInto(d);
+  const mb=document.getElementById('mobPanelBody');
+  if(mb&&mb.querySelector('#routesPanelRoot'))renderRoutesInto(mb);
 }
 
 function renderRoutesInto(body){
-  _routeView='list';
-  if(!routes.length){
-    body.innerHTML=`${_buildAutoGenSection()}<div style="padding:30px 20px;text-align:center">
-      <div style="font-size:36px;margin-bottom:10px">🗺</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--txt);margin-bottom:6px">Dar nėra maršrutų</div>
-      <div style="font-size:.8rem;color:var(--td);line-height:1.6;margin-bottom:14px">Sugeneruok maršrutą viršuje — arba susikurk savo.</div>
-      <button onclick="promptCreateRoute()" style="background:none;border:none;color:var(--gold);font-size:.8rem;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;padding:4px">+ Sukurti rankinį maršrutą</button>
+  if(!route){
+    body.innerHTML=`<div id="routesPanelRoot">
+      ${_buildAutoGenSection()}
+      <div style="padding:16px 20px 24px;text-align:center;border-top:1px solid var(--bdr);margin-top:14px">
+        <div style="font-size:.76rem;color:var(--td);line-height:1.6;margin-bottom:10px">Arba susikurk maršrutą pats — pridėk vietas bakstelėdamas žemėlapyje.</div>
+        <button onclick="promptCreateRoute()" style="background:none;border:1px solid var(--bdr);border-radius:9px;padding:9px 16px;color:var(--td);font-size:.8rem;cursor:pointer;font-family:'DM Sans',sans-serif">🖐 Kurti rankiniu būdu</button>
+      </div>
     </div>`;
     return;
   }
-  let h=`${_buildAutoGenSection()}<div style="padding:12px 14px 2px">
-    <div style="font-family:'DM Mono',monospace;font-size:.6rem;color:var(--tm);text-transform:uppercase;letter-spacing:.08em">${routes.length} maršruta${routes.length===1?'s':'i'}</div>
-  </div>`;
-  routes.forEach(r=>{
-    const total=r.spots.length;
-    const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-    const isActive=r.id===activeRouteId;
-    const pct=total>0?done/total*100:0;
-    h+=`<div class="route-card" style="${isActive?'border-color:var(--gold);':''}" onclick="openRouteDetail('${r.id}')">
-      <div class="rc-head">
-        <div class="rc-name">${isActive?'▶ ':''}${r.name}</div>
-        <div class="rc-meta">
-          <span class="rc-chip">📍 ${total} vietų</span>
-          <span class="rc-chip">✓ ${done}/${total}</span>
-          ${r.distKm?`<span class="rc-chip">~${r.distKm}km</span>`:''}
-          ${isActive?`<span class="rc-chip" style="border-color:var(--gold);color:var(--gold)">aktyvus</span>`:''}
-        </div>
-        <div class="rc-prog" style="margin-top:6px"><div class="rc-pf" style="width:${pct}%"></div></div>
-      </div>
-    </div>`;
-  });
-  h+=`<div style="padding:4px 14px 16px;text-align:center"><button onclick="promptCreateRoute()" style="background:none;border:none;color:var(--td);font-size:.78rem;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;padding:4px">+ Sukurti rankinį maršrutą</button></div>`;
-  body.innerHTML=h;
-}
-
-function _tpToggleExpand(){
-  _tpExpanded=!_tpExpanded;
-  const el=document.getElementById('tpAutoGenWrap');
-  if(el){el.outerHTML=_buildAutoGenSection();if(_tpExpanded)setTimeout(_tpUpdateEstimate,30);}
-}
-function _buildAutoGenSection(){
-  if(!_tpExpanded){
-    return `<div id="tpAutoGenWrap" style="padding:12px 14px 6px;border-bottom:1px solid var(--bdr)">
-      <button onclick="_tpToggleExpand()" style="width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:12px;font-family:'DM Sans',sans-serif;font-size:.87rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">⚡ Sugeneruok maršrutą <span style="font-size:.68rem;opacity:.7">▾</span></button>
-    </div>`;
-  }
-  return `<div id="tpAutoGenWrap" style="padding:12px 0 8px;border-bottom:1px solid var(--bdr)">
-    <div onclick="_tpToggleExpand()" style="display:flex;align-items:center;justify-content:space-between;padding:0 14px;cursor:pointer;-webkit-user-select:none;user-select:none">
-      <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gold);text-transform:uppercase;letter-spacing:.08em">⚡ Automatinis maršrutas</div>
-      <span style="color:var(--td);font-size:.85rem;padding:2px 6px">▴</span>
-    </div>
-    ${_tpPlannerHTML()}
-  </div>`;
-}
-
-function openRouteDetail(routeId){
-  const r=routes.find(rr=>rr.id===routeId);if(!r) return;
-  // Find the right container
-  const inMob=document.getElementById('mobPanelOverlay')?.classList.contains('open');
-  const body=inMob?document.getElementById('mobPanelBody'):document.getElementById('panel-routes');
-  if(body) renderRouteDetailInto(r,body,routeId);
-}
-
-function renderRouteDetailInto(r,body,routeId){
-  _routeView=routeId;
+  const r=route;
   const done=r.spots.filter(id=>{const s=SPOTS.find(s=>String(s.id)===id);return s&&found.has(s.id);}).length;
-  const isActive=r.id===activeRouteId;
   const pct=r.spots.length>0?done/r.spots.length*100:0;
-
   let spotsHtml='';
   if(!r.spots.length){
-    spotsHtml=`<div style="padding:20px;text-align:center;color:var(--td);font-size:.82rem">Dar nėra stotelių. Atidaryk vietą ir spausk ＋.</div>`;
-  } else {
+    spotsHtml=`<div style="padding:22px 20px;text-align:center;color:var(--td);font-size:.82rem;line-height:1.6">Dar nėra stotelių.<br>Spausk „＋ Pridėti vietų" ir bakstelėk žemėlapį.</div>`;
+  }else{
     r.spots.forEach((sid,i)=>{
       const s=SPOTS.find(s=>String(s.id)===sid);
-      if(!s){return;}
+      if(!s)return;
       const cat=CATS[s.cat]||CATS.history;
       const isF=found.has(s.id);
-      spotsHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--bdr)">
-        <div style="width:22px;height:22px;border-radius:50%;background:${isF?'var(--gold)':'var(--bdr)'};display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;color:${isF?'#0e0c09':'var(--td)'}">${isF?'✓':i+1}</div>
+      spotsHtml+=`<div style="display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--bdr)">
+        <div style="width:22px;height:22px;border-radius:50%;background:${isF?'var(--gold)':'var(--surf3)'};display:flex;align-items:center;justify-content:center;font-size:.68rem;flex-shrink:0;color:${isF?'#0e0c09':'var(--td)'};font-family:'DM Mono',monospace">${isF?'✓':i+1}</div>
         <div style="flex:1;min-width:0;cursor:pointer" onclick="closeDrawer();closeMobPanel();goToSpot('${s.id}')">
-          <div style="font-size:.83rem;color:${isF?'var(--td)':'var(--txt)'};${isF?'text-decoration:line-through;':''}">${s.name||'—'}</div>
-          <div style="font-size:.68rem;color:var(--tm)">${cat.emoji} ${cat.label}</div>
+          <div style="font-size:.83rem;color:${isF?'var(--td)':'var(--txt)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${isF?'text-decoration:line-through;':''}">${s.name||'—'}</div>
+          <div style="font-size:.66rem;color:var(--tm)">${cat.emoji} ${cat.label}</div>
         </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
-          <button onclick="moveSpotInRoute('${routeId}','${sid}',-1)" style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:pointer;color:var(--td)" ${i===0?'disabled style="opacity:.3;background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:default;color:var(--td)"':''}>↑</button>
-          <button onclick="moveSpotInRoute('${routeId}','${sid}',1)" style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:pointer;color:var(--td)" ${i===r.spots.length-1?'disabled style="opacity:.3;background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:default;color:var(--td)"':''}>↓</button>
-          <button onclick="removeSpotFromRoute('${routeId}','${sid}');openRouteDetail('${routeId}')" style="background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;padding:4px 7px;font-size:.75rem;cursor:pointer;color:var(--red)">✕</button>
-        </div>
+        <button onclick="removeSpotFromRoute('${sid}');renderRoutes()" style="background:none;border:1px solid var(--bdr);border-radius:6px;padding:4px 9px;font-size:.72rem;cursor:pointer;color:var(--td);flex-shrink:0">✕</button>
       </div>`;
     });
   }
-
-  body.innerHTML=`<div id="_routeDetailPanel">
-    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bdr)">
-      <button onclick="renderRoutesInto(document.getElementById('_routeDetailPanel').closest('[id^=panel],[id=mobPanelBody]'))" style="background:none;border:none;color:var(--td);font-size:.85rem;cursor:pointer;padding:0;display:flex;align-items:center;gap:4px">← Visi</button>
-      <div style="flex:1;font-family:'Playfair Display',serif;font-size:.95rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
-      <button onclick="renameRoute('${routeId}')" style="background:none;border:none;color:var(--td);font-size:.8rem;cursor:pointer;padding:2px 6px">✏️</button>
-      <button onclick="deleteRoute('${routeId}')" style="background:none;border:none;color:var(--red);font-size:.8rem;cursor:pointer;padding:2px 6px">🗑</button>
+  body.innerHTML=`<div id="routesPanelRoot">
+    <div style="display:flex;align-items:center;gap:6px;padding:12px 14px 6px">
+      <div style="flex:1;min-width:0;font-family:'Playfair Display',serif;font-size:1.02rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
+      <button onclick="renameRoute()" title="Pervadinti" style="background:none;border:none;color:var(--td);font-size:.85rem;cursor:pointer;padding:2px 6px;flex-shrink:0">✏️</button>
     </div>
-    <div style="padding:10px 14px;display:flex;gap:8px;align-items:center;background:var(--surf2);border-bottom:1px solid var(--bdr)">
-      <div style="flex:1">
-        <div style="font-size:.75rem;color:var(--td)">✓ ${done}/${r.spots.length} surinkta${r.distKm?` · ~${r.distKm}km`:''}${!r.distKm&&r.spots.length>=2?' · ⟳ Skaičiuojama...':''}</div>
-        <div style="height:3px;background:var(--bdr);border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;width:${pct}%"></div></div>
-      </div>
+    <div style="padding:0 14px 10px">
+      <div style="font-size:.74rem;color:var(--td);font-family:'DM Mono',monospace">✓ ${done}/${r.spots.length} surinkta${r.distKm?` · ~${r.distKm} km`:''}</div>
+      <div style="height:3px;background:var(--bdr);border-radius:2px;margin-top:6px;overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,var(--gd),var(--gold));border-radius:2px;width:${pct}%"></div></div>
     </div>
-    <div style="padding:8px 14px;display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--bdr)">
-      <button onclick="setActiveRoute('${routeId}')" style="flex:1;background:${isActive?'rgba(201,168,76,.15)':'var(--surf2)'};border:1px solid ${isActive?'var(--gold)':'var(--bdr)'};border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:${isActive?'var(--gold)':'var(--td)'};cursor:pointer">${isActive?'▶ Aktyvus':'▷ Aktyvuoti'}</button>
-      ${!r.campaign?`<button onclick="optimizeRoute('${routeId}')" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--td);cursor:pointer">⚡ Optimizuoti</button>`:''}
-      <button onclick="startRouteNav('${routeId}')" style="flex:1;background:var(--gold);color:#0e0c09;border:none;border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer">🧭 Navigacija</button>
+    <div style="padding:0 14px 12px;display:flex;gap:8px">
+      <button onclick="startRouteNav()" style="flex:1.5;background:var(--gold);color:#0e0c09;border:none;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer">🧭 Keliauti</button>
+      <button onclick="startRouteEditMode()" style="flex:1.2;background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--txt);cursor:pointer">＋ Pridėti vietų</button>
+      <button onclick="endActiveRoute()" title="Užbaigti maršrutą" style="background:var(--surf2);border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;font-size:.8rem;color:var(--red);cursor:pointer;flex-shrink:0">✕</button>
     </div>
-    <div style="padding:6px 14px 8px;border-bottom:1px solid var(--bdr)">
-      <button onclick="startRouteEditMode('${routeId}')" style="width:100%;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--txt);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">＋ Pridėti stoteles žemėlapyje</button>
-    </div>
-    ${r.campaign?`<div style="padding:6px 14px 8px;border-bottom:1px solid var(--bdr)"><button onclick="tpGenerateNext('${routeId}')" style="width:100%;background:rgba(201,168,76,.12);border:1px solid var(--gold);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--gold);cursor:pointer">➕ Generuoti kitą maršrutą</button></div>`:''}
-    <div>${spotsHtml}</div>
+    <div style="border-top:1px solid var(--bdr)">${spotsHtml}</div>
   </div>`;
 }
 
+function _buildAutoGenSection(){
+  return `<div style="padding:14px 14px 0">
+    <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--gold);text-transform:uppercase;letter-spacing:.08em">⚡ Automatinis maršrutas</div>
+  </div>${_tpPlannerHTML()}`;
+}
+
 async function promptCreateRoute(){
+  if(route){
+    const ok=await _uiConfirm({title:'Pradėti naują maršrutą?',message:'Esamas maršrutas bus pakeistas.',ok:'Tęsti'});
+    if(!ok)return;
+  }
   const name=await _uiPrompt({title:'Naujas maršrutas',placeholder:'Maršruto pavadinimas',ok:'Sukurti'});
-  if(!name) return;
-  const r=createRoute(name);
-  renderRoutes();updateAll();
-  toast(`✓ Created "${r.name}"`,'success');
+  if(!name)return;
+  route={id:'r_'+Date.now(),name:name.trim(),spots:[],created:Date.now()};
+  clearRoutePolyline();saveRoutes();renderRoutes();updateRouteBar();updateAll();
+  startRouteEditMode();
 }
 
 
@@ -8114,7 +7978,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v37';
+const CACHE='spotseekers-v38';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -8751,7 +8615,7 @@ deleteSpot=async function(){
 
 <div class="route-bar" id="routeBar">
   <div class="rb-info">
-    <div class="rb-label">🗺 Aktyvus maršrutas</div>
+    <div class="rb-label">🗺 Maršrutas</div>
     <div class="rb-name" id="rbName">—</div>
     <div class="rb-stop" id="rbStop">0/0 surinkta</div>
   </div>
