@@ -2088,6 +2088,7 @@ function isSpotUnlocked(spot){return isSpotVisible(spot);}
 // Monday-based ISO week key in device local time (LT market → Europe/Vilnius).
 // Separate from the weekly-challenge getWeekSeed() (jan1-anchored) — do not merge.
 let weekKey='',weekXP=0,monthKey='',monthXP=0;
+let weekSpots=0,monthSpots=0; // period-scoped spot counts (leaderboard ranks by these, not XP)
 let myFriendCode=null; // 6-digit friend code, lazily generated, stored in users/{uid}
 
 function lbWeekKey(d){
@@ -2109,14 +2110,14 @@ function lbMonthKey(d){
 function rolloverPeriods(){
   const wk=lbWeekKey(),mk=lbMonthKey();
   if(weekKey!==wk){
-    // Week just ended with XP on the board — stash it for the champion check
-    if(weekKey&&weekXP>0){
-      try{localStorage.setItem('ss_prev_week',JSON.stringify({wk:weekKey,xp:weekXP}));}catch(e){}
+    // Week just ended with spots on the board — stash it for the champion check
+    if(weekKey&&weekSpots>0){
+      try{localStorage.setItem('ss_prev_week',JSON.stringify({wk:weekKey,sp:weekSpots}));}catch(e){}
       setTimeout(()=>checkWeeklyChampion(),3000);
     }
-    weekKey=wk;weekXP=0;
+    weekKey=wk;weekXP=0;weekSpots=0;
   }
-  if(monthKey!==mk){monthKey=mk;monthXP=0;}
+  if(monthKey!==mk){monthKey=mk;monthXP=0;monthSpots=0;}
 }
 
 // ── Weekly champion (badge B) ──
@@ -2142,17 +2143,17 @@ async function checkWeeklyChampion(){
   try{
     let top=null;
     try{
-      const snap=await getDocs(query(collection(db,'users'),where('weekKey','==',stash.wk),orderBy('weekXP','desc'),limit(1)));
-      snap.forEach(d=>{const x=d.data();top={uid:d.id,xp:x.weekXP||0};});
+      const snap=await getDocs(query(collection(db,'users'),where('weekKey','==',stash.wk),orderBy('weekSpots','desc'),limit(1)));
+      snap.forEach(d=>{const x=d.data();top={uid:d.id,n:x.weekSpots||0};});
     }catch(idxErr){
       // Index fallback — full read, client filter
       const snap=await getDocs(collection(db,'users'));
       snap.forEach(d=>{const x=d.data();
-        if(x.weekKey===stash.wk&&(!top||(x.weekXP||0)>top.xp))top={uid:d.id,xp:x.weekXP||0};});
+        if(x.weekKey===stash.wk&&(!top||(x.weekSpots||0)>top.n))top={uid:d.id,n:x.weekSpots||0};});
     }
     localStorage.setItem('ss_wwin_checked',stash.wk);
     localStorage.removeItem('ss_prev_week');
-    const won=!top?stash.xp>0:(top.uid===user.uid||stash.xp>top.xp);
+    const won=!top?stash.sp>0:(top.uid===user.uid||stash.sp>top.n);
     if(!won)return;
     weeklyWins++;
     wwinLastKey=stash.wk;
@@ -2212,7 +2213,7 @@ function save(){
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
   localStorage.setItem('ke7_xp',totalXP);
-  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP,ww:weeklyWins,wwk:wwinLastKey}));
+  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP,ws:weekSpots,ms:monthSpots,ww:weeklyWins,wwk:wwinLastKey}));
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
@@ -2240,7 +2241,7 @@ function load(){
   const b=localStorage.getItem('ke7_badges');earnedBadges=b?new Set(JSON.parse(b)):new Set();
   isDark=localStorage.getItem('ke7_theme')!=='light';
   totalXP=parseInt(localStorage.getItem('ke7_xp')||'0');
-  try{const px=JSON.parse(localStorage.getItem('ke7_pxp')||'null');if(px){weekKey=px.wk||'';weekXP=px.w||0;monthKey=px.mk||'';monthXP=px.m||0;weeklyWins=px.ww||0;wwinLastKey=px.wwk||'';}}catch(e){}
+  try{const px=JSON.parse(localStorage.getItem('ke7_pxp')||'null');if(px){weekKey=px.wk||'';weekXP=px.w||0;monthKey=px.mk||'';monthXP=px.m||0;weekSpots=px.ws||0;monthSpots=px.ms||0;weeklyWins=px.ww||0;wwinLastKey=px.wwk||'';}}catch(e){}
   rolloverPeriods();
   playerName=localStorage.getItem('ke7_name')||'Tu';
   dailyQuestDate=localStorage.getItem('ke7_dqdate')||null;
@@ -3337,7 +3338,8 @@ function collectCurrent(){
   // XP for collecting — bonus for higher-tier spots
   const spotTier=selectedSpot.tier||1;
   const xpGain=spotTier===3?35:spotTier===2?25:20;
-  addXP(xpGain);
+  addXP(xpGain); // addXP runs rolloverPeriods first, so weekKey/counters are current here
+  weekSpots++;monthSpots++; // period-scoped spot counts for the leaderboard
   showXPBurst(xpGain);
   incrementDailyCollect();
   recordWeeklyCollect(selectedSpot.id);
@@ -3347,7 +3349,7 @@ function collectCurrent(){
     const{db,doc,setDoc}=window._fb;
     setDoc(doc(db,'users',window._fbUser.uid),{
       found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},totalXP,streak,badges:[...earnedBadges],name:playerName,
-      weekKey,weekXP,monthKey,monthXP,
+      weekKey,weekXP,monthKey,monthXP,weekSpots,monthSpots,
       dailyLog,activeDaysTotal,bestDay
     },{merge:true}).catch(()=>{});
   }
@@ -4485,8 +4487,8 @@ function checkRefParam(){
   },1500);
 }
 
-let _lbTab='xp'; // current leaderboard sort tab
-let _lbPeriod='week'; // 'week' | 'month' | 'all' — applies to the XP tab only
+let _lbTab='spots'; // current leaderboard sort tab ('spots' | 'streak' | 'friends')
+let _lbPeriod='week'; // 'week' | 'month' | 'all' — applies to spots + friends tabs
 
 function renderSocial(){
   const body=document.getElementById('panel-social');
@@ -4567,12 +4569,11 @@ function renderLeaderboard(){
         <button class="auth-btn" onclick="closeDrawer();openEmailModal()">Prisijungti</button>
       </div>`:''}
     <div class="lb-tabs">
-      <div class="lb-tab ${_lbTab==='xp'?'on':''}" onclick="setLbTab('xp')">⭐ XP</div>
-      <div class="lb-tab ${_lbTab==='friends'?'on':''}" onclick="setLbTab('friends')">👥 Draugai</div>
       <div class="lb-tab ${_lbTab==='spots'?'on':''}" onclick="setLbTab('spots')">📍 Vietos</div>
       <div class="lb-tab ${_lbTab==='streak'?'on':''}" onclick="setLbTab('streak')">🔥 Serija</div>
+      <div class="lb-tab ${_lbTab==='friends'?'on':''}" onclick="setLbTab('friends')">👥 Draugai</div>
     </div>
-    ${(_lbTab==='xp'||_lbTab==='friends')?`<div class="lb-tabs lb-period-tabs">
+    ${(_lbTab==='spots'||_lbTab==='friends')?`<div class="lb-tabs lb-period-tabs">
       <div class="lb-tab ${_lbPeriod==='week'?'on':''}" onclick="setLbPeriod('week')">Savaitė</div>
       <div class="lb-tab ${_lbPeriod==='month'?'on':''}" onclick="setLbPeriod('month')">Mėnuo</div>
       <div class="lb-tab ${_lbPeriod==='all'?'on':''}" onclick="setLbPeriod('all')">Visų laikų</div>
@@ -4598,13 +4599,14 @@ const LB_CACHE_TTL_ALL=24*60*60*1000; // all-time: 24 h (slow-moving)
 const LB_CACHE_TTL_LIVE=60*60*1000;   // weekly/monthly race: 1 h (must feel alive)
 
 // Effective period: XP and Draugai tabs are period-scoped; spots/streak stay all-time.
-function lbPeriod(){return (_lbTab==='xp'||_lbTab==='friends')?_lbPeriod:'all';}
+function lbPeriod(){return (_lbTab==='spots'||_lbTab==='friends')?_lbPeriod:'all';}
 
 function lbUserFromDoc(d){
   const data=d.data();
   return{uid:d.id,name:data.playerName||data.name||'Anonimas',
     xp:data.totalXP||0,spots:data.foundCount||0,streak:data.streak||0,
-    wk:data.weekKey||'',wxp:data.weekXP||0,mk:data.monthKey||'',mxp:data.monthXP||0,
+    wk:data.weekKey||'',mk:data.monthKey||'',
+    wspots:data.weekSpots||0,mspots:data.monthSpots||0,
     photo:data.photoURL||null};
 }
 
@@ -4631,12 +4633,12 @@ async function loadLeaderboard(){
     try{
       // Indexed query first (10 reads max)
       let q;
-      if(_lbTab==='xp'&&period==='week'){
-        q=query(collection(db,'users'),where('weekKey','==',lbWeekKey()),orderBy('weekXP','desc'),limit(10));
-      }else if(_lbTab==='xp'&&period==='month'){
-        q=query(collection(db,'users'),where('monthKey','==',lbMonthKey()),orderBy('monthXP','desc'),limit(10));
+      if(_lbTab==='spots'&&period==='week'){
+        q=query(collection(db,'users'),where('weekKey','==',lbWeekKey()),orderBy('weekSpots','desc'),limit(10));
+      }else if(_lbTab==='spots'&&period==='month'){
+        q=query(collection(db,'users'),where('monthKey','==',lbMonthKey()),orderBy('monthSpots','desc'),limit(10));
       }else{
-        const field=_lbTab==='xp'?'totalXP':_lbTab==='spots'?'foundCount':'streak';
+        const field=_lbTab==='streak'?'streak':'foundCount'; // spots(all-time) or streak
         q=query(collection(db,'users'),orderBy(field,'desc'),limit(10));
       }
       const snap=await getDocs(q);
@@ -4647,14 +4649,14 @@ async function loadLeaderboard(){
       console.warn('loadLeaderboard index fallback:',indexErr.message);
       const snap=await getDocs(collection(db,'users'));
       snap.forEach(d=>users.push(lbUserFromDoc(d)));
-      if(_lbTab==='xp'&&period==='week'){
+      if(_lbTab==='spots'&&period==='week'){
         const wk=lbWeekKey();
-        users=users.filter(u=>u.wk===wk).sort((a,b)=>b.wxp-a.wxp);
-      }else if(_lbTab==='xp'&&period==='month'){
+        users=users.filter(u=>u.wk===wk).sort((a,b)=>b.wspots-a.wspots);
+      }else if(_lbTab==='spots'&&period==='month'){
         const mk=lbMonthKey();
-        users=users.filter(u=>u.mk===mk).sort((a,b)=>b.mxp-a.mxp);
+        users=users.filter(u=>u.mk===mk).sort((a,b)=>b.mspots-a.mspots);
       }else{
-        const sortKey=_lbTab==='xp'?'xp':_lbTab==='spots'?'spots':'streak';
+        const sortKey=_lbTab==='streak'?'streak':'spots';
         users.sort((a,b)=>b[sortKey]-a[sortKey]);
       }
       users=users.slice(0,10);
@@ -4675,8 +4677,8 @@ async function loadLeaderboard(){
 
 // Value shown on the right of a leaderboard row for the current tab+period
 function lbVal(u){
-  if(_lbTab==='xp'||_lbTab==='friends') return lbPeriod()==='week'?u.wxp:lbPeriod()==='month'?u.mxp:u.xp;
-  return _lbTab==='spots'?u.spots:u.streak;
+  if(_lbTab==='spots'||_lbTab==='friends') return lbPeriod()==='week'?u.wspots:lbPeriod()==='month'?u.mspots:u.spots;
+  return u.streak; // streak tab
 }
 
 // Draugai tab: me + my friends, sorted by the selected period's XP.
@@ -4700,15 +4702,15 @@ async function loadFriendsBoard(el){
         const s=await getDoc(doc(db,'users',uid));
         if(!s.exists())return null;
         const u=lbUserFromDoc(s);
-        if(u.wk!==wk)u.wxp=0;
-        if(u.mk!==mk)u.mxp=0;
+        if(u.wk!==wk)u.wspots=0;
+        if(u.mk!==mk)u.mspots=0;
         return u;
       }catch(e){return null;}
     }))).filter(Boolean);
     rolloverPeriods(); // my live values, current-period-safe
     const me={uid:user.uid,name:playerName||'Tu',xp:totalXP,
       spots:foundByCountry.LT.size+foundByCountry.PL.size,streak,
-      wxp:weekXP,mxp:monthXP,photo:user.photoURL||null};
+      wspots:weekSpots,mspots:monthSpots,photo:user.photoURL||null};
     const users=[me,...friends].sort((a,b)=>lbVal(b)-lbVal(a));
     if(!friends.length){
       el.innerHTML='<div class="lb-empty">Dar neturi draugų — pridėk juos 6 skaitmenų kodu skiltyje „Draugai" 👆</div>';
@@ -4765,10 +4767,10 @@ function renderLbUsers(users,el){
 
 function lbMeta(u){
   const parts=[];
-  const xpTab=(_lbTab==='xp'||_lbTab==='friends');
-  if(!xpTab) parts.push(`⭐ ${u.xp} XP`);
-  if(xpTab&&lbPeriod()!=='all') parts.push(`⭐ ${u.xp} XP viso`);
-  if(_lbTab!=='spots') parts.push(`📍 ${u.spots}`);
+  const spotsPrimary=(_lbTab==='spots'||_lbTab==='friends');
+  // On a period-scoped spots view, the big number is period spots — show all-time total as context.
+  if(spotsPrimary){ if(lbPeriod()!=='all') parts.push(`📍 ${u.spots} viso`); }
+  else parts.push(`📍 ${u.spots}`); // streak tab: show total spots
   if(_lbTab!=='streak') parts.push(`🔥 ${u.streak}d`);
   return parts.join(' · ');
 }
@@ -8079,7 +8081,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v44';
+const CACHE='spotseekers-v45';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -8536,8 +8538,8 @@ async function fbLoadUserProgress(uid){
       if(d.streak!==undefined) streak=d.streak;
       if(d.lastDate) lastDate=d.lastDate;
       if(d.totalXP!==undefined) totalXP=d.totalXP;
-      if(d.weekKey!==undefined){weekKey=d.weekKey;weekXP=d.weekXP||0;}
-      if(d.monthKey!==undefined){monthKey=d.monthKey;monthXP=d.monthXP||0;}
+      if(d.weekKey!==undefined){weekKey=d.weekKey;weekXP=d.weekXP||0;weekSpots=d.weekSpots||0;}
+      if(d.monthKey!==undefined){monthKey=d.monthKey;monthXP=d.monthXP||0;monthSpots=d.monthSpots||0;}
       if(d.weeklyWins!==undefined)weeklyWins=d.weeklyWins;
       if(d.wwinLastKey)wwinLastKey=d.wwinLastKey;
       rolloverPeriods();
@@ -8568,7 +8570,7 @@ async function fbSaveUserProgress(){
       found:{LT:[...foundByCountry.LT],PL:[...foundByCountry.PL]},
       foundCount:foundByCountry.LT.size+foundByCountry.PL.size, // total across all countries
       streak,lastDate,totalXP,notes,
-      weekKey,weekXP,monthKey,monthXP,
+      weekKey,weekXP,monthKey,monthXP,weekSpots,monthSpots,
       weeklyWins,wwinLastKey,
       ...(myFriendCode?{friendCode:myFriendCode}:{}),
       earnedBadges:[...earnedBadges],
@@ -8594,7 +8596,7 @@ save=function(){
   localStorage.setItem('ke7_badges',JSON.stringify([...earnedBadges]));
   localStorage.setItem('ke7_theme',isDark?'dark':'light');
   localStorage.setItem('ke7_xp',totalXP);
-  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP,ww:weeklyWins,wwk:wwinLastKey}));
+  localStorage.setItem('ke7_pxp',JSON.stringify({wk:weekKey,w:weekXP,mk:monthKey,m:monthXP,ws:weekSpots,ms:monthSpots,ww:weeklyWins,wwk:wwinLastKey}));
   localStorage.setItem('ke7_name',playerName);
   localStorage.setItem('ke7_dqdate',dailyQuestDate||'');
   localStorage.setItem('ke7_dqdone',dailyQuestDone?'1':'0');
