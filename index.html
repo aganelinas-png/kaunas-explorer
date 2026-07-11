@@ -28,7 +28,7 @@
 <script type="module">
 // ═══════════ FIREBASE SETUP ═══════════
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,deleteField,serverTimestamp,query,orderBy,limit,where,writeBatch,arrayUnion}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import{getFirestore,doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,deleteField,serverTimestamp,query,orderBy,limit,where,writeBatch,arrayUnion,onSnapshot}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import{getAuth,signOut,onAuthStateChanged,createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile,browserLocalPersistence,setPersistence}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig={
@@ -50,7 +50,7 @@ setPersistence(auth,browserLocalPersistence).catch(()=>{});
 // Expose to global scope so non-module code can use them
 window._fb={db,auth,
   doc,getDoc,setDoc,collection,getDocs,addDoc,updateDoc,deleteDoc,deleteField,serverTimestamp,
-  query,orderBy,limit,where,writeBatch,arrayUnion,
+  query,orderBy,limit,where,writeBatch,arrayUnion,onSnapshot,
   signOut,onAuthStateChanged,
   createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile
 };
@@ -640,6 +640,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   .filter-sub-row{display:none!important}
   .tb-right{gap:5px}
   .tb-right .ib{width:36px;height:36px;font-size:15px}
+  #gpsRefreshBtn,#centerUserBtn{display:none!important}
   .gps-pill{display:none}
   .topbar{padding:8px 10px;gap:6px}
   .logo-pill{padding:5px 10px}
@@ -696,6 +697,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .mob-nav-icon{font-size:20px;line-height:1}
 .mob-nav-label{font-family:'DM Mono',monospace;font-size:.55rem;color:var(--td);letter-spacing:.02em}
 .mob-nav-badge{position:absolute;top:0;right:8px;background:var(--gold);color:#0e0c09;border-radius:8px;padding:1px 5px;font-size:.5rem;font-family:'DM Mono',monospace;font-weight:700;min-width:14px;text-align:center}
+.mob-nav-center{position:relative;width:56px;height:56px;margin-top:-24px;border-radius:50%;background:linear-gradient(135deg,var(--gd),var(--gold));color:#0e0c09;display:flex;align-items:center;justify-content:center;font-size:27px;font-weight:700;box-shadow:0 4px 14px var(--sh),0 0 0 4px var(--surf);cursor:pointer;-webkit-user-select:none;user-select:none;flex-shrink:0}
+.mob-nav-center:active{transform:scale(.94)}
 /* ── MOBILE PANEL OVERLAY (replaces drawer on mobile for nav items) ── */
 .mob-panel-overlay{position:fixed;inset:0;z-index:350;display:none;flex-direction:column;background:var(--surf)}
 .mob-panel-overlay.open{display:flex;animation:slideInLeft .28s cubic-bezier(.4,0,.2,1)}
@@ -1012,7 +1015,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   <div class="tb-right">
     <div class="ib" id="themeBtn" onclick="toggleTheme()" title="Dienos/nakties režimas">☀️</div>
     <div class="ib" id="gpsRefreshBtn" onclick="refreshGPS()" title="Atnaujinti GPS" style="position:relative"><span id="gpsRefreshIcon">↻</span><span class="gd" id="gpsDot" style="position:absolute;top:8px;right:8px;width:6px;height:6px"></span></div>
-    <div class="ib" onclick="centerUser()">📍</div>
+    <div class="ib" id="centerUserBtn" onclick="centerUser()">📍</div>
     <!-- Mobile login icon — only visible on mobile when not logged in -->
     <div class="ib" id="mobLoginPill" onclick="openEmailModal()" style="display:none" title="Prisijungti">👤</div>
   </div>
@@ -1325,6 +1328,16 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <div class="settings-header">
       <div class="settings-title">⚙️ Nustatymai</div>
       <div class="settings-close" onclick="closeSettings()">✕</div>
+    </div>
+    <div class="settings-row" style="cursor:default">
+      <div class="set-icon">👤</div>
+      <div class="set-label" style="flex:1">
+        <div class="set-name">Tavo vardas</div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <input class="fi" id="setNameInput" placeholder="Tavo vardas" style="flex:1;min-width:0">
+          <button class="name-save-btn" onclick="saveName()">✓</button>
+        </div>
+      </div>
     </div>
     <div class="settings-row" onclick="toggleTheme();updateSettingsUI()">
       <div class="set-icon">🌙</div>
@@ -2166,9 +2179,9 @@ async function checkWeeklyChampion(){
 }
 
 
-// Spot collection radius — 0.85× across the board (tighter zones, especially in dense cities)
+// Spot collection radius — full ×1 radius (was ×0.85; users got "per toli" while prompted)
 function spotRadius(spot){
-  return Math.round((spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS) * 0.85);
+  return Math.round(spot.radius || CAT_DEFAULT_RADIUS[spot.cat] || DEFAULT_RADIUS);
 }
 
 // ═══════════ COUNTRY SWITCHING ═══════════
@@ -2283,6 +2296,8 @@ function openSettings(){
   const el=document.getElementById('settingsSheet');
   if(!el) return;
   el.classList.add('open');
+  const ni=document.getElementById('setNameInput');
+  if(ni) ni.value=(playerName&&playerName!=='Tu')?playerName:'';
   updateSettingsUI();
   history.pushState({ss:'app'},'');
   // Show delete row only if logged in
@@ -2556,6 +2571,12 @@ function centerUser(){
   else toast('📍 GPS dar neveikia','info');
 }
 
+// Bottom-bar "home" button — recenter on me + refresh GPS
+function recenterMap(){
+  if(userLat!==null) map.setView([userLat,userLng],Math.max(map.getZoom(),16));
+  refreshGPS();
+}
+
 // ═══════════ FILTER ═══════════
 
 let activeGroup=null;
@@ -2695,7 +2716,7 @@ function startGPS(){
   let firstFix=true;
   navigator.geolocation.watchPosition(pos=>{
     userLat=pos.coords.latitude;userLng=pos.coords.longitude;
-    document.getElementById('gpsDot').className='gd on';
+    document.getElementById('gpsDot').className='gd on';const _gdm=document.getElementById('gpsDotMob');if(_gdm)_gdm.className='gd on';
     // Auto-detect country from GPS on every fix — switch only if clearly inside (30km border buffer)
     const detected=detectCountryFromCoords(userLat,userLng,30);
     if(detected&&detected!==activeCountry) switchCountry(detected,false);
@@ -2738,7 +2759,7 @@ function refreshGPS(){
   if(!navigator.geolocation){toast('📍 GPS nepasiekiamas','info');return;}
   navigator.geolocation.getCurrentPosition(pos=>{
     userLat=pos.coords.latitude;userLng=pos.coords.longitude;
-    document.getElementById('gpsDot').className='gd on';
+    document.getElementById('gpsDot').className='gd on';const _gdm=document.getElementById('gpsDotMob');if(_gdm)_gdm.className='gd on';
     if(userMarker) userMarker.setLatLng([userLat,userLng]);
     else userMarker=L.circleMarker([userLat,userLng],{radius:9,fillColor:'#c9a84c',color:'#e8c878',weight:2,fillOpacity:.95}).addTo(map);
     wxLoaded=false;fetchWeather(userLat,userLng);
@@ -3222,10 +3243,12 @@ function openSheet(spot){
       :`<div class="shist">${histFull}</div>`;
 
     content.innerHTML=`
-      <div class="scat">${cat.label.toUpperCase()}</div>
-      <div class="stitle">${spot.name}</div>
-      <div class="tier-badge t${spot.tier||1}">${tc.icon} ${tc.label}</div>
-      <div class="schips">
+      <div style="text-align:center">
+        <div class="scat">${cat.label.toUpperCase()}</div>
+        <div class="stitle">${spot.name}</div>
+        <div class="tier-badge t${spot.tier||1}">${tc.icon} ${tc.label}</div>
+      </div>
+      <div class="schips" style="justify-content:center">
         ${spot.featured?`<span class="chip" style="border-color:#e8c878;color:#e8c878;background:rgba(232,200,120,.12)">⭐ Featured — vietinių rekomenduojama</span>`:''}
         ${spot.tag?`<span class="chip hi">${spot.tag}</span>`:''}
       </div>
@@ -3236,10 +3259,6 @@ function openSheet(spot){
           ?`<div class="year-block"><span class="year-label">📅</span><span class="year-text year-clamp" id="yrText">${yr}</span><button class="year-toggle" id="yrBtn" onclick="toggleYear()">Rodyti daugiau ↓</button></div>`
           :`<div class="year-block"><span class="year-label">📅</span><span class="year-text">${yr}</span></div>`;
       })():''}
-      <div class="sinfo">
-        <div class="ic"><div class="ii">${cat.emoji}</div><div class="iv">${cat.label}</div><div class="il">Tipas</div></div>
-        <div class="ic"><div class="ii">🏅</div><div class="iv">${tc.label}</div><div class="il">Lygis</div></div>
-      </div>
       ${histHtml}
       ${isF?`<div class="note-box"><div class="note-t">📝 Mano pastaba</div><textarea class="note-area" id="noteArea" placeholder="Pridėk savo įspūdžius...">${notes[spot.id]||''}</textarea><button class="note-save" onclick="saveNote()">Išsaugoti</button></div>`:''}
       ${spot.kpdUrl?`<a href="${spot.kpdUrl}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:.65rem;color:var(--gold);text-decoration:none;margin-bottom:6px;opacity:.85">📖 KPD registras ↗</a>`:''}
@@ -3248,7 +3267,7 @@ function openSheet(spot){
 
   const _footer=document.getElementById('sheetFooter');
   if(_footer){
-    _footer.innerHTML = locked ? '' : `<div style="display:flex;gap:8px;margin-bottom:8px"><button class="route-show-btn" id="routeShowBtn" style="flex:1;margin-bottom:0" onclick="showRouteTo(selectedSpot)">🧭 Rodyk kelią</button><button class="route-show-btn" style="flex:1;margin-bottom:0" onclick="tpFromHere(selectedSpot.id)">🗺 Planuoti</button></div><div class="crow"><div class="dbadge" id="distBadge">—</div><button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau'}</button><button class="editbtn" id="favBtn" onclick="toggleSpotInActiveRoute()" title="Pridėti į maršrutą" style="font-size:18px;padding:10px 12px">＋</button>${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?`<button class="editbtn" onclick="openEditor(selectedSpot)">✏️</button><button class="editbtn" onclick="toggleFeatured()" title="Featured" style="${spot.featured?'background:rgba(232,200,120,.25);border-color:#e8c878':''}">⭐</button>`:''}</div>`;
+    _footer.innerHTML = locked ? '' : `<div style="display:flex;gap:8px;margin-bottom:8px"><button class="route-show-btn" id="routeShowBtn" style="flex:1;margin-bottom:0" onclick="showRouteTo(selectedSpot)">🧭 Rodyk kelią</button><button class="route-show-btn" style="flex:1;margin-bottom:0" onclick="tpFromHere(selectedSpot.id)">🗺 Planuoti</button></div><div class="crow"><div class="dbadge" id="distBadge">—</div><button class="${isF?'cbtn done':'cbtn gps-wait'}" id="collectBtn" onclick="collectCurrent()">${isF?'✓ Surinkta':'⌛ Prieik arčiau surinkti'}</button><button class="editbtn" id="favBtn" onclick="toggleSpotInActiveRoute()" title="Pridėti į maršrutą" style="font-size:18px;padding:10px 12px">＋</button></div>${(window._fbUser&&ADMIN_UIDS.includes(window._fbUser.uid))?`<div style="display:flex;gap:8px;margin-top:8px"><button class="editbtn" style="flex:1" onclick="openEditor(selectedSpot)">✏️ Redaguoti</button><button class="editbtn" style="flex:1;${spot.featured?'background:rgba(232,200,120,.25);border-color:#e8c878':''}" onclick="toggleFeatured()" title="Featured">⭐ Featured</button></div>`:''}`;
   }
   hideProxPopup();   // B1: don't let the proximity popup cover the footer
   clearRoute();      // clear any prior route line when opening a new spot
@@ -3290,7 +3309,7 @@ function updateCollectBtn(spot){
     btn.textContent=`📍 Surinkti (GPS netikslus? ${lbl})`;btn.className='cbtn gps-force';
   } else {
     const lbl=d<1000?`${Math.round(d)}m`:`${(d/1000).toFixed(1)}km`;
-    btn.textContent=`📍 Prieik arčiau`;btn.className='cbtn gps-wait';
+    btn.textContent=`📍 Prieik arčiau surinkti`;btn.className='cbtn gps-wait';
   }
 }
 
@@ -4371,89 +4390,16 @@ function getInviteUrl(){
 function shareInvite(){
   const url=getInviteUrl();
   const text=`🗺 Tyrinėk Lietuvą su manimi SpotSeekers! Surink vietas, atrakinkinėk paslėptas ir lenktyniauk lyderių lentelėje.\n\n👉 ${url}`;
-  // Show our custom share sheet
-  showShareSheet(url, text);
-}
-
-function shareProgress(){
-  const t1=t1Collected(),t2=t2Collected(),t3=t3Collected();
-  const badges=[...earnedBadges].length;
-  const url=getInviteUrl();
-  const text=`🗺 SpotSeekers — ${playerName} pažanga!\n\n📍 Surinkta: ${found.size}/${SPOTS.length} vietų\n   T1: ${t1} · T2: ${t2} · T3: ${t3}\n⭐ XP: ${totalXP}\n🔥 Serija: ${streak} dienų\n🏅 Ženkleliai: ${badges}\n\n👉 ${url}`;
-  showProgressSheet(text, url);
-}
-
-function showProgressSheet(text, url){
-  document.getElementById('shareSheet')?.remove();
-  const sheet=document.createElement('div');
-  sheet.id='shareSheet';
-  sheet.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;background:rgba(0,0,0,.5)';
-  const inner=document.createElement('div');
-  inner.style.cssText='width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 32px;box-shadow:0 -8px 40px var(--sh)';
-  const preview=document.createElement('div');
-  preview.style.cssText='background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:.72rem;color:var(--td);margin-bottom:12px;white-space:pre-line;line-height:1.6';
-  preview.textContent=text;
-  const sendBtn=document.createElement('button');
-  sendBtn.style.cssText='width:100%;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:11px;font-family:DM Sans,sans-serif;font-weight:600;font-size:.85rem;cursor:pointer;margin-bottom:8px';
-  sendBtn.textContent='📤 Siųsti';
-  sendBtn.onclick=()=>nativeShare(url,text);
-  const closeBtn=document.createElement('button');
-  closeBtn.style.cssText='width:100%;background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-family:DM Sans,sans-serif;font-size:.82rem;color:var(--tm);cursor:pointer';
-  closeBtn.textContent='Uždaryti';
-  closeBtn.onclick=()=>sheet.remove();
-  const handle=document.createElement('div');
-  handle.style.cssText='width:40px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 16px';
-  const title=document.createElement('div');
-  title.style.cssText="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);margin-bottom:4px";
-  title.textContent='📤 Dalintis pažanga';
-  inner.appendChild(handle);
-  inner.appendChild(title);
-  inner.appendChild(preview);
-  inner.appendChild(sendBtn);
-  inner.appendChild(closeBtn);
-  sheet.appendChild(inner);
-  sheet.addEventListener('click',e=>{if(e.target===sheet) sheet.remove();});
-  document.body.appendChild(sheet);
-}
-
-function showShareSheet(url, text){
-  // Remove existing sheet if any
-  document.getElementById('shareSheet')?.remove();
-  const sheet=document.createElement('div');
-  sheet.id='shareSheet';
-  sheet.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;background:rgba(0,0,0,.5)';
-  sheet.innerHTML=`
-    <div style="width:100%;background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 32px;box-shadow:0 -8px 40px var(--sh)">
-      <div style="width:40px;height:4px;background:var(--bdr);border-radius:2px;margin:0 auto 16px"></div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold);margin-bottom:4px">Pakviesti draugą</div>
-      <div style="font-family:'DM Mono',monospace;font-size:.62rem;color:var(--tm);margin-bottom:16px">Tavo asmeninė nuoroda</div>
-      <div style="background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:.72rem;color:var(--td);margin-bottom:12px;word-break:break-all">${url}</div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button onclick="copyInviteUrl('${url}')" style="flex:1;background:var(--gold);color:#0e0c09;border:none;border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:.85rem;cursor:pointer">📋 Kopijuoti nuorodą</button>
-        <button onclick="nativeShare('${url.replace(/'/g,"\\'")}','${text.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="flex:1;background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--txt);cursor:pointer">📤 Siųsti</button>
-      </div>
-      <button onclick="document.getElementById('shareSheet').remove()" style="width:100%;background:transparent;border:1px solid var(--bdr);border-radius:10px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.82rem;color:var(--tm);cursor:pointer">Uždaryti</button>
-    </div>`;
-  sheet.addEventListener('click',e=>{if(e.target===sheet) sheet.remove();});
-  document.body.appendChild(sheet);
+  // Native OS share sheet (Messenger/IG/WhatsApp bubbles). Fallback: copy link.
+  if(navigator.share){navigator.share({title:'SpotSeekers',text,url}).catch(()=>{});}
+  else copyInviteUrl(url);
 }
 
 function copyInviteUrl(url){
   if(navigator.clipboard){
     navigator.clipboard.writeText(url).then(()=>toast('📋 Nuoroda nukopijuota!','success')).catch(()=>fallbackCopy(url));
   } else fallbackCopy(url);
-  document.getElementById('shareSheet')?.remove();
 }
-
-function nativeShare(url,text){
-  if(navigator.share){
-    navigator.share({title:'SpotSeekers',text:text,url:url}).catch(()=>{});
-  } else {
-    copyInviteUrl(url);
-  }
-  document.getElementById('shareSheet')?.remove();
-}
-
 
 function fallbackCopy(text){
   const ta=document.createElement('textarea');
@@ -4496,23 +4442,12 @@ function renderSocial(){
 
   body.innerHTML=`<div class="social-section" style="padding-bottom:60px">
 
-    <!-- NAME + SHARE -->
-    <div class="name-row" style="margin-bottom:6px">
-      <input class="fi" id="nameInput" value="${playerName}" placeholder="Tavo vardas">
-      <button class="name-save-btn" onclick="saveName()">✓</button>
-    </div>
-    <button class="social-btn pri-btn" onclick="shareInvite()" style="margin-bottom:8px">
+    <!-- INVITE -->
+    <button class="social-btn pri-btn" onclick="shareInvite()" style="margin-bottom:14px">
       <span class="sb-icon">🔗</span>
       <div class="sb-text">
         <div class="sb-label">Pakviesti draugą</div>
-        <div class="sb-sub">Asmeninė nuoroda · kopijuoti arba siųsti</div>
-      </div>
-    </button>
-    <button class="social-btn" onclick="shareProgress()" style="margin-bottom:14px">
-      <span class="sb-icon">📤</span>
-      <div class="sb-text">
-        <div class="sb-label">Dalintis pažanga</div>
-        <div class="sb-sub">${found.size} vietų · ${totalXP} XP · 🔥${streak}d</div>
+        <div class="sb-sub">Atsidarys dalinimosi langas</div>
       </div>
     </button>
 
@@ -4538,6 +4473,7 @@ function renderSocial(){
           <div class="fr-code-val" id="myCodeVal">·····•</div>
           <button class="fr-mini-btn" onclick="copyMyCode()" title="Kopijuoti">📋</button>
         </div>
+        <div style="font-size:.68rem;color:var(--td);margin-top:6px;line-height:1.45">Tai tavo unikalus kodas. Padiktuok jį draugui — jis įves jį žemiau ir gaus tavo kvietimą.</div>
       </div>
       <div class="name-row" style="margin-bottom:8px">
         <input class="fi" id="frCodeInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Įvesk draugo kodą (6 skaitmenys)">
@@ -4776,13 +4712,13 @@ function lbMeta(u){
 }
 
 function saveName(){
-  const inp=document.getElementById('nameInput');
+  const inp=document.getElementById('setNameInput');
   if(!inp) return;
   const n=inp.value.trim();
   if(!n){toast('⚠ Įveskite vardą','info');return;}
   playerName=n;
   save();
-  renderSocial();
+  updateDrawerHeader();
   toast(`👤 Vardas: ${n}`,'success');
 }
 
@@ -4874,70 +4810,104 @@ async function sendFriendRequest(){
   }
 }
 
-async function loadFriendPanel(){
+let _frUnsubReq=null,_frUnsubFs=null,_frRawFs=[];
+
+function stopFriendListeners(){
+  if(_frUnsubReq){_frUnsubReq();_frUnsubReq=null;}
+  if(_frUnsubFs){_frUnsubFs();_frUnsubFs=null;}
+  window._frSubUid=null;_myFriends=[];_frReqs=[];_frRawFs=[];
+}
+
+// Realtime listeners — requests + friend list update live, no refresh/app-kill needed.
+function startFriendListeners(){
   const user=window._fbUser;
-  if(!user) return;
-  const{db,doc,getDoc,collection,getDocs,query,where}=window._fb||{};
-  if(!db) return;
-  const reqEl=document.getElementById('frRequests');
-  const listEl=document.getElementById('frList');
-  try{
-    // Incoming pending requests
-    const reqSnap=await getDocs(query(collection(db,'friendRequests'),where('to','==',user.uid),where('status','==','pending')));
+  const{db,collection,query,where,onSnapshot}=window._fb||{};
+  if(!user||!db||!onSnapshot)return;
+  if(window._frSubUid===user.uid&&_frUnsubReq)return; // already live for this user
+  stopFriendListeners();
+  window._frSubUid=user.uid;
+  _frUnsubReq=onSnapshot(query(collection(db,'friendRequests'),where('to','==',user.uid),where('status','==','pending')),snap=>{
     _frReqs=[];
-    reqSnap.forEach(d=>{const x=d.data();_frReqs.push({id:d.id,from:x.from,fromName:x.fromName||'Seekeris',ms:x.ms||0});});
+    snap.forEach(d=>{const x=d.data();_frReqs.push({id:d.id,from:x.from,fromName:x.fromName||'Seekeris',ms:x.ms||0});});
     _frReqs.sort((a,b)=>b.ms-a.ms);
-    if(reqEl){
-      reqEl.innerHTML=_frReqs.map((r,i)=>`
-        <div class="fr-req-card">
-          <div class="fr-req-text">📨 <b>${escHtml(r.fromName)}</b> nori tapti draugu</div>
-          <div class="fr-req-actions">
-            <button class="fr-mini-btn ok" onclick="acceptFriendRequest(${i})">✓ Priimti</button>
-            <button class="fr-mini-btn" onclick="declineFriendRequest(${i})">✕</button>
-          </div>
-        </div>`).join('');
-    }
-    // Friendships
-    const fsSnap=await getDocs(query(collection(db,'friendships'),where('members','array-contains',user.uid)));
-    const raw=[];
-    fsSnap.forEach(d=>{
+    renderFrRequests();
+  },e=>console.error('frReqSub',e));
+  _frUnsubFs=onSnapshot(query(collection(db,'friendships'),where('members','array-contains',user.uid)),snap=>{
+    _frRawFs=[];
+    snap.forEach(d=>{
       const x=d.data();
       const other=(x.members||[]).find(m=>m!==user.uid);
-      if(other)raw.push({fsId:d.id,uid:other,name:(x.names&&x.names[other])||'Seekeris'});
+      if(other)_frRawFs.push({fsId:d.id,uid:other,name:(x.names&&x.names[other])||'Seekeris'});
     });
-    // Fetch fresh stats per friend (few reads — friend counts are small)
-    const enriched=await Promise.all(raw.map(async f=>{
-      try{
-        const s=await getDoc(doc(db,'users',f.uid));
-        if(s.exists()){
-          const d2=s.data();
-          const wk=lbWeekKey();
-          return{...f,name:d2.playerName||d2.name||f.name,xp:d2.totalXP||0,
-            wxp:(d2.weekKey===wk?(d2.weekXP||0):0),
-            level:getLevel(d2.totalXP||0).level,spots:d2.foundCount||0,photo:d2.photoURL||null};
-        }
-      }catch(e){}
-      return{...f,xp:0,wxp:0,level:1,spots:0,photo:null};
-    }));
-    enriched.sort((a,b)=>b.wxp-a.wxp||b.xp-a.xp);
-    _myFriends=enriched;
-    if(listEl){
-      listEl.innerHTML=enriched.length?enriched.map((f,i)=>`
-        <div class="lb-row">
-          <div class="lb-avatar">${f.photo?`<img src="${escHtml(f.photo)}" referrerpolicy="no-referrer">`:'👤'}</div>
-          <div class="lb-info">
-            <div class="lb-name">${escHtml(f.name)}</div>
-            <div class="lb-meta">Lv.${f.level} · 📍 ${f.spots} · ⭐ ${f.wxp} XP šią sav.</div>
-          </div>
-          <button class="fr-mini-btn ok" onclick="inviteToParty(${i})" title="Kviesti į komandą">🤝</button>
-          <button class="fr-mini-btn" onclick="removeFriend(${i})" title="Pašalinti">✕</button>
-        </div>`).join('')
-      :'<div class="lb-empty" style="padding:10px 0">Dar neturi draugų — pasidalink savo kodu! 👆</div>';
-    }
-  }catch(e){
-    console.error('loadFriendPanel',e);
-    if(listEl)listEl.innerHTML=`<div class="lb-empty">Nepavyko įkelti 😕${e&&e.code==='permission-denied'?'<div style="font-size:.62rem;color:var(--tm);margin-top:4px">(prieigos klaida — Firestore taisyklės)</div>':''}<br><button onclick="loadFriendPanel()" style="margin-top:8px;background:var(--surf2);border:1px solid var(--bdr);border-radius:8px;padding:6px 14px;color:var(--td);font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif">↻ Bandyti dar kartą</button></div>`;
+    enrichFriendList();
+  },e=>{
+    console.error('frFsSub',e);
+    const listEl=document.getElementById('frList');
+    if(listEl)listEl.innerHTML=`<div class="lb-empty">Nepavyko įkelti 😕${e&&e.code==='permission-denied'?'<div style="font-size:.62rem;color:var(--tm);margin-top:4px">(prieigos klaida — Firestore taisyklės)</div>':''}</div>`;
+  });
+}
+
+function renderFrRequests(){
+  const reqEl=document.getElementById('frRequests');
+  if(reqEl){
+    reqEl.innerHTML=_frReqs.map((r,i)=>`
+      <div class="fr-req-card">
+        <div class="fr-req-text">📨 <b>${escHtml(r.fromName)}</b> nori tapti draugu</div>
+        <div class="fr-req-actions">
+          <button class="fr-mini-btn ok" onclick="acceptFriendRequest(${i})">✓ Priimti</button>
+          <button class="fr-mini-btn" onclick="declineFriendRequest(${i})">✕</button>
+        </div>
+      </div>`).join('');
   }
+  // Bottom-bar Draugai badge — pending request count
+  const b=document.getElementById('mobNavSocialBadge');
+  if(b){b.textContent=_frReqs.length;b.style.display=_frReqs.length>0?'block':'none';}
+}
+
+// Fetch fresh stats per friend (few reads — friend counts are small)
+async function enrichFriendList(){
+  const{db,doc,getDoc}=window._fb||{};
+  if(!db)return;
+  const enriched=await Promise.all(_frRawFs.map(async f=>{
+    try{
+      const s2=await getDoc(doc(db,'users',f.uid));
+      if(s2.exists()){
+        const d2=s2.data();
+        const wk=lbWeekKey();
+        return{...f,name:d2.playerName||d2.name||f.name,xp:d2.totalXP||0,
+          wsp:(d2.weekKey===wk?(d2.weekSpots||0):0),
+          level:getLevel(d2.totalXP||0).level,spots:d2.foundCount||0,photo:d2.photoURL||null};
+      }
+    }catch(e){}
+    return{...f,xp:0,wsp:0,level:1,spots:0,photo:null};
+  }));
+  // Sort by weekly spots, then total spots (XP hidden from social UI)
+  enriched.sort((a,b)=>b.wsp-a.wsp||b.spots-a.spots||b.xp-a.xp);
+  _myFriends=enriched;
+  renderFrList();
+}
+
+function renderFrList(){
+  const listEl=document.getElementById('frList');
+  if(!listEl)return;
+  listEl.innerHTML=_myFriends.length?_myFriends.map((f,i)=>`
+    <div class="lb-row">
+      <div class="lb-avatar">${f.photo?`<img src="${escHtml(f.photo)}" referrerpolicy="no-referrer">`:'👤'}</div>
+      <div class="lb-info">
+        <div class="lb-name">${escHtml(f.name)}</div>
+        <div class="lb-meta">Lv.${f.level} · 📍 ${f.spots} viso · 🗓 ${f.wsp} šią sav.</div>
+      </div>
+      <button class="fr-mini-btn ok" onclick="inviteToParty(${i})" title="Kviesti į komandą">🤝</button>
+      <button class="fr-mini-btn" onclick="removeFriend(${i})" title="Pašalinti">✕</button>
+    </div>`).join('')
+  :'<div class="lb-empty" style="padding:10px 0">Dar neturi draugų — pasidalink savo kodu! 👆</div>';
+}
+
+// Entry point kept for existing callers — listeners keep data live; this re-renders cached state.
+async function loadFriendPanel(){
+  startFriendListeners();
+  if(_frReqs.length)renderFrRequests();
+  if(_frRawFs.length)enrichFriendList();
 }
 
 async function acceptFriendRequest(idx){
@@ -4990,11 +4960,11 @@ const PARTY_TTL_MS=3*60*60*1000;        // party lifetime: 3 h
 const PARTY_JOIN_RADIUS=120;            // metres (100 m rule + GPS grace)
 const PARTY_INVITE_VALID_MS=30*60*1000; // invite must be accepted within 30 min
 const PARTY_LOOKBACK_MS=48*60*60*1000;  // apply leftover collects up to 48 h back
-const PARTY_POLL_MS=90*1000;
 
 let _party=null;      // {id,...docData} for the current pending/active party
 let _partyInvite=null;// pending invite where I'm the partner
-let _partyPollTimer=null;
+let _partyUnsub=null;       // realtime doc listener on the current party
+let _partyInviteUnsub=null; // realtime query listener for incoming invites
 
 function partyIsActive(p){return p&&p.status==='active'&&Date.now()<(p.expiresMs||0);}
 
@@ -5017,6 +4987,7 @@ async function inviteToParty(idx){
     _party={id:ref.id,leader:user.uid,leaderName:playerName,partner:f.uid,partnerName:f.name,
       status:'pending',lLat:userLat,lLng:userLng,createdMs:Date.now(),expiresMs:Date.now()+PARTY_TTL_MS,collects:[]};
     localStorage.setItem('ss_party_id',ref.id);
+    subscribeParty(ref.id);
     renderPartyBox();
     toast(`🤝 Kvietimas išsiųstas! ${f.name} turi patvirtinti būdamas šalia tavęs`,'gold');
   }catch(e){console.error('inviteToParty',e);toast('Nepavyko sukurti komandos 😕','info');}
@@ -5046,7 +5017,7 @@ async function checkPartyState(){
       if(p.status==='pending'&&p.leader===user.uid&&(p.createdMs||0)>now-PARTY_INVITE_VALID_MS){_party=p;}
       if(partyIsActive(p)){_party=p;}
     }
-    if(partyIsActive(_party))startPartyPoll();else stopPartyPoll();
+    if(_party)subscribeParty(_party.id);else unsubParty();
     renderPartyBox();
   }catch(e){console.error('checkPartyState',e);}
 }
@@ -5119,7 +5090,7 @@ async function acceptParty(){
     _party={...p,status:'active',pJoinedMs:Date.now()};
     _partyInvite=null;
     localStorage.setItem('ss_party_id',p.id);
-    startPartyPoll();
+    subscribeParty(p.id);
     renderPartyBox();
     toast(`🤝 Komanda su ${p.leaderName} aktyvi! Geros medžioklės!`,'gold');
   }catch(e){console.error('acceptParty',e);toast('Nepavyko prisijungti 😕','info');}
@@ -5155,7 +5126,7 @@ async function endParty(){
   try{
     await updateDoc(doc(db,'parties',p.id),{status:'ended',endedMs:Date.now()});
     _party=null;
-    stopPartyPoll();
+    unsubParty();
     localStorage.removeItem('ss_party_id');
     renderPartyBox();
     toast('🏁 Komanda baigta','info');
@@ -5199,25 +5170,52 @@ function applyPartyCollects(p){
   toast(`🤝 Komanda: +${applied} ${applied===1?'vieta':'vietos'} (+${xpSum} XP)`,'gold');
 }
 
-function startPartyPoll(){
-  if(_partyPollTimer)return;
-  _partyPollTimer=setInterval(async()=>{
-    if(document.visibilityState!=='visible')return;
-    if(!partyIsActive(_party)){stopPartyPoll();renderPartyBox();return;}
-    const{db,doc,getDoc}=window._fb||{};
-    if(!db)return;
-    try{
-      const snap=await getDoc(doc(db,'parties',_party.id));
-      if(snap.exists()){
-        _party={id:snap.id,...snap.data()};
-        applyPartyCollects(_party);
-        if(!partyIsActive(_party)){stopPartyPoll();}
-        renderPartyBox();
-      }
-    }catch(e){}
-  },PARTY_POLL_MS);
+// ── Realtime party sync (onSnapshot) ──
+function unsubParty(){if(_partyUnsub){_partyUnsub();_partyUnsub=null;}window._partySubId=null;}
+function subscribeParty(id){
+  if(!id)return;
+  if(window._partySubId===id&&_partyUnsub)return; // already live on this doc
+  unsubParty();
+  const{db,doc,onSnapshot}=window._fb||{};
+  if(!db||!onSnapshot)return;
+  window._partySubId=id;
+  _partyUnsub=onSnapshot(doc(db,'parties',id),snap=>{
+    if(!snap.exists()){unsubParty();_party=null;renderPartyBox();return;}
+    const p={id:snap.id,...snap.data()};
+    const user=window._fbUser;
+    if(!user)return;
+    // Teammate collects apply instantly (idempotent)
+    if(p.status==='active'||p.status==='ended')applyPartyCollects(p);
+    if(p.status==='declined'||p.status==='ended'||(p.status==='active'&&!partyIsActive(p))){
+      _party=null;unsubParty();localStorage.removeItem('ss_party_id');
+    }else{
+      _party=p;
+      if(p.status==='active'&&p.partner===user.uid)_partyInvite=null;
+    }
+    renderPartyBox();
+  },e=>console.error('partySub',e));
 }
-function stopPartyPoll(){if(_partyPollTimer){clearInterval(_partyPollTimer);_partyPollTimer=null;}}
+// Incoming party invites — live (partner side). Attached once per login.
+function startPartyInviteListener(){
+  const user=window._fbUser;
+  const{db,collection,query,where,onSnapshot}=window._fb||{};
+  if(!user||!db||!onSnapshot)return;
+  if(window._partyInviteSubUid===user.uid&&_partyInviteUnsub)return;
+  if(_partyInviteUnsub){_partyInviteUnsub();_partyInviteUnsub=null;}
+  window._partyInviteSubUid=user.uid;
+  _partyInviteUnsub=onSnapshot(query(collection(db,'parties'),where('partner','==',user.uid),where('status','==','pending')),snap=>{
+    const now=Date.now();
+    let inv=null;
+    snap.forEach(d=>{const x={id:d.id,...d.data()};if((x.createdMs||0)>now-PARTY_INVITE_VALID_MS)inv=x;});
+    _partyInvite=inv;
+    renderPartyBox();
+  },e=>console.error('partyInviteSub',e));
+}
+function stopPartyListeners(){
+  unsubParty();
+  if(_partyInviteUnsub){_partyInviteUnsub();_partyInviteUnsub=null;}
+  window._partyInviteSubUid=null;_party=null;_partyInvite=null;
+}
 
 // The pocket-phone moment: partner opens the app → sync party immediately.
 document.addEventListener('visibilitychange',()=>{
@@ -5288,11 +5286,7 @@ function updateAll(){
   // Routes badge (drawer)
   const fb=document.getElementById('routesBadge');
   if(fb){fb.textContent='1';fb.style.display=route?'inline-flex':'none';}
-  // Mobile bottom nav badges
-  const mnf=document.getElementById('mobNavFoundBadge');
-  if(mnf){mnf.textContent=found.size;mnf.style.display=found.size>0?'block':'none';}
-  const mnfav=document.getElementById('mobNavRoutesBadge');
-  if(mnfav){mnfav.textContent='1';mnfav.style.display=route?'block':'none';}
+  // Mobile bottom nav — friend-request badge is updated by renderFrRequests()
   // Mobile filter icon update
   const mfi=document.getElementById('mobNavFilterIcon');
   const mfl=document.getElementById('mobNavFilterLabel');
@@ -6504,7 +6498,6 @@ async function kpdImportSelected(){
     console.warn('KPD cache save failed (too large?)',e);
   }
 }
-const DEG_50M=0.00045; // ~50 metres in degrees
 
 function findDuplicateSpots(){
   const ic=_getImportCountry();
@@ -6519,10 +6512,7 @@ function findDuplicateSpots(){
     for(let j=i+1;j<countrySpots.length;j++){
       if(used.has(j)) continue;
       const b=countrySpots[j];
-      if(b.cat!==a.cat) continue;
-      const dlat=Math.abs(a.lat-b.lat);
-      const dlng=Math.abs(a.lng-b.lng);
-      if(dlat<DEG_50M&&dlng<DEG_50M&&_nameSim(a.name,b.name)>=NAME_SIM_THRESHOLD){
+      if(_isDupPair(a,b)){
         group.push(b);
         used.add(j);
       }
@@ -6589,7 +6579,33 @@ function _nameSim(a,b){
   }
   return 1-d[m][n]/Math.max(m,n);
 }
-const NAME_SIM_THRESHOLD=0.8;
+const DEG_PREFILTER=0.001; // ~110 m lat / ~63 m lng at 55°N — generous box before exact dist
+
+// Token-based similarity — word order + partial words ("Kauno pilis" vs "Pilies bokštas").
+// Words match if equal or one is a prefix of the other (≥4 chars — covers LT declensions).
+function _tokenSim(a,b){
+  const tok=x=>(x||'').toLowerCase().split(/[^a-z0-9ąčęėįšųūž]+/).filter(w=>w.length>=3);
+  const A=tok(a),B=tok(b);
+  if(!A.length||!B.length)return 0;
+  let shared=0;
+  for(const w of A){
+    if(B.some(v=>v===w||(w.length>=4&&v.length>=4&&(v.startsWith(w)||w.startsWith(v)))))shared++;
+  }
+  return shared/Math.min(A.length,B.length);
+}
+
+// Tiered duplicate rule — the closer two spots are, the looser the name match may be:
+//   ≤15 m → ≥50% Levenshtein OR ≥60% token overlap
+//   ≤50 m → ≥80% Levenshtein OR ≥85% token overlap
+function _isDupPair(a,b){
+  if(a.cat!==b.cat)return false;
+  if(Math.abs(a.lat-b.lat)>DEG_PREFILTER||Math.abs(a.lng-b.lng)>DEG_PREFILTER)return false;
+  const d=dist(a.lat,a.lng,b.lat,b.lng);
+  if(d>50)return false;
+  const sim=_nameSim(a.name,b.name),tk=_tokenSim(a.name,b.name);
+  if(d<=15)return sim>=0.5||tk>=0.6;
+  return sim>=0.8||tk>=0.85;
+}
 
 // Delete corrupted abandoned/urbex import spots (cat or name/desc keyword match).
 const ABANDONED_CATS=['abandoned','urbex','ruins','derelict'];
@@ -6664,8 +6680,7 @@ async function autoDeleteAllDuplicates(){
     for(let j=i+1;j<SPOTS.length;j++){
       if(used.has(j)) continue;
       const b=SPOTS[j];
-      if(b.cat!==a.cat) continue;
-      if(Math.abs(a.lat-b.lat)<DEG_50M&&Math.abs(a.lng-b.lng)<DEG_50M&&_nameSim(a.name,b.name)>=NAME_SIM_THRESHOLD){
+      if(_isDupPair(a,b)){
         group.push({spot:b,idx:j});
         used.add(j);
       }
@@ -6694,7 +6709,7 @@ async function autoDeleteAllDuplicates(){
   }
 
   const sample=groups.slice(0,8).map(g=>`• ${g[0].spot.name||'—'} ×${g.length}`).join('\n');
-  if(!confirm(`Rasta ${groups.length} dublikatų grupių (50m · ≥80% vardo).\nBus ištrinta ${toDelete.length} vietų, paliktas geriausias kiekvienoje grupėje (KPD > Wikidata > OSM, ilgesnis aprašas):\n\n${sample}${groups.length>8?`\n…ir dar ${groups.length-8} grupių`:''}\n\n⚠ NEGRĮŽTAMA. Tęsti?`)) return;
+  if(!confirm(`Rasta ${groups.length} dublikatų grupių (≤15m: ≥50% vardo · ≤50m: ≥80% vardo).\nBus ištrinta ${toDelete.length} vietų, paliktas geriausias kiekvienoje grupėje (KPD > Wikidata > OSM, ilgesnis aprašas):\n\n${sample}${groups.length>8?`\n…ir dar ${groups.length-8} grupių`:''}\n\n⚠ NEGRĮŽTAMA. Tęsti?`)) return;
 
   osmSetStatus(`⏳ Trinami ${toDelete.length} dublikatų...`);
 
@@ -8081,7 +8096,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v45';
+const CACHE='spotseekers-v46';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -8165,7 +8180,9 @@ window.onFbAuthReady=async function(user){
     updateAuthUI(user);
     fbLoadSpots();
     fbLoadUserProgress(user.uid);
-    checkPartyState(); // pending invites + apply teammate party collects
+    checkPartyState(); // discover existing party + apply leftover teammate collects
+    startPartyInviteListener(); // realtime incoming party invites
+    startFriendListeners();     // realtime friends + requests
     checkWeeklyChampion(); // credit last week's leaderboard win if any
     // Re-render social + leaderboard panels so they refresh immediately after login
     const socialPanel=document.getElementById('panel-social');
@@ -8173,6 +8190,8 @@ window.onFbAuthReady=async function(user){
     const lbPanel=document.getElementById('panel-leaderboard');
     if(lbPanel&&lbPanel.innerHTML) renderLeaderboard();
   } else {
+    stopFriendListeners();  // detach realtime listeners on logout
+    stopPartyListeners();
     updateAuthUI(null);
     fbLoadSpots();
   }
@@ -8732,23 +8751,23 @@ deleteSpot=async function(){
 
 <!-- MOBILE BOTTOM NAV BAR -->
 <div class="mob-nav-bar" id="mobNavBar">
-  <div class="mob-nav-item" onclick="openDrawer()">
-    <div class="mob-nav-icon">🗺</div>
-    <div class="mob-nav-label">Vietos</div>
-    <div class="mob-nav-badge" id="mobNavFoundBadge" style="display:none">0</div>
+  <div class="mob-nav-item" onclick="openAchievements()">
+    <div class="mob-nav-icon">🏅</div>
+    <div class="mob-nav-label">Ženkleliai</div>
   </div>
   <div class="mob-nav-item" onclick="openMobFilterSheet()">
     <div class="mob-nav-icon" id="mobNavFilterIcon">🎛</div>
     <div class="mob-nav-label" id="mobNavFilterLabel">Filtras</div>
   </div>
-  <div class="mob-nav-item" onclick="openAchievements()">
-    <div class="mob-nav-icon">🏅</div>
-    <div class="mob-nav-label">Ženkleliai</div>
+  <div class="mob-nav-center" onclick="recenterMap()" title="Centruoti į mane"><span class="gd" id="gpsDotMob" style="position:absolute;top:6px;right:6px;width:7px;height:7px"></span>⌖</div>
+  <div class="mob-nav-item" onclick="openDrawer();openSubPanel('social')">
+    <div class="mob-nav-icon">👥</div>
+    <div class="mob-nav-label">Draugai</div>
+    <div class="mob-nav-badge" id="mobNavSocialBadge" style="display:none">0</div>
   </div>
-  <div class="mob-nav-item" onclick="mobNavTo('routes')">
-    <div class="mob-nav-icon">🗺</div>
-    <div class="mob-nav-label">Maršrutai</div>
-    <div class="mob-nav-badge" id="mobNavRoutesBadge" style="display:none">0</div>
+  <div class="mob-nav-item" onclick="openDrawer();openSubPanel('leaderboard')">
+    <div class="mob-nav-icon">🏆</div>
+    <div class="mob-nav-label">Lyderiai</div>
   </div>
 </div>
 </body>
