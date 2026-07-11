@@ -4811,11 +4811,13 @@ async function sendFriendRequest(){
 }
 
 let _frUnsubReq=null,_frUnsubFs=null,_frRawFs=[];
+let _frInitReq=false,_frInitFs=false; // first snapshot received?
 
 function stopFriendListeners(){
   if(_frUnsubReq){_frUnsubReq();_frUnsubReq=null;}
   if(_frUnsubFs){_frUnsubFs();_frUnsubFs=null;}
   window._frSubUid=null;_myFriends=[];_frReqs=[];_frRawFs=[];
+  _frInitReq=false;_frInitFs=false;
 }
 
 // Realtime listeners — requests + friend list update live, no refresh/app-kill needed.
@@ -4830,6 +4832,7 @@ function startFriendListeners(){
     _frReqs=[];
     snap.forEach(d=>{const x=d.data();_frReqs.push({id:d.id,from:x.from,fromName:x.fromName||'Seekeris',ms:x.ms||0});});
     _frReqs.sort((a,b)=>b.ms-a.ms);
+    _frInitReq=true;
     renderFrRequests();
   },e=>console.error('frReqSub',e));
   _frUnsubFs=onSnapshot(query(collection(db,'friendships'),where('members','array-contains',user.uid)),snap=>{
@@ -4839,6 +4842,7 @@ function startFriendListeners(){
       const other=(x.members||[]).find(m=>m!==user.uid);
       if(other)_frRawFs.push({fsId:d.id,uid:other,name:(x.names&&x.names[other])||'Seekeris'});
     });
+    _frInitFs=true;
     enrichFriendList();
   },e=>{
     console.error('frFsSub',e);
@@ -4854,8 +4858,8 @@ function renderFrRequests(){
       <div class="fr-req-card">
         <div class="fr-req-text">📨 <b>${escHtml(r.fromName)}</b> nori tapti draugu</div>
         <div class="fr-req-actions">
-          <button class="fr-mini-btn ok" onclick="acceptFriendRequest(${i})">✓ Priimti</button>
-          <button class="fr-mini-btn" onclick="declineFriendRequest(${i})">✕</button>
+          <button class="fr-mini-btn ok" onclick="acceptFriendRequest('${r.id}')">✓ Priimti</button>
+          <button class="fr-mini-btn" onclick="declineFriendRequest('${r.id}')">✕</button>
         </div>
       </div>`).join('');
   }
@@ -4897,8 +4901,8 @@ function renderFrList(){
         <div class="lb-name">${escHtml(f.name)}</div>
         <div class="lb-meta">Lv.${f.level} · 📍 ${f.spots} viso · 🗓 ${f.wsp} šią sav.</div>
       </div>
-      <button class="fr-mini-btn ok" onclick="inviteToParty(${i})" title="Kviesti į komandą">🤝</button>
-      <button class="fr-mini-btn" onclick="removeFriend(${i})" title="Pašalinti">✕</button>
+      <button class="fr-mini-btn ok" onclick="inviteToParty('${f.fsId}')" title="Kviesti į komandą">🤝</button>
+      <button class="fr-mini-btn" onclick="removeFriend('${f.fsId}')" title="Pašalinti">✕</button>
     </div>`).join('')
   :'<div class="lb-empty" style="padding:10px 0">Dar neturi draugų — pasidalink savo kodu! 👆</div>';
 }
@@ -4906,12 +4910,13 @@ function renderFrList(){
 // Entry point kept for existing callers — listeners keep data live; this re-renders cached state.
 async function loadFriendPanel(){
   startFriendListeners();
-  if(_frReqs.length)renderFrRequests();
-  if(_frRawFs.length)enrichFriendList();
+  if(_frInitReq)renderFrRequests();
+  if(_frInitFs){if(_frRawFs.length)enrichFriendList();else{_myFriends=[];renderFrList();}}
+  // else: first snapshots haven't arrived yet — they render on arrival ("Kraunama..." stays until then)
 }
 
-async function acceptFriendRequest(idx){
-  const r=_frReqs[idx];
+async function acceptFriendRequest(reqId){
+  const r=_frReqs.find(x=>x.id===reqId);
   const user=window._fbUser;
   if(!r||!user) return;
   const{db,doc,collection,addDoc,deleteDoc}=window._fb||{};
@@ -4927,8 +4932,8 @@ async function acceptFriendRequest(idx){
   }catch(e){console.error('acceptFriendRequest',e);toast('Nepavyko 😕','info');}
 }
 
-async function declineFriendRequest(idx){
-  const r=_frReqs[idx];
+async function declineFriendRequest(reqId){
+  const r=_frReqs.find(x=>x.id===reqId);
   if(!r) return;
   const{db,doc,deleteDoc}=window._fb||{};
   try{
@@ -4937,8 +4942,8 @@ async function declineFriendRequest(idx){
   }catch(e){console.error('declineFriendRequest',e);}
 }
 
-async function removeFriend(idx){
-  const f=_myFriends[idx];
+async function removeFriend(fsId){
+  const f=_myFriends.find(x=>x.fsId===fsId);
   if(!f) return;
   if(!confirm(`Pašalinti draugą ${f.name}?`)) return;
   const{db,doc,deleteDoc}=window._fb||{};
@@ -4968,8 +4973,8 @@ let _partyInviteUnsub=null; // realtime query listener for incoming invites
 
 function partyIsActive(p){return p&&p.status==='active'&&Date.now()<(p.expiresMs||0);}
 
-async function inviteToParty(idx){
-  const f=_myFriends[idx];
+async function inviteToParty(fsId){
+  const f=_myFriends.find(x=>x.fsId===fsId);
   const user=window._fbUser;
   if(!f||!user) return;
   if(userLat===null){toast('📍 Įjunk GPS — komandą pradėti galima tik būnant kartu','info');return;}
@@ -5207,6 +5212,11 @@ function startPartyInviteListener(){
     const now=Date.now();
     let inv=null;
     snap.forEach(d=>{const x={id:d.id,...d.data()};if((x.createdMs||0)>now-PARTY_INVITE_VALID_MS)inv=x;});
+    if(inv&&inv.id!==window._lastPartyInviteId){
+      window._lastPartyInviteId=inv.id;
+      toast(`🤝 ${inv.leaderName||'Draugas'} kviečia į komandą! Žiūrėk Draugų skiltyje`,'gold');
+    }
+    if(!inv)window._lastPartyInviteId=null;
     _partyInvite=inv;
     renderPartyBox();
   },e=>console.error('partyInviteSub',e));
@@ -5221,6 +5231,8 @@ function stopPartyListeners(){
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&window._fbUser)checkPartyState();
 });
+// Local UI tick — keeps the active-party countdown fresh and hides the card at expiry.
+setInterval(()=>{if(_party&&_party.status==='active')renderPartyBox();},60000);
 
 // ═══════════ EDITOR ═══════════
 
