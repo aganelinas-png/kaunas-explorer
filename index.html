@@ -1255,6 +1255,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
       <div class="hint" style="margin-bottom:8px">📥 Importuoti vietas iš CSV failo</div>
       <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importCSV(event)">
       <button class="mbtn sec" onclick="document.getElementById('csvFileInput').click()" style="width:100%;padding:10px;font-size:.82rem">📂 Įkelti CSV failą</button>
+      <div class="hint" style="margin:10px 0 8px">🌲 Importuoti VMU rekreacijos vietas (GeoJSON)</div>
+      <input type="file" id="vmuFileInput" accept=".json,.geojson,application/json" style="display:none" onchange="importVMU(this)">
+      <button class="mbtn sec" id="vmuImportBtn" onclick="document.getElementById('vmuFileInput').click()" style="width:100%;padding:10px;font-size:.82rem">🌲 Įkelti VMU GeoJSON failą</button>
     </div>
   </div>
 </div>
@@ -1562,6 +1565,29 @@ const CAT_DEFAULT_RADIUS={
   mound:160,
   cemetery:220,
 };
+
+// Raw OSM tag values → Lithuanian labels (for spot card chip display)
+const OSM_TAG_LT={
+  water_tower:'Vandens bokštas',place_of_worship:'Šventovė',grave_yard:'Kapinės',
+  mound:'Piliakalnis',castle:'Pilis',fort:'Fortas',bunker:'Bunkeris',
+  monument:'Paminklas',wayside_shrine:'Koplytstulpis',stone:'Akmuo',
+  bridge:'Tiltas',artwork:'Meno kūrinys',memorial:'Memorialas',
+  ruins:'Griuvėsiai',archaeological_site:'Archeologinė vieta',
+  museum:'Muziejus',gallery:'Galerija',viewpoint:'Apžvalgos vieta',
+  park:'Parkas',garden:'Sodas',nature_reserve:'Draustinis',
+  chimney:'Kaminas',cliff:'Skardis',cemetery:'Kapinės',
+  hiking:'Pėsčiųjų takas',foot:'Pėsčiųjų takas',trailhead:'Tako pradžia',
+  attraction:'Lankytina vieta',manor:'Dvaras',tower:'Bokštas',
+  windmill:'Malūnas',watermill:'Malūnas',yes:''
+};
+// Returns display label for a spot tag: translates raw OSM values,
+// hides unknown raw-looking tags, passes everything else (KPD-…, Q…, LT text) through.
+function tagLabel(tag){
+  if(!tag) return '';
+  if(OSM_TAG_LT[tag]!==undefined) return OSM_TAG_LT[tag];
+  if(/^[a-z][a-z_]*$/.test(tag)) return '';
+  return tag;
+}
 
 const DEFAULT_SPOTS=[]; // removed — KV/Firestore is always populated
 
@@ -3250,7 +3276,7 @@ function openSheet(spot){
       </div>
       <div class="schips" style="justify-content:center">
         ${spot.featured?`<span class="chip" style="border-color:#e8c878;color:#e8c878;background:rgba(232,200,120,.12)">⭐ Featured — vietinių rekomenduojama</span>`:''}
-        ${spot.tag?`<span class="chip hi">${spot.tag}</span>`:''}
+        ${tagLabel(spot.tag)?`<span class="chip hi">${tagLabel(spot.tag)}</span>`:''}
       </div>
       ${spot.year&&spot.year!=='—'?(()=>{
         const yr=spot.year;
@@ -5950,7 +5976,7 @@ async function osmImportSelected(){
         name:item.name,cat:item.cat,tier:_osmTier,
         lat:item.lat,lng:item.lng,
         country:_getImportCountry(),
-        radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:item.typeKey,
+        radius:CAT_DEFAULT_RADIUS[item.cat]||DEFAULT_RADIUS,time:'',price:'',year:'',tag:OSM_TAG_LT[item.typeKey]||item.typeKey,
         history:'',bring:[],
         createdAt:serverTimestamp()
       };
@@ -8108,7 +8134,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v46';
+const CACHE='spotseekers-v47';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
@@ -8492,6 +8518,119 @@ async function rebuildKVCache(){
     toast(`❌ Klaida: ${e.message}`,'info');
     if(btn){btn.style.opacity='1';btn.style.pointerEvents='';btn.textContent='🔄 Atnaujinti KV talpyklą';}
   }
+}
+
+// ── ADMIN: VMU recreation import (GeoJSON from geojson-proxy.php) ──
+// Writes spots to FIRESTORE with stable doc ids (vmu-RO…) via batched setDoc,
+// then rebuilds KV from Firestore — so rebuilds can never wipe these again.
+function _vmuNameSim(a,b){
+  const tok=s=>String(s||'').toLowerCase().replace(/[^a-ząčęėįšųūž0-9\s]/g,'').split(/\s+/).filter(w=>w.length>2);
+  const A=new Set(tok(a)),B=new Set(tok(b));
+  if(!A.size||!B.size) return 0;
+  let hit=0;A.forEach(w=>{if(B.has(w))hit++;});
+  return hit/Math.min(A.size,B.size);
+}
+function _vmuCat(tipas){
+  const t=String(tipas||'').toLowerCase();
+  if(t.includes('grup')) return null;            // skip "grupė" container objects
+  if(t.includes('stovykl')||t.includes('poilsiavie')) return 'camping';
+  if(t.includes('tak')) return 'trail';
+  if(t.includes('apžvalg')||t.includes('apzvalg')||t.includes('regykl')) return 'viewpoint';
+  return 'recreation';
+}
+async function importVMU(input){
+  if(!isAdmin()){toast('⚠ Tik administratorius','info');input.value='';return;}
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  const btn=document.getElementById('vmuImportBtn');
+  const setBtn=t=>{if(btn)btn.textContent=t;};
+  setBtn('⏳ Skaitoma...');
+  let gj;
+  try{gj=JSON.parse(await file.text());}
+  catch(e){toast('❌ Netinkamas JSON failas','info');setBtn('🌲 Įkelti VMU GeoJSON failą');input.value='';return;}
+  const feats=(gj&&gj.features)||[];
+  if(!feats.length){toast('❌ GeoJSON be objektų','info');setBtn('🌲 Įkelti VMU GeoJSON failą');input.value='';return;}
+
+  // Map features → spot candidates
+  let skippedType=0,skippedBad=0;
+  const candidates=[];
+  feats.forEach(f=>{
+    const p=f.properties||{};
+    const g=f.geometry||{};
+    const cat=_vmuCat(p.tipas);
+    if(!cat){skippedType++;return;}
+    let lng,lat;
+    if(g.type==='Point'&&Array.isArray(g.coordinates)){[lng,lat]=g.coordinates;}
+    if(typeof lat!=='number'||typeof lng!=='number'||!p.pavadinimas||!p.id){skippedBad++;return;}
+    const photo=String(p.nuotraukos||'').split(',')[0].trim();
+    candidates.push({
+      id:'vmu-'+String(p.id).trim(),
+      name:String(p.pavadinimas).trim(),
+      cat,tier:2,lat,lng,
+      radius:CAT_DEFAULT_RADIUS[cat]||DEFAULT_RADIUS,
+      history:String(p.aprasymas||'').trim(),
+      time:'',price:'',year:'',tag:'',bring:[],
+      country:'LT',source:'VMU',
+      ...(photo?{photo}:{}),
+    });
+  });
+
+  // Dedup: same vmu id already in SPOTS, OR ≤100 m to an existing spot AND name similarity ≥0.5
+  const existingIds=new Set(SPOTS.map(s=>String(s.id)));
+  let dupId=0,dupGeo=0;
+  const byCat={camping:0,trail:0,recreation:0,viewpoint:0};
+  const fresh=[];
+  candidates.forEach(c=>{
+    if(existingIds.has(c.id)){dupId++;return;}
+    let dup=false;
+    for(const s of SPOTS){
+      if(s.lat==null||s.lng==null) continue;
+      if(String(s.id).startsWith('vmu-')) continue;
+      if(dist(c.lat,c.lng,s.lat,s.lng)<=100&&_vmuNameSim(c.name,s.name)>=0.5){dup=true;break;}
+    }
+    if(dup){dupGeo++;return;}
+    fresh.push(c);
+    if(byCat[c.cat]!=null)byCat[c.cat]++;
+  });
+
+  setBtn('🌲 Įkelti VMU GeoJSON failą');
+  input.value='';
+  if(!fresh.length){toast(`ℹ️ Naujų vietų nerasta (${dupId+dupGeo} dublikatų praleista)`,'info');return;}
+
+  const summary=
+    `VMU importas → Firestore:\n\n`+
+    `Objektų faile: ${feats.length}\n`+
+    `🏕 Stovyklavietės: ${byCat.camping}\n`+
+    `🌲 Poilsio vietos: ${byCat.recreation}\n`+
+    `🥾 Takai: ${byCat.trail}\n`+
+    `🔭 Apžvalgos: ${byCat.viewpoint}\n`+
+    `Praleista (tipas „grupė"): ${skippedType}\n`+
+    `Praleista (be duomenų): ${skippedBad}\n`+
+    `Praleista (dublikatai): ${dupId+dupGeo}\n\n`+
+    `Įrašyti ${fresh.length} vietų į Firestore (T2) ir atnaujinti KV?`;
+  if(!confirm(summary)) return;
+
+  const{db,doc,writeBatch,serverTimestamp}=window._fb||{};
+  if(!db){toast('Firebase nepasiekiamas','info');return;}
+  setBtn('⏳ Rašoma į Firestore...');
+  try{
+    for(let i=0;i<fresh.length;i+=450){
+      const batch=writeBatch(db);
+      fresh.slice(i,i+450).forEach(c=>{
+        const{id,...data}=c;
+        batch.set(doc(db,'spots',id),{...data,createdAt:serverTimestamp()});
+      });
+      await batch.commit();
+      setBtn(`⏳ Firestore ${Math.min(i+450,fresh.length)}/${fresh.length}...`);
+    }
+    toast(`✅ ${fresh.length} VMU vietų įrašyta į Firestore`,'success');
+    setBtn('⏳ Atnaujinama KV...');
+    await rebuildKVCache();
+  }catch(e){
+    console.error('importVMU',e);
+    toast(`❌ Klaida: ${e.message}`,'info');
+  }
+  setBtn('🌲 Įkelti VMU GeoJSON failą');
 }
 
 // Clear local spots cache (force fresh load next time)
