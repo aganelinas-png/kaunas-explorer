@@ -314,6 +314,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .nav-mid{flex:1;min-width:0}
 .nav-text{font-family:'DM Sans',sans-serif;font-weight:600;font-size:.92rem;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav-dist{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);margin-top:1px}
+.nav-total{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--tm);margin-top:1px}
 .nav-close{background:none;border:none;color:var(--td);font-size:18px;cursor:pointer;flex-shrink:0;line-height:1}
 .dbadge{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 11px;font-family:'DM Mono',monospace;font-size:.7rem;color:var(--td);text-align:center;white-space:nowrap;flex-shrink:0;min-width:72px;line-height:1.4}
 .dbadge.near{border-color:var(--green);color:var(--green)}
@@ -1463,7 +1464,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 <!-- NAV BANNER (route next-turn) -->
 <div class="nav-banner" id="navBanner">
   <span class="nav-icon" id="navIcon">🧭</span>
-  <div class="nav-mid"><div class="nav-text" id="navText">—</div><div class="nav-dist" id="navDist"></div></div>
+  <div class="nav-mid"><div class="nav-text" id="navText">—</div><div class="nav-dist" id="navDist"></div><div class="nav-total" id="navTotal"></div></div>
   <button class="nav-close" onclick="clearRoute()" title="Užverti kelią">✕</button>
 </div>
 
@@ -2961,21 +2962,27 @@ async function showRouteTo(spot){
 function updateActiveRoute(){
   if(!_routeLayer||!_routeSpot||userLat===null) return;
   const banner=document.getElementById('navBanner'); if(!banner) return;
-  const ic=banner.querySelector('#navIcon'), tx=banner.querySelector('#navText'), ds=banner.querySelector('#navDist');
+  const ic=banner.querySelector('#navIcon'), tx=banner.querySelector('#navText'), ds=banner.querySelector('#navDist'), nt=banner.querySelector('#navTotal');
   const dDest=dist(userLat,userLng,_routeSpot.lat,_routeSpot.lng);
-  if(dDest<=spotRadius(_routeSpot)){ ic.textContent='🏁'; tx.textContent='Atvykai į vietą!'; ds.textContent=''; return; }
+  if(dDest<=spotRadius(_routeSpot)){ ic.textContent='🏁'; tx.textContent='Atvykai į vietą!'; ds.textContent=''; if(nt)nt.textContent=''; return; }
   if(_routeSteps&&_routeSteps.length){
-    let best=null,bestD=Infinity;
-    for(const st of _routeSteps){
+    let best=null,bestD=Infinity,bestIdx=-1;
+    for(let i=0;i<_routeSteps.length;i++){
+      const st=_routeSteps[i];
       const mt=st.maneuver&&st.maneuver.type;
       if(mt==='depart'||mt==='arrive') continue;
       const loc=st.maneuver&&st.maneuver.location; if(!loc) continue;
       const d=dist(userLat,userLng,loc[1],loc[0]);
-      if(d<bestD){ bestD=d; best=st; }
+      if(d<bestD){ bestD=d; best=st; bestIdx=i; }
     }
-    if(best){ const lab=maneuverLabel(best); ic.textContent=lab.icon; tx.textContent=lab.text; ds.textContent=`po ${fmtDist(bestD)}`; return; }
+    if(best){
+      const lab=maneuverLabel(best); ic.textContent=lab.icon; tx.textContent=lab.text; ds.textContent=`po ${fmtDist(bestD)}`;
+      let rem=bestD; for(let i=bestIdx;i<_routeSteps.length;i++){ rem+=(_routeSteps[i].distance||0); }
+      if(nt) nt.textContent=`iš viso liko ${fmtDist(rem)}`;
+      return;
+    }
   }
-  ic.textContent='🧭'; tx.textContent=_routeSpot.name||'Vieta'; ds.textContent=`liko ${fmtDist(dDest)}`;
+  ic.textContent='🧭'; tx.textContent=_routeSpot.name||'Vieta'; ds.textContent=`liko ${fmtDist(dDest)}`; if(nt)nt.textContent='';
 }
 
 // ═══════════ WEATHER ═══════════
