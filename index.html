@@ -7256,15 +7256,31 @@ let _clusterTimer=null;
 
 // ═══════════ ROUTES + TRIPS (ported) ═══════════
 // ═══════════ TRIP ENGINE v2 (clustering + generation) ═══════════
-// Spot -> Stop (cluster) -> Trip (<=20 stops). Time budget master. Two shapes: loop, dest(A->B corridor).
-const TRIP_MODE_SPEED={foot:80,car:600};        // metres per minute (effective)
-const TRIP_CLUSTER_M=170;                         // spots within this distance = one "stop"
-const TRIP_REACH_M={foot:5000,car:80000};         // loop prefilter radius from start
-const TRIP_CORRIDOR_M={foot:300,car:2000};        // A->B constant corridor half-width (perpendicular)
-const TRIP_DETOUR=1.35;                            // straight-line -> road correction for estimates
+// Spot -> Stop (cluster) -> Trip (<=20 stops). Time budget is master.
+// GEOMETRY: one budget-derived ellipse, foci = start & end. Loop => end===start,
+//   so the ellipse collapses to a circle -- both shapes share a single code path,
+//   and the reachable area now scales with the time budget instead of being fixed.
+// SELECTION: orienteering -- pick the best value-per-added-minute via cheapest
+//   insertion, multi-start (GRASP) with a seeded RNG so identical inputs give
+//   identical trips, then 2-opt / repack / value-swap refinement.
+const TRIP_MODE_SPEED={foot:80,car:600};           // m/min base (foot exact; car = seed for reach iteration only)
+const TRIP_CAR_CITY_SPD=417;                       // 25 km/h — short hops (streets, lights, parking)
+const TRIP_CAR_HWY_SPD=1333;                       // 80 km/h — long legs (highway)
+const TRIP_CAR_D_CITY=1500;                        // m: legs below this = full city speed
+const TRIP_CAR_D_HWY=25000;                        // m: legs above this = full highway speed
+const TRIP_CLUSTER_M=170;                          // spots within this distance = one "stop"
+const TRIP_DETOUR=1.35;                            // fallback straight-line -> road correction (foot + non-planner uses)
+const TRIP_DETOUR_CITY=1.4, TRIP_DETOUR_HWY=1.18;  // car: city grids bend more, highways are straighter
 const TRIP_DWELL_PER_SPOT=3;                       // minutes collecting each spot at a stop
 const TRIP_MAX_STOPS=20;
 const TRIP_MAX_WP=25;                              // hard OSRM waypoint cap (start + stops + dest)
+const TRIP_TRAVEL_FRAC=0.9;                        // share of budget assumed travel (prefilter only, generous)
+const TRIP_T_SLACK=0.15;                           // A->B: how far before start / past dest a stop may sit
+const TRIP_TIER_W={1:1,2:1.15,3:1.3};              // value weight per tier -- TUNE HERE
+const TRIP_CAND_MAX=150;                           // clusters handed to the optimiser
+const TRIP_RESTARTS=12;                            // GRASP multi-start attempts
+const TRIP_RCL=3;                                  // randomised candidate list width
+const TRIP_POOL_MAX=1500;                          // hard spot-pool cap
 
 function _fmtMin(m){m=Math.round(m);if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return r?`${h} val ${r} min`:`${h} val`;}
 
@@ -7278,7 +7294,22 @@ function _clusterSpots(arr){
   }
   return cl;
 }
-function _legMin(aLat,aLng,bLat,bLng,mode){const d=dist(aLat,aLng,bLat,bLng)*TRIP_DETOUR;return d/(TRIP_MODE_SPEED[mode]||TRIP_MODE_SPEED.car);}
+// Car speed & detour depend on leg length: a 500 m hop is city streets, a 60 km leg is highway.
+function _tripSpeed(mode,d){
+  if(mode!=='car')return TRIP_MODE_SPEED[mode]||TRIP_MODE_SPEED.car;
+  if(d<=TRIP_CAR_D_CITY)return TRIP_CAR_CITY_SPD;
+  if(d>=TRIP_CAR_D_HWY)return TRIP_CAR_HWY_SPD;
+  const t=(d-TRIP_CAR_D_CITY)/(TRIP_CAR_D_HWY-TRIP_CAR_D_CITY);
+  return TRIP_CAR_CITY_SPD+(TRIP_CAR_HWY_SPD-TRIP_CAR_CITY_SPD)*t;
+}
+function _tripDetour(mode,d){
+  if(mode!=='car')return TRIP_DETOUR;
+  if(d<=TRIP_CAR_D_CITY)return TRIP_DETOUR_CITY;
+  if(d>=TRIP_CAR_D_HWY)return TRIP_DETOUR_HWY;
+  const t=(d-TRIP_CAR_D_CITY)/(TRIP_CAR_D_HWY-TRIP_CAR_D_CITY);
+  return TRIP_DETOUR_CITY+(TRIP_DETOUR_HWY-TRIP_DETOUR_CITY)*t;
+}
+function _legMin(aLat,aLng,bLat,bLng,mode){const d0=dist(aLat,aLng,bLat,bLng);return d0*_tripDetour(mode,d0)/_tripSpeed(mode,d0);}
 function _stopDwell(c){return c.spots.length*TRIP_DWELL_PER_SPOT;}
 
 // Perpendicular distance (m) of a point to the A->B segment + projection t (0..1 = between ends).
@@ -7292,19 +7323,132 @@ function _corridorDist(plat,plng,alat,alng,blat,blng){
   return{perp:Math.hypot(px-cx,py-cy),t};
 }
 
-function _segLen(nodes,start,end,mode){let t=0,prev=start;for(const n of nodes){t+=_legMin(prev.lat,prev.lng,n.lat,n.lng,mode);prev=n;}if(end)t+=_legMin(prev.lat,prev.lng,end.lat,end.lng,mode);return t;}
-function _twoOpt(nodes,start,end,mode){
-  if(nodes.length<3)return;let improved=true,guard=0;
-  while(improved&&guard++<40){improved=false;
-    for(let i=0;i<nodes.length-1;i++)for(let j=i+1;j<nodes.length;j++){
-      const before=_segLen(nodes,start,end,mode);
-      const trial=nodes.slice(0,i).concat(nodes.slice(i,j+1).reverse(),nodes.slice(j+1));
-      if(_segLen(trial,start,end,mode)<before-1e-6){for(let k=0;k<nodes.length;k++)nodes[k]=trial[k];improved=true;}
+// Seeded PRNG so the same inputs always produce the same trip (regenerate stays stable).
+function _mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function _tripSeed(o){
+  const s=[o.mode,o.shape,o.budgetMin,(o.cats||[]).join(','),
+    Math.round((o.startLat||0)*1e4),Math.round((o.startLng||0)*1e4),
+    Math.round((o.destLat||0)*1e4),Math.round((o.destLng||0)*1e4),
+    (o.excludeIds&&o.excludeIds.size)||0].join('|');
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}
+  return h>>>0;
+}
+function _spotValue(s){return TRIP_TIER_W[s&&s.tier]||1;}
+function _clusterValue(c){let v=0;for(const s of c.spots)v+=_spotValue(s);return v;}
+
+// Max straight-line (start->p) + (p->end) a stop may cost and still fit the budget.
+// Loop (end===start) => this is 2x the loop radius.
+function _tripReachSum(mode,budgetMin){
+  // Speed depends on leg length, which depends on reach — 3 fixed-point iterations converge.
+  let d=budgetMin*TRIP_TRAVEL_FRAC*(TRIP_MODE_SPEED[mode]||TRIP_MODE_SPEED.car);
+  for(let i=0;i<3;i++){const s=d/2;d=budgetMin*TRIP_TRAVEL_FRAC*_tripSpeed(mode,s)/_tripDetour(mode,s);}
+  return Math.max(300,d);
+}
+
+// Precomputed leg-time matrix: indices 0..n-1 = clusters, S = n = start, E = n+1 = end.
+function _tripMatrix(cands,start,end,mode){
+  const n=cands.length,N=n+2,pts=cands.concat([start,end]);
+  const M=new Float64Array(N*N);
+  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+    const v=_legMin(pts[i].lat,pts[i].lng,pts[j].lat,pts[j].lng,mode);
+    M[i*N+j]=v;M[j*N+i]=v;
+  }
+  return{M,N,S:n,E:n+1};
+}
+function _tripTimeIdx(seq,ctx,dwell){
+  const {M,N,S,E}=ctx;let t=0,prev=S;
+  for(const c of seq){t+=M[prev*N+c]+dwell[c];prev=c;}
+  return t+M[prev*N+E];
+}
+function _tripBestIns(seq,c,ctx){
+  const {M,N,S,E}=ctx;let bp=0,bd=Infinity;
+  for(let p=0;p<=seq.length;p++){
+    const a=p===0?S:seq[p-1], b=p===seq.length?E:seq[p];
+    const d=M[a*N+c]+M[c*N+b]-M[a*N+b];
+    if(d<bd){bd=d;bp=p;}
+  }
+  return{pos:bp,delta:bd};
+}
+// One orienteering pass: repeatedly insert the best value-per-minute cluster that still fits.
+function _tripRun(idx,ctx,dwell,val,budget,rnd){
+  const {M,N,S,E}=ctx;
+  const seq=[],pool=idx.slice();
+  let used=M[S*N+E];
+  while(pool.length&&seq.length<TRIP_MAX_STOPS){
+    const feas=[];
+    for(let k=0;k<pool.length;k++){
+      const c=pool[k],ins=_tripBestIns(seq,c,ctx),cost=ins.delta+dwell[c];
+      if(used+cost>budget)continue;
+      feas.push({k,pos:ins.pos,cost,ratio:val[c]/Math.max(cost,0.5)});
+    }
+    if(!feas.length)break;
+    feas.sort((a,b)=>b.ratio-a.ratio);
+    const pick=feas[rnd?Math.floor(rnd()*Math.min(TRIP_RCL,feas.length)):0];
+    seq.splice(pick.pos,0,pool[pick.k]);used+=pick.cost;pool.splice(pick.k,1);
+  }
+  return seq;
+}
+function _tripTwoOpt(seq,ctx){
+  const {M,N,S,E}=ctx;
+  if(seq.length<3)return;
+  const legs=s=>{let t=M[S*N+s[0]];for(let i=0;i<s.length-1;i++)t+=M[s[i]*N+s[i+1]];return t+M[s[s.length-1]*N+E];};
+  let improved=true,guard=0;
+  while(improved&&guard++<40){
+    improved=false;
+    for(let i=0;i<seq.length-1;i++)for(let j=i+1;j<seq.length;j++){
+      const t=seq.slice(0,i).concat(seq.slice(i,j+1).reverse(),seq.slice(j+1));
+      if(legs(t)<legs(seq)-1e-9){for(let k=0;k<seq.length;k++)seq[k]=t[k];improved=true;}
     }
   }
 }
+// 2-opt frees minutes -- spend them on more stops.
+function _tripRepack(seq,idx,ctx,dwell,val,budget){
+  const inSeq=new Set(seq);
+  let used=_tripTimeIdx(seq,ctx,dwell),go=true;
+  while(go&&seq.length<TRIP_MAX_STOPS){
+    go=false;let best=null;
+    for(const c of idx){
+      if(inSeq.has(c))continue;
+      const ins=_tripBestIns(seq,c,ctx),cost=ins.delta+dwell[c];
+      if(used+cost>budget)continue;
+      const r=val[c]/Math.max(cost,0.5);
+      if(!best||r>best.r)best={c,pos:ins.pos,cost,r};
+    }
+    if(best){seq.splice(best.pos,0,best.c);inSeq.add(best.c);used+=best.cost;go=true;}
+  }
+  return used;
+}
+// When TRIP_MAX_STOPS (not time) is the binding constraint, ratio-greedy under-fills:
+// it keeps cheap clusters while time sits unused. Trade low-value stops up.
+function _tripSwap(seq,idx,ctx,dwell,val,budget){
+  const inSeq=new Set(seq);
+  let go=true,guard=0;
+  while(go&&guard++<8){
+    go=false;let best=null;
+    for(let p=0;p<seq.length;p++){
+      const out=seq[p],rest=seq.slice(0,p).concat(seq.slice(p+1));
+      const baseT=_tripTimeIdx(rest,ctx,dwell);
+      for(const c of idx){
+        if(inSeq.has(c)||val[c]<=val[out])continue;
+        const ins=_tripBestIns(rest,c,ctx),t=baseT+ins.delta+dwell[c];
+        if(t>budget)continue;
+        const gain=val[c]-val[out];
+        if(!best||gain>best.gain)best={p,c,pos:ins.pos,gain};
+      }
+    }
+    if(best){
+      const rest=seq.slice(0,best.p).concat(seq.slice(best.p+1));
+      rest.splice(best.pos,0,best.c);
+      inSeq.delete(seq[best.p]);inSeq.add(best.c);
+      seq.length=0;for(const x of rest)seq.push(x);
+      go=true;
+    }
+  }
+}
+function _tripValIdx(seq,val){let v=0;for(const c of seq)v+=val[c];return v;}
 
-// Pure planner: cluster + budget-bounded greedy + 2-opt + straight-line estimate. No network.
+// Pure planner: ellipse prefilter + cluster + GRASP orienteering + refinement. No network.
 function buildTripPlan(opts){
   const mode=opts.mode||'car';
   const sLat=opts.startLat,sLng=opts.startLng;
@@ -7313,38 +7457,61 @@ function buildTripPlan(opts){
   if(opts.cats&&opts.cats.length)pool=pool.filter(s=>opts.cats.includes(s.cat));
   if(opts.excludeIds&&opts.excludeIds.size)pool=pool.filter(s=>!opts.excludeIds.has(String(s.id)));
   const hasDest=opts.shape==='dest'&&opts.destLat!=null&&opts.destLng!=null;
-  if(hasDest){
-    const corr=TRIP_CORRIDOR_M[mode]||TRIP_CORRIDOR_M.car;
-    pool=pool.filter(s=>{const r=_corridorDist(s.lat,s.lng,sLat,sLng,opts.destLat,opts.destLng);return r.perp<=corr&&r.t>=-0.05&&r.t<=1.05;});
-  }else{
-    const reach=TRIP_REACH_M[mode]||TRIP_REACH_M.car;
-    pool=pool.filter(s=>dist(sLat,sLng,s.lat,s.lng)<=reach);
-  }
-  if(!pool.length)return{stops:[],spots:[],estKm:0,estMin:0,poolCount:0};
-  if(pool.length>1500){pool.sort((a,b)=>dist(sLat,sLng,a.lat,a.lng)-dist(sLat,sLng,b.lat,b.lng));pool=pool.slice(0,1500);}
-  const clusters=_clusterSpots(pool);
+  const eLat=hasDest?opts.destLat:sLat, eLng=hasDest?opts.destLng:sLng;
   const budget=opts.budgetMin||120;
-  const rem=clusters.slice();const chosen=[];
-  let cur={lat:sLat,lng:sLng},used=0;
-  while(rem.length&&chosen.length<TRIP_MAX_STOPS){
-    let bi=-1,bd=Infinity;
-    for(let i=0;i<rem.length;i++){const d=dist(cur.lat,cur.lng,rem[i].lat,rem[i].lng);if(d<bd){bd=d;bi=i;}}
-    if(bi<0)break;
-    const cand=rem[bi];
-    const leg=_legMin(cur.lat,cur.lng,cand.lat,cand.lng,mode),dwell=_stopDwell(cand);
-    let closing=0;
-    if(hasDest)closing=_legMin(cand.lat,cand.lng,opts.destLat,opts.destLng,mode);
-    else closing=_legMin(cand.lat,cand.lng,sLat,sLng,mode);
-    if(chosen.length>0&&used+leg+dwell+closing>budget)break;
-    chosen.push(cand);used+=leg+dwell;cur=cand;rem.splice(bi,1);
+
+  // ── budget-derived ellipse (foci = start,end); loop degenerates to a circle
+  const reachSum=_tripReachSum(mode,budget);
+  pool=pool.filter(s=>{
+    if(dist(sLat,sLng,s.lat,s.lng)+dist(s.lat,s.lng,eLat,eLng)>reachSum)return false;
+    if(hasDest){const r=_corridorDist(s.lat,s.lng,sLat,sLng,eLat,eLng);if(r.t<-TRIP_T_SLACK||r.t>1+TRIP_T_SLACK)return false;}
+    return true;
+  });
+  if(!pool.length)return{stops:[],spots:[],estKm:0,estMin:0,poolCount:0};
+  if(pool.length>TRIP_POOL_MAX){
+    pool.sort((a,b)=>(dist(sLat,sLng,a.lat,a.lng)+dist(a.lat,a.lng,eLat,eLng))-(dist(sLat,sLng,b.lat,b.lng)+dist(b.lat,b.lng,eLat,eLng)));
+    pool=pool.slice(0,TRIP_POOL_MAX);
   }
-  _twoOpt(chosen,{lat:sLat,lng:sLng},hasDest?{lat:opts.destLat,lng:opts.destLng}:{lat:sLat,lng:sLng},mode);
-  let km=0,min=0,prev={lat:sLat,lng:sLng};
-  for(const c of chosen){km+=dist(prev.lat,prev.lng,c.lat,c.lng)*TRIP_DETOUR;min+=_legMin(prev.lat,prev.lng,c.lat,c.lng,mode)+_stopDwell(c);prev=c;}
-  if(hasDest){km+=dist(prev.lat,prev.lng,opts.destLat,opts.destLng)*TRIP_DETOUR;min+=_legMin(prev.lat,prev.lng,opts.destLat,opts.destLng,mode);}
-  else{km+=dist(prev.lat,prev.lng,sLat,sLng)*TRIP_DETOUR;min+=_legMin(prev.lat,prev.lng,sLat,sLng,mode);}
+  const poolCount=pool.length;
+
+  let clusters=_clusterSpots(pool);
+  const start={lat:sLat,lng:sLng},end={lat:eLat,lng:eLng};
+  // Hand the optimiser only the most promising clusters (value per minute of pure detour).
+  if(clusters.length>TRIP_CAND_MAX){
+    const base=_legMin(sLat,sLng,eLat,eLng,mode);
+    clusters=clusters.map(c=>{
+      const det=_legMin(sLat,sLng,c.lat,c.lng,mode)+_legMin(c.lat,c.lng,eLat,eLng,mode)-base;
+      return{c,r:_clusterValue(c)/Math.max(det+_stopDwell(c),0.5)};
+    }).sort((a,b)=>b.r-a.r).slice(0,TRIP_CAND_MAX).map(x=>x.c);
+  }
+
+  const ctx=_tripMatrix(clusters,start,end,mode);
+  const dwell=clusters.map(_stopDwell), val=clusters.map(_clusterValue);
+  const idx=clusters.map((c,i)=>i);
+
+  const rnd=_mulberry32(_tripSeed(opts));
+  let best=_tripRun(idx,ctx,dwell,val,budget,null);      // deterministic greedy first
+  let bestV=_tripValIdx(best,val);
+  for(let k=0;k<TRIP_RESTARTS;k++){
+    const r=_tripRun(idx,ctx,dwell,val,budget,rnd), v=_tripValIdx(r,val);
+    if(v>bestV){bestV=v;best=r;}
+  }
+  if(best.length){
+    _tripTwoOpt(best,ctx);
+    _tripRepack(best,idx,ctx,dwell,val,budget);
+    _tripTwoOpt(best,ctx);
+    _tripSwap(best,idx,ctx,dwell,val,budget);
+    _tripRepack(best,idx,ctx,dwell,val,budget);
+    _tripTwoOpt(best,ctx);
+  }
+
+  const chosen=best.map(i=>clusters[i]);
+  let km=0,prev=start;
+  for(const c of chosen){const d0=dist(prev.lat,prev.lng,c.lat,c.lng);km+=d0*_tripDetour(mode,d0);prev=c;}
+  const dE=dist(prev.lat,prev.lng,eLat,eLng);km+=dE*_tripDetour(mode,dE);
+  const min=_tripTimeIdx(best,ctx,dwell);
   const spots=[];chosen.forEach(c=>c.spots.forEach(s=>spots.push(String(s.id))));
-  return{stops:chosen,spots,estKm:km/1000,estMin:Math.round(min),poolCount:pool.length};
+  return{stops:chosen,spots,estKm:km/1000,estMin:Math.round(min),poolCount};
 }
 
 // OSRM /trip — optimal order + real road polyline (driving). Fallback handled by caller.
@@ -7369,7 +7536,8 @@ async function osrmTripRefine(plan,opts){
     wp.forEach((w,inputIdx)=>{if(inputIdx===0)return;if(destIdx!=null&&inputIdx===destIdx)return;order.push({inputIdx,ti:w.waypoint_index});});
     order.sort((a,b)=>a.ti-b.ti);
     const reord=order.map(o=>plan.stops[o.inputIdx-1]).filter(Boolean);
-    return{coords,km:trip.distance/1000,min:Math.round(trip.duration/60),stops:reord.length===plan.stops.length?reord:plan.stops};
+    const dwellMin=plan.stops.reduce((t,c)=>t+_stopDwell(c),0); // driving time alone drops collection time
+    return{coords,km:trip.distance/1000,min:Math.round(trip.duration/60+dwellMin),stops:reord.length===plan.stops.length?reord:plan.stops};
   }catch(e){return null;}
 }
 
@@ -7524,7 +7692,11 @@ function _tpUpdateEstimate(){
     if(o.startLat==null){out.innerHTML='<span style="color:var(--td)">Pirma nustatyk pradžios tašką (📍 GPS arba žemėlapyje).</span>';return;}
     if(o.shape==='dest'&&o.destLat==null){out.innerHTML='<span style="color:var(--td)">Pasirink tikslą, kad suplanuotum maršrutą.</span>';return;}
     const plan=buildTripPlan(o);
-    if(!plan||!plan.stops.length){out.innerHTML='<span style="color:var(--td)">Diapazone vietų nėra — padidink laiką arba perkelk pradžią.</span>';return;}
+    if(!plan||!plan.stops.length){
+      const dm=(o.shape==='dest'&&o.destLat!=null)?_legMin(o.startLat,o.startLng,o.destLat,o.destLng,o.mode):0;
+      if(dm>o.budgetMin){out.innerHTML=`<span style="color:var(--td)">Vien kelionė iki tikslo užtruks ~${_fmtMin(dm)} — padidink laiką.</span>`;return;}
+      out.innerHTML='<span style="color:var(--td)">Diapazone vietų nėra — padidink laiką arba perkelk pradžią.</span>';return;
+    }
     out.innerHTML=`<b style="color:var(--gold)">≈ ${plan.stops.length} stotel${plan.stops.length===1?'ė':'ės'}</b> · ${plan.spots.length} vietų · ~${plan.estKm.toFixed(1)} km · ~${_fmtMin(plan.estMin)}`;
   },140);
 }
@@ -7561,7 +7733,10 @@ function tpGenerate(){
   if(o.startLat==null){toast('Pirma nustatyk pradžios tašką','info');return;}
   if(o.shape==='dest'&&o.destLat==null){toast('Pirma pasirink tikslą','info');return;}
   const plan=buildTripPlan(o);
-  if(!plan||!plan.stops.length){toast('Šiam maršrutui vietų diapazone nėra','info');return;}
+  if(!plan||!plan.stops.length){
+    const dm=(o.shape==='dest'&&o.destLat!=null)?_legMin(o.startLat,o.startLng,o.destLat,o.destLng,o.mode):0;
+    toast(dm>o.budgetMin?`Vien kelionė iki tikslo užtruks ~${_fmtMin(dm)} — padidink laiką`:'Šiam maršrutui vietų diapazone nėra','info');return;
+  }
   _tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);
   if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{
     if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;
@@ -7610,7 +7785,7 @@ function _tpShowPreview(){
   el.style.display='flex';
 }
 function tpDiscardPreview(){const el=document.getElementById('tpPreviewSheet');if(el)el.style.display='none';_tpClearPreview();}
-function tpRegenerate(){if(!_tpPreview)return;const o=_tpPreview.opts;const plan=buildTripPlan(o);if(!plan||!plan.stops.length){toast('No spots in range','info');return;}_tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(c=>c.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});}
+function tpRegenerate(){if(!_tpPreview)return;const o=_tpPreview.opts;const plan=buildTripPlan(o);if(!plan||!plan.stops.length){toast('Diapazone vietų nėra','info');return;}_tpPreview={plan,opts:o};_tpShowPreview();_tpDrawPreview(plan,o);if(o.mode!=='foot')osrmTripRefine(plan,o).then(ref=>{if(!_tpPreview||_tpPreview.plan!==plan||!ref)return;plan.stops=ref.stops;const sp=[];plan.stops.forEach(c=>c.spots.forEach(s=>sp.push(String(s.id))));plan.spots=sp;plan.estKm=ref.km;plan.estMin=ref.min;plan._osrmCoords=ref.coords;_tpDrawPreview(plan,o);_tpShowPreview();});}
 function tpSavePreview(){
   if(!_tpPreview)return;const{plan,opts}=_tpPreview;
   let label,emoji;
@@ -8141,7 +8316,7 @@ maybeShowOnboarding();
   // Register service worker for offline caching
   if('serviceWorker' in navigator){
     const swCode=`
-const CACHE='spotseekers-v47';
+const CACHE='spotseekers-v49';
 // Clear legacy wiki caches that eat localStorage quota
 try{localStorage.removeItem('kex_wiki_cache_lt_v1');localStorage.removeItem('kex_wiki_cache_lt_v2');}catch(e){}
 const PRECACHE=['/'];
